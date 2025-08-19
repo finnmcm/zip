@@ -1,0 +1,349 @@
+# Zip iOS Project - Cursor Rules
+
+## Project Overview
+Zip is a quick delivery app for Northwestern University students offering fast, small convenience-based orders at discounted prices. The app focuses on speed, simplicity, and affordability for college students.
+
+## Core Features
+- **Shopping View**: Browse products currently in stock
+- **Authentication**: Student login/signup system
+- **Cart Management**: View and modify items before checkout
+- **Checkout Pipeline**: Streamlined payment process via Stripe
+
+## Technical Stack
+- **Platform**: iOS 16+ 
+- **UI Framework**: 90% SwiftUI, 10% UIKit (only when necessary)
+- **Data Persistence**: SwiftData for local storage
+- **Backend**: Supabase PostgreSQL with REST API
+- **Payment Processing**: Stripe integration
+- **Edge Functions**: Supabase edge functions for Stripe webhooks
+- **Async Pattern**: async/await (no completion handlers)
+
+## Architecture Guidelines
+
+### Project Structure
+```
+Zip/
+├── App/
+│   ├── ZipApp.swift
+│   └── AppDelegate.swift (if needed for UIKit)
+├── Models/
+│   ├── Product.swift
+│   ├── Cart.swift
+│   ├── User.swift
+│   └── Order.swift
+├── Views/
+│   ├── Shopping/
+│   │   ├── ProductListView.swift
+│   │   ├── ProductDetailView.swift
+│   │   └── ProductCard.swift
+│   ├── Authentication/
+│   │   ├── LoginView.swift
+│   │   ├── SignUpView.swift
+│   │   └── ForgotPasswordView.swift
+│   ├── Cart/
+│   │   ├── CartView.swift
+│   │   └── CartItemRow.swift
+│   └── Checkout/
+│       ├── CheckoutView.swift
+│       ├── PaymentView.swift
+│       └── OrderConfirmationView.swift
+├── ViewModels/
+│   ├── ShoppingViewModel.swift
+│   ├── AuthViewModel.swift
+│   ├── CartViewModel.swift
+│   └── CheckoutViewModel.swift
+├── Services/
+│   ├── SupabaseService.swift
+│   ├── StripeService.swift
+│   ├── AuthenticationService.swift
+│   └── NetworkManager.swift
+├── Utilities/
+│   ├── Extensions/
+│   ├── Constants.swift
+│   └── Helpers/
+└── Resources/
+    └── Assets.xcassets
+```
+
+### MVVM Pattern Implementation
+- Each major view should have a corresponding ViewModel
+- ViewModels should be @Observable (iOS 17+) or use @Published properties with ObservableObject
+- Business logic stays in ViewModels, not Views
+- Services handle external communications (API, database)
+
+## Coding Standards
+
+### SwiftUI Views
+```swift
+struct ProductListView: View {
+    @StateObject private var viewModel = ShoppingViewModel()
+    @State private var searchText = ""
+    
+    var body: some View {
+        NavigationStack {
+            // Content here
+        }
+    }
+}
+```
+
+### Async/Await Pattern
+```swift
+// Always use async/await for asynchronous operations
+func fetchProducts() async throws -> [Product] {
+    let response = try await networkManager.get(endpoint: .products)
+    return response
+}
+
+// In ViewModels
+@MainActor
+func loadProducts() async {
+    do {
+        products = try await service.fetchProducts()
+    } catch {
+        // Handle error
+    }
+}
+```
+
+### SwiftData Models
+```swift
+import SwiftData
+
+@Model
+final class Product {
+    var id: UUID
+    var name: String
+    var price: Decimal
+    var quantity: Int
+    var imageURL: String?
+    var category: String
+    var inStock: Bool
+    
+    init(name: String, price: Decimal, quantity: Int = 0) {
+        self.id = UUID()
+        self.name = name
+        self.price = price
+        self.quantity = quantity
+        self.inStock = quantity > 0
+    }
+}
+```
+
+### Error Handling
+```swift
+// Use if let for optionals
+if let user = currentUser {
+    // Process user
+}
+
+// Use do-catch for throwing functions
+do {
+    let result = try await performOperation()
+} catch {
+    print("Error: \(error.localizedDescription)")
+}
+```
+
+## Service Layer Guidelines
+
+### Supabase Service Structure
+```swift
+class SupabaseService {
+    static let shared = SupabaseService()
+    private let baseURL = "YOUR_SUPABASE_URL"
+    private let apiKey = "YOUR_SUPABASE_ANON_KEY"
+    
+    func fetchProducts() async throws -> [Product] {
+        // REST API implementation
+    }
+}
+```
+
+### Stripe Integration
+```swift
+class StripeService {
+    static let shared = StripeService()
+    
+    func processPayment(amount: Decimal, paymentMethod: String) async throws -> PaymentResult {
+        // Stripe payment processing
+    }
+}
+```
+
+## UI/UX Guidelines
+
+### Design Principles
+- Northwestern purple (#4E2A84) as primary brand color
+- Clean, minimal interface optimized for quick transactions
+- Large touch targets for easy interaction while walking
+- Clear product images and pricing
+- Persistent cart indicator showing item count
+
+### Navigation Flow
+1. Launch → Authentication (if not logged in)
+2. Main Tab View:
+   - Shop (default)
+   - Cart
+   - Profile/Orders
+3. Shop → Product Detail → Add to Cart
+4. Cart → Checkout → Payment → Confirmation
+
+### Accessibility
+- Support Dynamic Type
+- Minimum touch target size: 44x44 points
+- Proper VoiceOver labels
+- High contrast text
+
+## Testing Requirements
+
+### Unit Tests
+- Test all ViewModels
+- Test Services with mock data
+- Test data models and transformations
+- Minimum 70% code coverage target
+
+### UI Tests
+- Test critical user flows:
+  - Login/signup process
+  - Browse → Add to cart → Checkout
+  - Order history viewing
+- Test error states and edge cases
+
+### Test Structure
+```swift
+final class ShoppingViewModelTests: XCTestCase {
+    var sut: ShoppingViewModel!
+    
+    override func setUp() {
+        super.setUp()
+        sut = ShoppingViewModel()
+    }
+    
+    func testFetchProducts() async throws {
+        // Test implementation
+    }
+}
+```
+
+## Dependencies Management
+
+### Current Dependencies
+- Supabase iOS SDK
+- Stripe iOS SDK
+- Any additional SPM packages as needed
+
+### Adding Dependencies
+- Prefer Swift Package Manager over CocoaPods/Carthage
+- Document why each dependency is needed
+- Keep dependencies minimal
+
+## Security & Privacy
+
+### Data Handling
+- Store sensitive data in Keychain (tokens, user credentials)
+- Never log sensitive information
+- Use HTTPS for all network requests
+- Implement certificate pinning for production
+
+### Authentication
+- Store auth tokens securely
+- Implement token refresh logic
+- Handle session expiration gracefully
+- Use Northwestern email validation (@u.northwestern.edu)
+
+## Performance Guidelines
+
+### Optimization
+- Lazy load images
+- Implement pagination for product lists
+- Cache frequently accessed data in SwiftData
+- Minimize view redraws with proper state management
+
+### Network
+- Implement proper retry logic with exponential backoff
+- Show loading states during network operations
+- Handle offline mode gracefully
+- Cache product images
+
+## Git Workflow
+
+### Branch Naming
+- feature/description
+- bugfix/description
+- hotfix/description
+
+### Commit Messages
+- Use present tense ("Add feature" not "Added feature")
+- Keep under 50 characters
+- Reference issue numbers when applicable
+
+## Build Configuration
+
+### Schemes
+- Debug: Development environment
+- Release: Production environment
+- Test: Testing configuration
+
+### Environment Variables
+- Use .xcconfig files for environment-specific settings
+- Never commit API keys to repository
+- Use CI/CD secrets for sensitive data
+
+## Comments & Documentation
+
+### Code Comments
+```swift
+// Basic inline comments for complex logic
+func calculateDeliveryFee(distance: Double) -> Decimal {
+    // Northwestern campus radius is approximately 1 mile
+    if distance <= 1.0 {
+        return 0.99 // Flat campus rate
+    }
+    return Decimal(distance) * 0.50
+}
+```
+
+### Function Documentation (when needed)
+```swift
+/// Processes student discount based on order total
+/// - Parameter orderTotal: Pre-discount order amount
+/// - Returns: Discounted total with student pricing applied
+func applyStudentDiscount(to orderTotal: Decimal) -> Decimal {
+    // Implementation
+}
+```
+
+## Specific Implementation Notes
+
+### Northwestern-Specific Features
+- Validate .edu email addresses during signup
+- Support dorm/building delivery locations
+- Integrate with campus building database if available
+- Consider meal plan integration for future
+
+### Cart Persistence
+- Save cart locally using SwiftData
+- Sync with backend when user logs in
+- Clear cart after successful order
+- Implement cart abandonment reminders
+
+### Product Availability
+- Real-time stock updates via Supabase
+- Disable out-of-stock items
+- Show estimated restock times when available
+- Priority items for exam periods (coffee, energy drinks, snacks)
+
+## Future Considerations
+- Push notifications for order updates
+- Loyalty/rewards program
+- Group orders for dorms
+- Schedule future deliveries
+- Integration with Northwestern SafeRide for late-night deliveries
+
+## Important Reminders
+- This is a Northwestern-specific app - optimize for campus life
+- Students are price-sensitive - emphasize savings
+- Speed is crucial - minimize checkout steps
+- Reliability builds trust - handle errors gracefully
+- Consider exam periods and campus events for inventory planning
