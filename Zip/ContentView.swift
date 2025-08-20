@@ -11,12 +11,29 @@ import Inject
 
 struct ContentView: View {
     @ObserveInjection var inject
+    @Environment(\.modelContext) private var context
+    @StateObject private var authViewModel = AuthViewModel()
+    
     var body: some View {
-        Text("wowwwwww;d!")
+        Group {
+            if authViewModel.currentUser != nil {
+                MainTabView()
+                    .environmentObject(authViewModel)
+            } else {
+                LoginView()
+                    .environmentObject(authViewModel)
+            }
+        }
+        .onAppear {
+            // Initialize with the actual context from environment
+            if authViewModel.context == nil {
+                authViewModel.updateContext(context)
+            }
+        }
     }
 }
 
 #Preview {
     ContentView()
-    
+        .modelContainer(for: User.self)
 }

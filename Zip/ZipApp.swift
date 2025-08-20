@@ -23,5 +23,6 @@ struct ZipApp: App {
             ContentView()
                 .enableInjection()  // Just once here
         }
+        .modelContainer(for: [Product.self, CartItem.self, User.self, Order.self])
     }
 }

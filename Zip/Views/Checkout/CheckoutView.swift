@@ -1,0 +1,165 @@
+//
+//  CheckoutView.swift
+//  Zip
+//
+
+import SwiftUI
+import Inject
+
+struct CheckoutView: View {
+    @ObserveInjection var inject
+    @ObservedObject var viewModel: CheckoutViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var showConfirmation: Bool = false
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                AppColors.background.ignoresSafeArea()
+                
+                VStack(spacing: AppMetrics.spacingLarge) {
+                    // Order Summary
+                    VStack(alignment: .leading, spacing: AppMetrics.spacing) {
+                        Text("Order Summary")
+                            .font(.title2.bold())
+                            .padding(.horizontal, AppMetrics.spacingLarge)
+                        
+                        VStack(spacing: AppMetrics.spacing) {
+                            ForEach(viewModel.cart.items, id: \.id) { item in
+                                HStack {
+                                    Text(item.productName)
+                                        .font(.body)
+                                    Spacer()
+                                    // Text("\(item.quantity) × $\(NSDecimalNumber(decimal: item.unitPrice).doubleValue, specifier: "%.2f")")
+                                    //    .font(.body)
+                                    //    .foregroundStyle(AppColors.textSecondary)
+                                }
+                            }
+                            
+                            Divider()
+                            
+                            HStack {
+                                Text("Subtotal")
+                                    .font(.body)
+                                Spacer()
+                                Text("$\(NSDecimalNumber(decimal: viewModel.cart.subtotal).doubleValue, specifier: "%.2f")")
+                                    .font(.body)
+                            }
+                            
+                            HStack {
+                                Text("Delivery Fee")
+                                    .font(.body)
+                                Spacer()
+                                Text("$0.99")
+                                    .font(.body)
+                            }
+                            
+                            Divider()
+                            
+                            HStack {
+                                Text("Total")
+                                    .font(.title3.bold())
+                                Spacer()
+                                Text("$\(NSDecimalNumber(decimal: viewModel.cart.subtotal + Decimal(0.99)).doubleValue, specifier: "%.2f")")
+                                    .font(.title3.bold())
+                                    .foregroundStyle(AppColors.accent)
+                            }
+                        }
+                        .padding()
+                        .background(AppColors.secondaryBackground)
+                        .cornerRadius(AppMetrics.cornerRadiusLarge)
+                        .padding(.horizontal, AppMetrics.spacingLarge)
+                    }
+                    
+                    // Delivery Info
+                    VStack(alignment: .leading, spacing: AppMetrics.spacing) {
+                        Text("Delivery Information")
+                            .font(.title2.bold())
+                            .padding(.horizontal, AppMetrics.spacingLarge)
+                        
+                        VStack(spacing: AppMetrics.spacing) {
+                            HStack {
+                                Image(systemName: "location")
+                                    .foregroundStyle(AppColors.accent)
+                                Text("Northwestern Campus")
+                                    .font(.body)
+                                Spacer()
+                            }
+                            
+                            HStack {
+                                Image(systemName: "clock")
+                                    .foregroundStyle(AppColors.accent)
+                                Text("Estimated delivery: 20-30 minutes")
+                                    .font(.body)
+                                Spacer()
+                            }
+                        }
+                        .padding()
+                        .background(AppColors.secondaryBackground)
+                        .cornerRadius(AppMetrics.cornerRadiusLarge)
+                        .padding(.horizontal, AppMetrics.spacingLarge)
+                    }
+                    
+                    Spacer()
+                    
+                    // Payment Button
+                    VStack(spacing: AppMetrics.spacing) {
+                        if let errorMessage = viewModel.errorMessage {
+                            Text(errorMessage)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, AppMetrics.spacingLarge)
+                        }
+                        
+                        Button(action: {
+                            Task {
+                                await viewModel.confirmPayment()
+                                if viewModel.lastOrder != nil {
+                                    showConfirmation = true
+                                }
+                            }
+                        }) {
+                            HStack {
+                                if viewModel.isProcessing {
+                                    ProgressView()
+                                        .tint(.white)
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Image(systemName: "creditcard.fill")
+                                }
+                                Text(viewModel.isProcessing ? "Processing..." : "Confirm Order")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(AppColors.accent)
+                            .foregroundColor(.white)
+                            .cornerRadius(AppMetrics.cornerRadiusLarge)
+                        }
+                        .disabled(viewModel.isProcessing)
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, AppMetrics.spacingLarge)
+                        .padding(.bottom, AppMetrics.spacingLarge)
+                    }
+                }
+            }
+            .navigationTitle("Checkout")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+            .sheet(isPresented: $showConfirmation) {
+                OrderConfirmationView(order: viewModel.lastOrder)
+                    .onDisappear {
+                        dismiss()
+                    }
+            }
+        }
+        .enableInjection()
+    }
+}
