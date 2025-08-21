@@ -165,7 +165,7 @@ Zip provides an on-demand delivery service that:
 ### 5.1 Platform & Architecture
 - **Platform**: iOS 16+ (90% SwiftUI, 10% UIKit when necessary)
 - **Architecture**: MVVM pattern with @Observable ViewModels
-- **Data Persistence**: SwiftData for local storage
+- **Data Persistence**: UserDefaults for local storage
 - **Backend**: Supabase PostgreSQL with REST API
 - **Payment**: Stripe iOS SDK integration
 

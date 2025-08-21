@@ -4,13 +4,11 @@
 //
 
 import SwiftUI
-import SwiftData
 import Inject
 
 struct CartView: View {
     @ObserveInjection var inject
-    @Environment(\.modelContext) private var context
-    @State private var viewModel: CartViewModel?
+    let cartViewModel: CartViewModel
     @State private var checkoutViewModel: CheckoutViewModel?
     @State private var showConfirmation: Bool = false
     @State private var showCheckout: Bool = false
@@ -20,7 +18,7 @@ struct CartView: View {
             ZStack {
                 AppColors.background.ignoresSafeArea()
                 
-                if (viewModel?.items.isEmpty ?? true) {
+                if cartViewModel.items.isEmpty {
                     VStack(spacing: AppMetrics.spacingLarge) {
                         Image(systemName: "cart")
                             .font(.system(size: 64))
@@ -41,12 +39,12 @@ struct CartView: View {
                     VStack(spacing: 0) {
                         // Cart Items
                         List {
-                            ForEach(viewModel?.items ?? [], id: \.id) { item in
+                            ForEach(cartViewModel.items, id: \.id) { item in
                                 CartItemRow(
                                     item: item,
-                                    increment: { viewModel?.increment(item: item) },
-                                    decrement: { viewModel?.decrement(item: item) },
-                                    remove: { viewModel?.remove(item: item) }
+                                    increment: { cartViewModel.increment(item: item) },
+                                    decrement: { cartViewModel.decrement(item: item) },
+                                    remove: { cartViewModel.remove(item: item) }
                                 )
                                 .listRowSeparator(.hidden)
                                 .listRowBackground(Color.clear)
@@ -65,7 +63,7 @@ struct CartView: View {
                                     Text("Subtotal")
                                         .font(.body)
                                     Spacer()
-                                    Text("$\(NSDecimalNumber(decimal: viewModel?.subtotal ?? 0).doubleValue, specifier: "%.2f")")
+                                    Text("$\(NSDecimalNumber(decimal: cartViewModel.subtotal).doubleValue, specifier: "%.2f")")
                                         .font(.body)
                                 }
                                 
@@ -83,7 +81,7 @@ struct CartView: View {
                                     Text("Total")
                                         .font(.title3.bold())
                                     Spacer()
-                                    Text("$\(NSDecimalNumber(decimal: (viewModel?.subtotal ?? 0) + Decimal(0.99)).doubleValue, specifier: "%.2f")")
+                                    Text("$\(NSDecimalNumber(decimal: cartViewModel.subtotal + Decimal(0.99)).doubleValue, specifier: "%.2f")")
                                         .font(.title3.bold())
                                         .foregroundStyle(AppColors.accent)
                                 }
@@ -114,17 +112,10 @@ struct CartView: View {
             }
             .navigationTitle("Cart")
             .sheet(isPresented: $showCheckout) {
-                if let viewModel = viewModel {
-                    CheckoutView(viewModel: CheckoutViewModel(context: context, cart: viewModel))
-                }
+                CheckoutView(viewModel: CheckoutViewModel(cart: cartViewModel))
             }
             .sheet(isPresented: $showConfirmation) {
                 OrderConfirmationView(order: checkoutViewModel?.lastOrder)
-            }
-        }
-        .onAppear {
-            if viewModel == nil { 
-                viewModel = CartViewModel(context: context) 
             }
         }
         .enableInjection()

@@ -5,7 +5,6 @@
 
 import Foundation
 import SwiftUI
-import SwiftData
 
 @MainActor
 final class AuthViewModel: ObservableObject {
@@ -14,11 +13,11 @@ final class AuthViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var currentUser: User?
 
-    private(set) var context: ModelContext?
+    private let databaseManager = DatabaseManager.shared
 
     init() {
-        // For MVP, initialize without context, will be set later
-        self.currentUser = nil
+        // Load current user from persistence
+        loadCurrentUser()
     }
 
     var isValidEmail: Bool {
@@ -26,7 +25,6 @@ final class AuthViewModel: ObservableObject {
     }
 
     func login() async {
-        guard let context = context else { return }
         guard isValidEmail else {
             errorMessage = "Use your Northwestern email"
             return
@@ -36,31 +34,25 @@ final class AuthViewModel: ObservableObject {
         defer { isLoading = false }
         
         // For MVP, just create a local user and mark as logged in
-        let user = User(email: email)
-        context.insert(user)
-        try? context.save()
+        let user = User(email: email, firstName: "", lastName: "")
         currentUser = user
+        
+        // Save user to persistence
+        var users = databaseManager.loadUsers()
+        users.append(user)
+        databaseManager.saveUsers(users)
     }
 
     func logout() async {
-        guard let context = context else { return }
-        if let user = currentUser {
-            context.delete(user)
-            try? context.save()
-        }
         currentUser = nil
+        // Clear current user from persistence
+        databaseManager.clearModel(User.self, key: "currentUser")
     }
     
-    func updateContext(_ newContext: ModelContext) {
-        self.context = newContext
-        // Refresh current user with new context
-        self.currentUser = getCurrentUser()
-    }
-    
-    private func getCurrentUser() -> User? {
-        guard let context = context else { return nil }
-        let descriptor = FetchDescriptor<User>()
-        return (try? context.fetch(descriptor))?.first
+    private func loadCurrentUser() {
+        // For MVP, just check if there's a user in persistence
+        let users = databaseManager.loadUsers()
+        currentUser = users.first
     }
 }
 

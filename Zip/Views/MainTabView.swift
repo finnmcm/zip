@@ -8,22 +8,31 @@ import Inject
 
 struct MainTabView: View {
     @ObserveInjection var inject
+    @ObservedObject var cartViewModel: CartViewModel
+    
+    init(cartViewModel: CartViewModel) {
+        self.cartViewModel = cartViewModel
+    }
     
     var body: some View {
         TabView {
-            ProductListView()
+            CategoryListView(cartViewModel: cartViewModel)
                 .tabItem { 
-                    Label("Shop", systemImage: "bag") 
+                    Image(systemName: "bag")
+                    Text("Shop")
                 }
             
-            CartView()
+            CartView(cartViewModel: cartViewModel)
                 .tabItem { 
-                    Label("Cart", systemImage: "cart") 
+                    Image(systemName: "cart")
+                    Text("Cart")
                 }
+                .badge(cartViewModel.items.isEmpty ? 0 : cartViewModel.items.reduce(0) { $0 + $1.quantity })
             
             ProfileView()
                 .tabItem { 
-                    Label("Profile", systemImage: "person") 
+                    Image(systemName: "person")
+                    Text("Profile")
                 }
         }
         .tint(AppColors.accent)

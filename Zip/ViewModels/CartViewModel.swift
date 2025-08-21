@@ -5,7 +5,6 @@
 
 import Foundation
 import SwiftUI
-import SwiftData
 
 @MainActor
 final class CartViewModel: ObservableObject {
@@ -13,55 +12,74 @@ final class CartViewModel: ObservableObject {
     @Published var isUpdating: Bool = false
     @Published var errorMessage: String?
 
-    private let context: ModelContext
+    private let databaseManager = DatabaseManager.shared
 
-    init(context: ModelContext) {
-        self.context = context
+    init() {
         refresh()
     }
 
     func refresh() {
-        let descriptor = FetchDescriptor<CartItem>()
-        items = (try? context.fetch(descriptor)) ?? []
+        items = databaseManager.loadCartItems()
     }
 
     func add(product: Product, quantity: Int = 1) {
-        if let index = items.firstIndex(where: { $0.productId == product.id }) {
-            items[index].quantity += quantity
+        if let existingItem = items.first(where: { $0.product.id == product.id }) {
+            existingItem.quantity += quantity
+            // Provide haptic feedback
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
         } else {
-            let newItem = CartItem(productId: product.id, productName: product.name, unitPrice: product.price, quantity: quantity)
-            context.insert(newItem)
+            let newItem = CartItem(product: product, quantity: quantity)
             items.append(newItem)
+            // Provide haptic feedback for new item
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
         }
-        try? context.save()
+        saveCart()
     }
 
     func decrement(item: CartItem) {
         guard let idx = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[idx].quantity = max(1, items[idx].quantity - 1)
-        try? context.save()
+        
+        if items[idx].quantity <= 1 {
+            // Remove item if quantity would become 0 or less
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.impactOccurred()
+            remove(item: item)
+        } else {
+            items[idx].quantity -= 1
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+            saveCart()
+        }
     }
 
     func increment(item: CartItem) {
         guard let idx = items.firstIndex(where: { $0.id == item.id }) else { return }
         items[idx].quantity += 1
-        try? context.save()
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.impactOccurred()
+        saveCart()
     }
 
     func remove(item: CartItem) {
         items.removeAll { $0.id == item.id }
-        context.delete(item)
-        try? context.save()
+        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        impactFeedback.impactOccurred()
+        saveCart()
     }
 
     func clear() {
-        for item in items { context.delete(item) }
         items.removeAll()
-        try? context.save()
+        saveCart()
+    }
+    
+    private func saveCart() {
+        databaseManager.saveCartItems(items)
     }
 
     var subtotal: Decimal {
-        items.reduce(0) { $0 + ($1.unitPrice * Decimal($1.quantity)) }
+        items.reduce(0) { $0 + ($1.product.price * Decimal($1.quantity)) }
     }
 }
 

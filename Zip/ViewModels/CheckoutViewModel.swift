@@ -5,7 +5,6 @@
 
 import Foundation
 import SwiftUI
-import SwiftData
 
 @MainActor
 final class CheckoutViewModel: ObservableObject {
@@ -14,12 +13,11 @@ final class CheckoutViewModel: ObservableObject {
     @Published var lastOrder: Order?
 
     private let stripe: StripeServiceProtocol
-    private let context: ModelContext
+    private let databaseManager = DatabaseManager.shared
     let cart: CartViewModel
 
-    init(stripe: StripeServiceProtocol = StripeService(), context: ModelContext, cart: CartViewModel) {
+    init(stripe: StripeServiceProtocol = StripeService(), cart: CartViewModel) {
         self.stripe = stripe
-        self.context = context
         self.cart = cart
     }
 
@@ -29,9 +27,24 @@ final class CheckoutViewModel: ObservableObject {
         defer { isProcessing = false }
         do {
             _ = try await stripe.processPayment(amount: cart.subtotal)
-            let order = Order(total: cart.subtotal)
-            context.insert(order)
-            try context.save()
+            
+            // Create order with current user (assuming we have one)
+            let user = User(email: "user@example.com", firstName: "User", lastName: "Name") // This should come from AuthViewModel
+            let order = Order(
+                user: user,
+                items: cart.items,
+                status: .confirmed,
+                totalAmount: cart.subtotal,
+                deliveryFee: 0.99,
+                tax: cart.subtotal * 0.08,
+                deliveryAddress: "Northwestern Campus"
+            )
+            
+            // Save order to persistence
+            var orders = databaseManager.loadOrders()
+            orders.append(order)
+            databaseManager.saveOrders(orders)
+            
             lastOrder = order
             cart.clear()
         } catch {

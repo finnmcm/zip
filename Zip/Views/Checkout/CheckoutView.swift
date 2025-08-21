@@ -27,12 +27,12 @@ struct CheckoutView: View {
                         VStack(spacing: AppMetrics.spacing) {
                             ForEach(viewModel.cart.items, id: \.id) { item in
                                 HStack {
-                                    Text(item.productName)
+                                    Text(item.product.name)
                                         .font(.body)
                                     Spacer()
-                                    // Text("\(item.quantity) × $\(NSDecimalNumber(decimal: item.unitPrice).doubleValue, specifier: "%.2f")")
-                                    //    .font(.body)
-                                    //    .foregroundStyle(AppColors.textSecondary)
+                                    Text("\(item.quantity) × $\(NSDecimalNumber(decimal: item.product.price).doubleValue, specifier: "%.2f")")
+                                        .font(.body)
+                                        .foregroundStyle(AppColors.textSecondary)
                                 }
                             }
                             

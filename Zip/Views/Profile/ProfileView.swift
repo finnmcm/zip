@@ -67,6 +67,24 @@ struct ProfileView: View {
                         ) {
                             // TODO: Navigate to support
                         }
+                        
+                        #if DEBUG
+                        ProfileOptionRow(
+                            icon: "trash",
+                            title: "Reset Database",
+                            subtitle: "Clear all data (Development only)"
+                        ) {
+                            DatabaseManager.shared.resetDatabase()
+                        }
+                        
+                        ProfileOptionRow(
+                            icon: "info.circle",
+                            title: "Database Status",
+                            subtitle: "Check database health"
+                        ) {
+                            checkDatabaseStatus()
+                        }
+                        #endif
                     }
                     .padding(.horizontal, AppMetrics.spacingLarge)
                     
@@ -102,6 +120,14 @@ struct ProfileView: View {
         }
         .enableInjection()
     }
+    
+    #if DEBUG
+    private func checkDatabaseStatus() {
+        // Simple status check that just prints a message
+        print("📊 Database Status Check Requested")
+        print("💡 Use the Reset Database button if you're experiencing issues")
+    }
+    #endif
 }
 
 private struct ProfileOptionRow: View {

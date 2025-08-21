@@ -9,7 +9,7 @@ import Inject
 struct ProductCard: View {
     @ObserveInjection var inject
     let product: Product
-    let addAction: () -> Void
+    @ObservedObject var cartViewModel: CartViewModel
     
     var body: some View {
         VStack(alignment: .leading, spacing: AppMetrics.spacing) {
@@ -49,7 +49,7 @@ struct ProductCard: View {
                 Button(action: {
                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                     impactFeedback.impactOccurred()
-                    addAction()
+                    cartViewModel.add(product: product)
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: "plus")

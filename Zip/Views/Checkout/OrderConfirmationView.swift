@@ -15,7 +15,7 @@ struct OrderConfirmationView: View {
                 .font(.title.bold())
             
             if let order = order {
-                Text("Order #\(String(order.id.uuidString.prefix(6)))  •  $\(String(format: "%.2f", NSDecimalNumber(decimal: order.total).doubleValue))")
+                Text("Order #\(String(order.id.uuidString.prefix(6)))  •  $\(String(format: "%.2f", NSDecimalNumber(decimal: order.totalAmount).doubleValue))")
                     .foregroundStyle(AppColors.textSecondary)
             }
             

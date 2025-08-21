@@ -12,20 +12,32 @@ final class ShoppingViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
 
-    private let service: SupabaseServiceProtocol
-
-    init(service: SupabaseServiceProtocol = SupabaseService()) {
-        self.service = service
+    init() {
+        // Load products immediately from local database
+        loadProductsFromLocal()
     }
 
     func loadProducts() async {
+        // This method is kept for compatibility but now loads from local storage
+        loadProductsFromLocal()
+    }
+    
+    private func loadProductsFromLocal() {
         isLoading = true
         defer { isLoading = false }
-        do {
-            products = try await service.fetchProducts()
-        } catch {
-            errorMessage = "Failed to load products"
+        
+        // Load products from local DatabaseManager
+        let localProducts = DatabaseManager.shared.loadProducts()
+        
+        if localProducts.isEmpty {
+            // If no products exist, create sample data
+            DatabaseManager.shared.resetDatabase()
+            products = DatabaseManager.shared.loadProducts()
+        } else {
+            products = localProducts
         }
+        
+        print("📱 Loaded \(products.count) products from local database")
     }
 }
 

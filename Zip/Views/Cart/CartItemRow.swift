@@ -14,31 +14,60 @@ struct CartItemRow: View {
     let remove: () -> Void
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading) {
-                Text(item.productName)
+        HStack(spacing: AppMetrics.spacing) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.product.name)
                     .font(.headline)
-                Text("$\(NSDecimalNumber(decimal: item.unitPrice).doubleValue, specifier: "%.2f")")
+                    .foregroundStyle(AppColors.textPrimary)
+                Text("$\(NSDecimalNumber(decimal: item.product.price).doubleValue, specifier: "%.2f")")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(AppColors.textSecondary)
             }
             
             Spacer()
             
-            HStack {
-                Button("-") { decrement() }
-                    .buttonStyle(.bordered)
+            // Quantity Controls
+            HStack(spacing: 8) {
+                Button(action: decrement) {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(AppColors.textSecondary)
+                        .scaleEffect(0.9)
+                }
+                .buttonStyle(.plain)
+                .scaleEffect(0.9)
+                .animation(.easeInOut(duration: 0.1), value: true)
+                
                 Text("\(item.quantity)")
+                    .font(.headline)
                     .frame(minWidth: 30)
-                Button("+") { increment() }
-                    .buttonStyle(.bordered)
+                    .foregroundStyle(AppColors.textPrimary)
+                
+                Button(action: increment) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(AppColors.accent)
+                        .scaleEffect(0.9)
+                }
+                .buttonStyle(.plain)
+                .scaleEffect(0.9)
+                .animation(.easeInOut(duration: 0.1), value: true)
             }
             
-            Button("Remove") { remove() }
-                .foregroundColor(.red)
-                .buttonStyle(.bordered)
+            // Remove Button
+            Button(action: remove) {
+                Image(systemName: "trash.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(.red)
+                    .scaleEffect(0.9)
+            }
+            .buttonStyle(.plain)
+            .scaleEffect(0.9)
+            .animation(.easeInOut(duration: 0.1), value: true)
         }
         .padding()
+        .background(AppColors.secondaryBackground)
+        .cornerRadius(AppMetrics.cornerRadiusSmall)
         .enableInjection()
     }
 }

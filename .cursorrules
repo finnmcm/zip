@@ -12,7 +12,7 @@ Zip is a quick delivery app for Northwestern University students offering fast, 
 ## Technical Stack
 - **Platform**: iOS 16+ 
 - **UI Framework**: 90% SwiftUI, 10% UIKit (only when necessary)
-- **Data Persistence**: SwiftData for local storage
+- **Data Persistence**: UserDefaults for local storage
 - **Backend**: Supabase PostgreSQL with REST API
 - **Payment Processing**: Stripe integration
 - **Edge Functions**: Supabase edge functions for Stripe webhooks
@@ -106,12 +106,9 @@ func loadProducts() async {
 }
 ```
 
-### SwiftData Models
+### Data Models
 ```swift
-import SwiftData
-
-@Model
-final class Product {
+final class Product: Identifiable, Codable {
     var id: UUID
     var name: String
     var price: Decimal
@@ -257,7 +254,7 @@ final class ShoppingViewModelTests: XCTestCase {
 ### Optimization
 - Lazy load images
 - Implement pagination for product lists
-- Cache frequently accessed data in SwiftData
+- Cache frequently accessed data in UserDefaults
 - Minimize view redraws with proper state management
 
 ### Network
@@ -284,6 +281,7 @@ final class ShoppingViewModelTests: XCTestCase {
 - Debug: Development environment
 - Release: Production environment
 - Test: Testing configuration
+- Build Simulator Settings: Always build by default to the iPhone 16 simulator
 
 ### Environment Variables
 - Use .xcconfig files for environment-specific settings
@@ -323,7 +321,7 @@ func applyStudentDiscount(to orderTotal: Decimal) -> Decimal {
 - Consider meal plan integration for future
 
 ### Cart Persistence
-- Save cart locally using SwiftData
+- Save cart locally using UserDefaults
 - Sync with backend when user logs in
 - Clear cart after successful order
 - Implement cart abandonment reminders

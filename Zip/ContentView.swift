@@ -6,28 +6,21 @@
 //
 
 import SwiftUI
-import SwiftData
 import Inject
 
 struct ContentView: View {
     @ObserveInjection var inject
-    @Environment(\.modelContext) private var context
     @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var cartViewModel = CartViewModel()
     
     var body: some View {
         Group {
             if authViewModel.currentUser != nil {
-                MainTabView()
+                MainTabView(cartViewModel: cartViewModel)
                     .environmentObject(authViewModel)
             } else {
                 LoginView()
                     .environmentObject(authViewModel)
-            }
-        }
-        .onAppear {
-            // Initialize with the actual context from environment
-            if authViewModel.context == nil {
-                authViewModel.updateContext(context)
             }
         }
     }
@@ -35,5 +28,4 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: User.self)
 }

@@ -3,13 +3,13 @@
 ### Scope (MVP)
 - Authentication: Email-based login with `@u.northwestern.edu` validation (local session storage).
 - Shopping: Product list, product details, add to cart.
-- Cart: View/edit quantities, persistent with SwiftData.
+- Cart: View/edit quantities, persistent with UserDefaults.
 - Checkout: Review order, mock payment (Stripe stub), confirmation screen.
 - UI: Minimalist, Northwestern branding, accessible.
 
 ### Architectural Baseline
 - iOS 16+, SwiftUI-first, MVVM.
-- SwiftData for local persistence (cart, session user, products cache).
+- UserDefaults for local persistence (cart, session user, products cache).
 - Services layer with protocols + simple stub implementations (Supabase, Stripe, Auth).
 
 ### Milestones & Steps
@@ -17,9 +17,9 @@
 1) Project Setup
 - [ ] Create directories per repo rules: `Models/`, `Views/`, `ViewModels/`, `Services/`, `Utilities/`.
 - [ ] Add `Constants` (colors, spacing, typography), `Color` hex initializer.
-- [ ] Configure `ZipApp` with SwiftData `modelContainer` for models.
+- [ ] Configure `ZipApp` with UserDefaults persistence for models.
 
-2) Data Models (SwiftData)
+2) Data Models (UserDefaults)
 - [ ] `Product`: id, name, price, imageURL, category, inStock.
 - [ ] `CartItem`: id, productId, productName, unitPrice, quantity.
 - [ ] `User`: id, email, createdAt.
@@ -69,7 +69,7 @@
 
 ### Risks & Mitigations
 - Missing SDKs: Use stubs to avoid build failures.
-- SwiftData modeling pitfalls: Keep models simple (primitive fields), avoid complex relationships for MVP.
+- UserDefaults modeling pitfalls: Keep models simple (primitive fields), avoid complex relationships for MVP.
 - Auth edge cases: Basic validation only; revisit later.
 
 

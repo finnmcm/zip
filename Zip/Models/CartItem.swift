@@ -4,22 +4,18 @@
 //
 
 import Foundation
-import SwiftData
 
-@Model
-final class CartItem {
-    @Attribute(.unique) var id: UUID
-    var productId: UUID
-    var productName: String
-    var unitPrice: Decimal
+final class CartItem: Identifiable, Codable {
+    let id: UUID
+    var product: Product
     var quantity: Int
-
-    init(id: UUID = UUID(), productId: UUID, productName: String, unitPrice: Decimal, quantity: Int) {
+    var addedAt: Date
+    
+    init(id: UUID = UUID(), product: Product, quantity: Int = 1) {
         self.id = id
-        self.productId = productId
-        self.productName = productName
-        self.unitPrice = unitPrice
-        self.quantity = max(1, quantity)
+        self.product = product
+        self.quantity = quantity
+        self.addedAt = Date()
     }
 }
 

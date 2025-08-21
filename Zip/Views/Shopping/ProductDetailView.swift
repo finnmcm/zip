@@ -9,6 +9,7 @@ import Inject
 struct ProductDetailView: View {
     @ObserveInjection var inject
     let product: Product
+    let cartViewModel: CartViewModel
     let addToCart: () -> Void
     @Environment(\.dismiss) private var dismiss
     
@@ -64,7 +65,10 @@ struct ProductDetailView: View {
                         Spacer(minLength: AppMetrics.spacingLarge)
                         
                         // Add to Cart Button
-                        Button(action: addToCart) {
+                        Button(action: {
+                            cartViewModel.add(product: product)
+                            addToCart()
+                        }) {
                             HStack {
                                 Image(systemName: "cart.badge.plus")
                                 Text("Add to Cart")

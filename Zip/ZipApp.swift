@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 import Inject
 
 @main
@@ -23,6 +22,5 @@ struct ZipApp: App {
             ContentView()
                 .enableInjection()  // Just once here
         }
-        .modelContainer(for: [Product.self, CartItem.self, User.self, Order.self])
     }
 }
