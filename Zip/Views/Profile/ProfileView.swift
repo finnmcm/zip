@@ -68,23 +68,6 @@ struct ProfileView: View {
                             // TODO: Navigate to support
                         }
                         
-                        #if DEBUG
-                        ProfileOptionRow(
-                            icon: "trash",
-                            title: "Reset Database",
-                            subtitle: "Clear all data (Development only)"
-                        ) {
-                            DatabaseManager.shared.resetDatabase()
-                        }
-                        
-                        ProfileOptionRow(
-                            icon: "info.circle",
-                            title: "Database Status",
-                            subtitle: "Check database health"
-                        ) {
-                            checkDatabaseStatus()
-                        }
-                        #endif
                     }
                     .padding(.horizontal, AppMetrics.spacingLarge)
                     

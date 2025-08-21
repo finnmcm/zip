@@ -16,6 +16,11 @@ final class User: Identifiable, Codable {
     var createdAt: Date
     var updatedAt: Date
     
+    // Computed property for full name
+    var fullName: String {
+        "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
+    }
+    
     // Relationships - will be handled manually since we're not using SwiftData
     var orders: [Order] = []
     var cartItems: [CartItem] = []

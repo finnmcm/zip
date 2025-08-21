@@ -26,19 +26,25 @@ struct CategoryListView: View {
                 
                 VStack(spacing: AppMetrics.spacingLarge) {
                     // Header
-                    VStack(spacing: AppMetrics.spacingSmall) {
-                        Text("What are you craving?")
-                            .font(.title.bold())
-                            .foregroundStyle(AppColors.textPrimary)
+                    HStack{
+                        ZStack{
+                            Circle()
+                            .frame(width: 50)
+                            .foregroundStyle(AppColors.accent)
+                            Image(systemName: "shippingbox")
+                            .foregroundStyle(.white)
+                            .font(.title)
+                        }
                         
-                        Text("Quick delivery to your campus location")
-                            .font(.subheadline)
-                            .foregroundStyle(AppColors.textSecondary)
+                        Text("What are you craving?")
+                        .font(.title2)
+                        Spacer()
                     }
-                    .padding(.top, AppMetrics.spacingLarge)
+                    .padding(.leading, 20)
+                    .padding(.top, 10)
                     
                     // Categories Grid
-                    LazyVGrid(columns: columns, spacing: AppMetrics.spacingLarge) {
+                    VStack {
                         ForEach(categories, id: \.self) { category in
                             NavigationLink(destination: ProductListView(category: category, cartViewModel: cartViewModel)) {
                                 CategoryCard(category: category)
@@ -47,6 +53,7 @@ struct CategoryListView: View {
                         }
                     }
                     .padding(.horizontal, AppMetrics.spacingLarge)
+                    .padding(.top, 20)
                     
                     Spacer()
                 }
@@ -62,38 +69,35 @@ struct CategoryCard: View {
     let category: String
     
     var body: some View {
-        VStack(spacing: AppMetrics.spacing) {
-            ZStack {
-                RoundedRectangle(cornerRadius: AppMetrics.cornerRadiusLarge)
-                    .fill(AppColors.secondaryBackground)
-                    .frame(height: 120)
-                
-                Image(systemName: iconName)
-                    .font(.system(size: 40))
-                    .foregroundStyle(AppColors.accent)
+        VStack() {
+            RoundedRectangle(cornerRadius: 20.0)
+            .stroke(.purple, lineWidth: 2.0)
+            .frame(width: 350, height: 100)
+            .foregroundStyle(.white)
+            .overlay {
+                HStack{
+                    Image(systemName: iconName)
+                    .foregroundStyle(.purple)
+                    .padding(.leading, 20)
+                    .font(.title)
+                    Text(category)
+                        .font(.title)
+                        .foregroundStyle(AppColors.accent)
+                        .padding(.leading, 10)
+                    Spacer()
+                }
             }
             
-            Text(category.capitalized)
-                .font(.headline)
-                .foregroundStyle(AppColors.textPrimary)
-        }
-        .padding(AppMetrics.spacing)
-        .background(AppColors.background)
-        .cornerRadius(AppMetrics.cornerRadiusLarge)
-        .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
-        .overlay(
-            RoundedRectangle(cornerRadius: AppMetrics.cornerRadiusLarge)
-                .stroke(AppColors.secondaryBackground, lineWidth: 1)
-        )
+    }
+    .padding(.vertical, 10)
     }
     
     private var iconName: String {
         switch category {
-        case "Snacks": return "birthday.cake"
-        case "Beverages": return "cup.and.saucer"
-        case "Food": return "fork.knife"
-        case "Study": return "book"
-        case "Convenience": return "shippingbox"
+        case "Snacks": return "fork.knife"
+        case "Chips and Candy": return "birthday.cake"
+        case "Dorm/Party/School": return "party.popper"
+        case "Medical": return "heart"
         default: return "shippingbox"
         }
     }
