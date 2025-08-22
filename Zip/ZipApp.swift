@@ -19,9 +19,9 @@ struct ZipApp: App {
     var body: some Scene {
         
         WindowGroup {
-           // ContentView()
-           ConfigurationStatusView()
-          //      .enableInjection()  // Just once here
+           ContentView()
+        //   ConfigurationStatusView()
+                .enableInjection()  // Just once here
         }
     }
 }

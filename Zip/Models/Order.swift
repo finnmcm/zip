@@ -10,31 +10,55 @@ final class Order: Identifiable, Codable {
     var user: User
     var items: [CartItem]
     var status: OrderStatus
-    var totalAmount: Decimal
+    var rawAmount: Decimal
     var deliveryFee: Decimal
+    var tip: Decimal
+    var total_amount: Decimal
     var tax: Decimal
     var createdAt: Date
-    var estimatedDeliveryTime: Date?
-    var actualDeliveryTime: Date?
     var deliveryAddress: String
     var paymentIntentId: String?
+    var estimatedDeliveryTime: Date?
+    var actualDeliveryTime: Date?
     
     // Database metadata
     var updatedAt: Date
     
+    // Computed properties
+    var totalAmount: Decimal {
+        return rawAmount + deliveryFee + tip + tax
+    }
+    
+    var isDelivered: Bool {
+        return status == .delivered
+    }
+    
+    var isCancelled: Bool {
+        return status == .cancelled
+    }
+    
+    var canBeCancelled: Bool {
+        return [.pending, .confirmed, .preparing].contains(status)
+    }
+    
     // Relationships - will be handled manually since we're not using SwiftData
     var userOrders: [Order] = []
     
-    init(id: UUID = UUID(), user: User, items: [CartItem], status: OrderStatus = .pending, totalAmount: Decimal, deliveryFee: Decimal, tax: Decimal, deliveryAddress: String, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(id: UUID = UUID(), user: User, items: [CartItem], status: OrderStatus = .pending, rawAmount: Decimal, deliveryFee: Decimal, tip: Decimal, totalAmount: Decimal, tax: Decimal, deliveryAddress: String, createdAt: Date = Date(), estimatedDeliveryTime: Date? = nil, actualDeliveryTime: Date? = nil, paymentIntentId: String? = nil, updatedAt: Date = Date()) {
         self.id = id
         self.user = user
         self.items = items
         self.status = status
-        self.totalAmount = totalAmount
+        self.rawAmount = rawAmount
         self.deliveryFee = deliveryFee
+        self.tip = tip
+        self.total_amount = totalAmount
         self.tax = tax
         self.createdAt = createdAt
         self.deliveryAddress = deliveryAddress
+        self.estimatedDeliveryTime = estimatedDeliveryTime
+        self.actualDeliveryTime = actualDeliveryTime
+        self.paymentIntentId = paymentIntentId
         self.updatedAt = updatedAt
     }
     
@@ -44,8 +68,10 @@ final class Order: Identifiable, Codable {
         case user
         case items
         case status
-        case totalAmount = "total_amount"
+        case rawAmount = "raw_amount"
         case deliveryFee = "delivery_fee"
+        case tip
+        case totalAmount = "total_amount"
         case tax
         case createdAt = "created_at"
         case estimatedDeliveryTime = "estimated_delivery_time"
@@ -62,8 +88,10 @@ final class Order: Identifiable, Codable {
         user = try container.decode(User.self, forKey: .user)
         items = try container.decode([CartItem].self, forKey: .items)
         status = try container.decode(OrderStatus.self, forKey: .status)
-        totalAmount = try container.decode(Decimal.self, forKey: .totalAmount)
+        rawAmount = try container.decode(Decimal.self, forKey: .rawAmount)
         deliveryFee = try container.decode(Decimal.self, forKey: .deliveryFee)
+        tip = try container.decode(Decimal.self, forKey: .tip)
+        total_amount = try container.decode(Decimal.self, forKey: .totalAmount)
         tax = try container.decode(Decimal.self, forKey: .tax)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         estimatedDeliveryTime = try container.decodeIfPresent(Date.self, forKey: .estimatedDeliveryTime)
@@ -80,8 +108,10 @@ final class Order: Identifiable, Codable {
         try container.encode(user, forKey: .user)
         try container.encode(items, forKey: .items)
         try container.encode(status, forKey: .status)
-        try container.encode(totalAmount, forKey: .totalAmount)
+        try container.encode(rawAmount, forKey: .rawAmount)
         try container.encode(deliveryFee, forKey: .deliveryFee)
+        try container.encode(tip, forKey: .tip)
+        try container.encode(total_amount, forKey: .totalAmount)
         try container.encode(tax, forKey: .tax)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encodeIfPresent(estimatedDeliveryTime, forKey: .estimatedDeliveryTime)

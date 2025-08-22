@@ -34,8 +34,10 @@ final class CheckoutViewModel: ObservableObject {
                 user: user,
                 items: cart.items,
                 status: .confirmed,
-                totalAmount: cart.subtotal,
+                rawAmount: cart.subtotal,
                 deliveryFee: 0.99,
+                tip: 0.0,
+                totalAmount: cart.subtotal,
                 tax: cart.subtotal * 0.08,
                 deliveryAddress: "Northwestern Campus"
             )
