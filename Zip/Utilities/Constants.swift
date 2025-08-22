@@ -22,4 +22,22 @@ enum AppMetrics {
     static let spacingLarge: CGFloat = 20
 }
 
+// MARK: - Database Table Names
+enum DatabaseTables {
+    static let products = "products"
+    static let users = "users"
+    static let orders = "orders"
+    static let cartItems = "cart_items"
+    static let orderItems = "order_items"
+}
+
+// MARK: - Error Messages
+enum ErrorMessages {
+    static let networkError = "Network error occurred. Please check your connection."
+    static let authenticationError = "Authentication failed. Please try logging in again."
+    static let serverError = "Server error occurred. Please try again later."
+    static let unknownError = "An unknown error occurred. Please try again."
+    static let invalidData = "Invalid data received from server."
+}
+
 

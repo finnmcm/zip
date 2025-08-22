@@ -80,6 +80,18 @@
             ReferencedContainer = "container:Zip.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "SUPABASE_KEY"
+            value = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzY3R6cm9meGhsdW9jeGVla29yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2NDMwMjgsImV4cCI6MjA3MTIxOTAyOH0.B99aYUYA9EYfYtsXEBgVbV--pU_I5eX9QDrQc7xZJlA"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "SUPABASE_URL"
+            value = "https://wsctzrofxhluocxeekor.supabase.co"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

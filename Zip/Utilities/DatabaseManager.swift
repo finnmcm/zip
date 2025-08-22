@@ -59,39 +59,39 @@ class DatabaseManager {
         // Create sample products with Northwestern student focus
         let products = [
             // Beverages
-            Product(name: "Coffee", price: 2.99, quantity: 50, category: "Beverages"),
-            Product(name: "Energy Drink", price: 3.49, quantity: 25, category: "Beverages"),
-            Product(name: "Water Bottle", price: 1.49, quantity: 100, category: "Beverages"),
-            Product(name: "Hot Chocolate", price: 2.49, quantity: 30, category: "Beverages"),
-            Product(name: "Iced Tea", price: 2.99, quantity: 40, category: "Beverages"),
+            Product(name: "Coffee", price: Decimal(2.99), quantity: 50, category: "Beverages"),
+            Product(name: "Energy Drink", price: Decimal(3.49), quantity: 25, category: "Beverages"),
+            Product(name: "Water Bottle", price: Decimal(1.49), quantity: 100, category: "Beverages"),
+            Product(name: "Hot Chocolate", price: Decimal(2.49), quantity: 30, category: "Beverages"),
+            Product(name: "Iced Tea", price: Decimal(2.99), quantity: 40, category: "Beverages"),
             
             // Snacks
-            Product(name: "Energy Bar", price: 1.99, quantity: 30, category: "Snacks"),
-            Product(name: "Chips", price: 0.99, quantity: 25, category: "Snacks"),
-            Product(name: "Granola Bar", price: 1.49, quantity: 35, category: "Snacks"),
-            Product(name: "Nuts", price: 2.99, quantity: 20, category: "Snacks"),
-            Product(name: "Popcorn", price: 1.29, quantity: 30, category: "Snacks"),
+            Product(name: "Energy Bar", price: Decimal(1.99), quantity: 30, category: "Snacks"),
+            Product(name: "Chips", price: Decimal(0.99), quantity: 25, category: "Snacks"),
+            Product(name: "Granola Bar", price: Decimal(1.49), quantity: 35, category: "Snacks"),
+            Product(name: "Nuts", price: Decimal(2.99), quantity: 20, category: "Snacks"),
+            Product(name: "Popcorn", price: Decimal(1.29), quantity: 30, category: "Snacks"),
             
             // Food
-            Product(name: "Sandwich", price: 4.99, quantity: 15, category: "Food"),
-            Product(name: "Pizza Slice", price: 3.49, quantity: 20, category: "Food"),
-            Product(name: "Burger", price: 6.99, quantity: 10, category: "Food"),
-            Product(name: "Salad", price: 5.49, quantity: 12, category: "Food"),
-            Product(name: "Soup", price: 3.99, quantity: 18, category: "Food"),
+            Product(name: "Sandwich", price: Decimal(4.99), quantity: 15, category: "Food"),
+            Product(name: "Pizza Slice", price: Decimal(3.49), quantity: 20, category: "Food"),
+            Product(name: "Burger", price: Decimal(6.99), quantity: 10, category: "Food"),
+            Product(name: "Salad", price: Decimal(5.49), quantity: 12, category: "Food"),
+            Product(name: "Soup", price: Decimal(3.99), quantity: 18, category: "Food"),
             
             // Study Essentials
-            Product(name: "Notebook", price: 2.99, quantity: 25, category: "Study"),
-            Product(name: "Pen", price: 0.99, quantity: 50, category: "Study"),
-            Product(name: "Highlighters", price: 1.99, quantity: 30, category: "Study"),
-            Product(name: "Sticky Notes", price: 1.49, quantity: 40, category: "Study"),
-            Product(name: "USB Cable", price: 4.99, quantity: 15, category: "Study"),
+            Product(name: "Notebook", price: Decimal(2.99), quantity: 25, category: "Study"),
+            Product(name: "Pen", price: Decimal(0.99), quantity: 50, category: "Study"),
+            Product(name: "Highlighters", price: Decimal(1.99), quantity: 30, category: "Study"),
+            Product(name: "Sticky Notes", price: Decimal(1.49), quantity: 40, category: "Study"),
+            Product(name: "USB Cable", price: Decimal(4.99), quantity: 15, category: "Study"),
             
             // Convenience
-            Product(name: "Toothbrush", price: 2.49, quantity: 20, category: "Convenience"),
-            Product(name: "Deodorant", price: 3.99, quantity: 15, category: "Convenience"),
-            Product(name: "Phone Charger", price: 8.99, quantity: 10, category: "Convenience"),
-            Product(name: "Umbrella", price: 12.99, quantity: 8, category: "Convenience"),
-            Product(name: "Hand Sanitizer", price: 1.99, quantity: 35, category: "Convenience")
+            Product(name: "Toothbrush", price: Decimal(2.49), quantity: 20, category: "Convenience"),
+            Product(name: "Deodorant", price: Decimal(3.99), quantity: 15, category: "Convenience"),
+            Product(name: "Phone Charger", price: Decimal(8.99), quantity: 10, category: "Convenience"),
+            Product(name: "Umbrella", price: Decimal(12.99), quantity: 8, category: "Convenience"),
+            Product(name: "Hand Sanitizer", price: Decimal(1.99), quantity: 35, category: "Convenience")
         ]
         
         saveProducts(products)

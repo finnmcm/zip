@@ -1,0 +1,27 @@
+// Environment.xcconfig
+// Copy this file and rename it for each environment (e.g., Development.xcconfig, Production.xcconfig)
+
+// Supabase Configuration
+SUPABASE_URL = https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY = your-anon-key-here
+SUPABASE_SERVICE_ROLE_KEY = your-service-role-key-here
+
+// Stripe Configuration
+STRIPE_PUBLISHABLE_KEY = your-stripe-publishable-key-here
+STRIPE_SECRET_KEY = your-stripe-secret-key-here
+
+// App Configuration
+APP_NAME = Zip
+BUNDLE_IDENTIFIER = com.yourcompany.zip
+VERSION = 1.0.0
+BUILD = 1
+
+// Feature Flags
+ENABLE_ANALYTICS = false
+ENABLE_CRASH_REPORTING = false
+ENABLE_PUSH_NOTIFICATIONS = false
+
+// Debug Configuration
+ENABLE_LOGGING = true
+ENABLE_NETWORK_LOGGING = true
+ENABLE_PERFORMANCE_MONITORING = false

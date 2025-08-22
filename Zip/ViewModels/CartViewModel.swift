@@ -29,7 +29,7 @@ final class CartViewModel: ObservableObject {
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()
         } else {
-            let newItem = CartItem(product: product, quantity: quantity)
+            let newItem = CartItem(product: product, quantity: quantity, userId: UUID()) // Using placeholder UUID for now
             items.append(newItem)
             // Provide haptic feedback for new item
             let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
