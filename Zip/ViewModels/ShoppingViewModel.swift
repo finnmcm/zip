@@ -11,20 +11,41 @@ final class ShoppingViewModel: ObservableObject {
     @Published var products: [Product] = []
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
+    
+    // MARK: - Services
+    private let supabaseService = SupabaseService()
 
     init() {
-        // Load products immediately from sample data
-        loadProductsFromLocal()
+        // Don't load products immediately - wait for authentication
     }
 
     func loadProducts() async {
-        // This method is kept for compatibility but now loads from sample data
-        loadProductsFromLocal()
+        guard supabaseService.isClientConfigured else {
+            // Fall back to sample data if Supabase is not configured
+            loadProductsFromLocal()
+            return
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let fetchedProducts = try await supabaseService.fetchProducts()
+            products = fetchedProducts
+            print("✅ Successfully loaded \(products.count) products from Supabase")
+        } catch {
+            print("❌ Error loading products from Supabase: \(error)")
+            errorMessage = "Failed to load products. Please try again."
+            
+            // Fall back to sample data on error
+            loadProductsFromLocal()
+        }
+        
+        isLoading = false
     }
     
     private func loadProductsFromLocal() {
-        isLoading = true
-        defer { isLoading = false }
+        print("📱 Loading sample products (Supabase not available)")
         
         // Create sample products with Northwestern student focus
         let sampleProducts = [

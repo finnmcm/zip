@@ -20,6 +20,9 @@ final class AuthViewModel: ObservableObject {
     @Published var currentUser: User?
     @Published var isSignUpMode: Bool = false
     @Published var isAuthenticated: Bool = false
+    
+    // MARK: - Callbacks
+    var onAuthenticationSuccess: (() -> Void)?
 
     // MARK: - Services
     private let authService = AuthenticationService()
@@ -87,6 +90,9 @@ final class AuthViewModel: ObservableObject {
             
             print("✅ User signed up successfully: \(user.email)")
             
+            // Notify that authentication was successful
+            onAuthenticationSuccess?()
+            
         } catch let error as AuthError {
             errorMessage = error.localizedDescription
             print("❌ Signup error: \(error)")
@@ -117,6 +123,9 @@ final class AuthViewModel: ObservableObject {
             errorMessage = nil
             
             print("✅ User signed in successfully: \(user.email)")
+            
+            // Notify that authentication was successful
+            onAuthenticationSuccess?()
             
         } catch let error as AuthError {
             errorMessage = error.localizedDescription

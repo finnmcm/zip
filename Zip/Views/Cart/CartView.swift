@@ -8,7 +8,7 @@ import Inject
 
 struct CartView: View {
     @ObserveInjection var inject
-    let cartViewModel: CartViewModel
+    @ObservedObject var cartViewModel: CartViewModel
     @State private var checkoutViewModel: CheckoutViewModel?
     @State private var showConfirmation: Bool = false
     @State private var showCheckout: Bool = false

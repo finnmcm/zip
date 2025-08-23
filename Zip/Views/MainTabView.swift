@@ -10,15 +10,17 @@ struct MainTabView: View {
     @ObserveInjection var inject
     @ObservedObject var cartViewModel: CartViewModel
     @ObservedObject var authViewModel: AuthViewModel
+    @ObservedObject var shoppingViewModel: ShoppingViewModel
     
-    init(cartViewModel: CartViewModel, authViewModel: AuthViewModel) {
+    init(cartViewModel: CartViewModel, authViewModel: AuthViewModel, shoppingViewModel: ShoppingViewModel) {
         self.cartViewModel = cartViewModel
         self.authViewModel = authViewModel
+        self.shoppingViewModel = shoppingViewModel
     }
     
     var body: some View {
         TabView {
-            CategoryListView(cartViewModel: cartViewModel)
+            CategoryListView(cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel)
                 .tabItem { 
                     Image(systemName: "bag")
                     Text("Shop")

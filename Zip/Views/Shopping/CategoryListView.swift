@@ -9,6 +9,7 @@ import Inject
 struct CategoryListView: View {
     @ObserveInjection var inject
     let cartViewModel: CartViewModel
+    let shoppingViewModel: ShoppingViewModel
     
     private let categories = ProductCategory.allCases
     
@@ -40,11 +41,50 @@ struct CategoryListView: View {
                     
                     // Categories Grid
                     VStack {
-                        ForEach(categories, id: \.self) { category in
-                            NavigationLink(destination: ProductListView(category: category, cartViewModel: cartViewModel)) {
-                                CategoryCard(category: category)
+                        if shoppingViewModel.isLoading {
+                            VStack(spacing: AppMetrics.spacingLarge) {
+                                ProgressView()
+                                    .tint(AppColors.accent)
+                                    .scaleEffect(1.5)
+                                Text("Loading products...")
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppColors.textSecondary)
                             }
-                            .buttonStyle(.plain)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else if let errorMessage = shoppingViewModel.errorMessage {
+                            VStack(spacing: AppMetrics.spacingLarge) {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .font(.system(size: 48))
+                                    .foregroundStyle(AppColors.textSecondary)
+                                
+                                Text("Unable to load products")
+                                    .font(.headline)
+                                    .foregroundStyle(AppColors.textSecondary)
+                                
+                                Text(errorMessage)
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppColors.textSecondary.opacity(0.7))
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, AppMetrics.spacingLarge)
+                                
+                                Button("Retry") {
+                                    Task {
+                                        await shoppingViewModel.loadProducts()
+                                    }
+                                }
+                                .padding()
+                                .background(AppColors.accent)
+                                .foregroundStyle(.white)
+                                .cornerRadius(AppMetrics.cornerRadiusLarge)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        } else {
+                            ForEach(categories, id: \.self) { category in
+                                NavigationLink(destination: ProductListView(category: category, cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel)) {
+                                    CategoryCard(category: category, productCount: shoppingViewModel.products.filter { $0.category == category }.count)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                     }
                     .padding(.horizontal, AppMetrics.spacingLarge)
@@ -62,6 +102,7 @@ struct CategoryListView: View {
 
 struct CategoryCard: View {
     let category: ProductCategory
+    let productCount: Int
     
     var body: some View {
         VStack() {
@@ -75,10 +116,18 @@ struct CategoryCard: View {
                     .foregroundStyle(.purple)
                     .padding(.leading, 20)
                     .font(.title)
-                    Text(category.displayName)
-                        .font(.title)
-                        .foregroundStyle(AppColors.accent)
-                        .padding(.leading, 10)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(category.displayName)
+                            .font(.title)
+                            .foregroundStyle(AppColors.accent)
+                        
+                        Text("\(productCount) items")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+                    .padding(.leading, 10)
+                    
                     Spacer()
                 }
             }

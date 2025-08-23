@@ -60,11 +60,11 @@ final class Product: Identifiable, Codable {
     // MARK: - Codable Implementation
     enum CodingKeys: String, CodingKey {
         case id
-        case inventoryName = "inventory_name"
-        case displayName = "display_name"
+        case inventoryName = "inventoryName"
+        case displayName = "displayName"
+        case imageURL = "imageURL"
         case price
         case quantity
-        case imageURL = "image_url"
         case category
         case createdAt = "created_at"
         case updatedAt = "updated_at"

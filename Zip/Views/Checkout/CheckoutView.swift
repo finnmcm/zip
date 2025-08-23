@@ -11,6 +11,7 @@ struct CheckoutView: View {
     @ObservedObject var viewModel: CheckoutViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showConfirmation: Bool = false
+    @State private var tipAmount: Decimal = 0.0
     
     var body: some View {
         NavigationStack {
@@ -20,8 +21,8 @@ struct CheckoutView: View {
                 VStack(spacing: AppMetrics.spacingLarge) {
                     // Order Summary
                     VStack(alignment: .leading, spacing: AppMetrics.spacing) {
-                        Text("Order Summary")
-                            .font(.title2.bold())
+                       Text("Order Summary")
+                            .font(.title2.bold()) 
                             .padding(.horizontal, AppMetrics.spacingLarge)
                         
                         VStack(spacing: AppMetrics.spacing) {
@@ -53,6 +54,13 @@ struct CheckoutView: View {
                                 Text("$0.99")
                                     .font(.body)
                             }
+                            HStack {
+                                Text("Tip")
+                                    .font(.body)
+                                Spacer()
+                                Text("$\(NSDecimalNumber(decimal: tipAmount).doubleValue, specifier: "%.2f")")
+                                    .font(.body)
+                            }
                             
                             Divider()
                             
@@ -60,7 +68,7 @@ struct CheckoutView: View {
                                 Text("Total")
                                     .font(.title3.bold())
                                 Spacer()
-                                Text("$\(NSDecimalNumber(decimal: viewModel.cart.subtotal + Decimal(0.99)).doubleValue, specifier: "%.2f")")
+                                Text("$\(NSDecimalNumber(decimal: viewModel.cart.subtotal + Decimal(0.99) + tipAmount).doubleValue, specifier: "%.2f")")
                                     .font(.title3.bold())
                                     .foregroundStyle(AppColors.accent)
                             }
@@ -69,8 +77,60 @@ struct CheckoutView: View {
                         .background(AppColors.secondaryBackground)
                         .cornerRadius(AppMetrics.cornerRadiusLarge)
                         .padding(.horizontal, AppMetrics.spacingLarge)
+                        
                     }
-                    
+                    HStack {
+                    Text("Tip your Zipper:")
+                            .font(.title2.bold()) 
+                            .padding(.horizontal, AppMetrics.spacingLarge)
+                            Spacer()
+                    }
+                    HStack(spacing: 0) {
+            Button(action: { tipAmount = 3.00 }) {
+                Text("$3.00")
+                    .font(.headline)
+                    .foregroundStyle(tipAmount != 3.00 ? AppColors.textSecondary : AppColors.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppMetrics.spacing)
+                    .background(tipAmount != 3.00 ? AppColors.secondaryBackground : AppColors.accent.opacity(0.1))
+            }
+            .buttonStyle(.plain)
+            
+            Button(action: { tipAmount = 2.00 }) {
+                Text("$2.00")
+                    .font(.headline)
+                    .font(.headline)
+                    .foregroundStyle(tipAmount != 2.00 ? AppColors.textSecondary : AppColors.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppMetrics.spacing)
+                    .background(tipAmount != 2.00 ? AppColors.secondaryBackground : AppColors.accent.opacity(0.1))
+            }
+            .buttonStyle(.plain)
+            Button(action: { tipAmount = 1.00 }) {
+                Text("$1.00")
+                    .font(.headline)
+                    .font(.headline)
+                    .foregroundStyle(tipAmount != 1.00 ? AppColors.textSecondary : AppColors.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppMetrics.spacing)
+                    .background(tipAmount != 1.00 ? AppColors.secondaryBackground : AppColors.accent.opacity(0.1))
+            }
+            .buttonStyle(.plain)
+            Button(action: { tipAmount = 0.00 }) {
+                Text("No Tip")
+                    .font(.headline)
+                    .font(.headline)
+                    .foregroundStyle(tipAmount != 0.00 ? AppColors.textSecondary : AppColors.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppMetrics.spacing)
+                    .background(tipAmount != 0.00 ? AppColors.secondaryBackground : AppColors.accent.opacity(0.1))
+            }
+            .buttonStyle(.plain)
+        }
+        .background(AppColors.secondaryBackground)
+        .cornerRadius(AppMetrics.cornerRadiusLarge)
+        .padding(.horizontal, AppMetrics.spacingLarge)
+
                     // Delivery Info
                     VStack(alignment: .leading, spacing: AppMetrics.spacing) {
                         Text("Delivery Information")

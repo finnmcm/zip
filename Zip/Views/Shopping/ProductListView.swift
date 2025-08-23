@@ -8,15 +8,16 @@ import Inject
 
 struct ProductListView: View {
     @ObserveInjection var inject
-    @StateObject private var viewModel = ShoppingViewModel()
+    @ObservedObject var shoppingViewModel: ShoppingViewModel
     let cartViewModel: CartViewModel
     @State private var selectedProduct: Product?
     @State private var searchText = ""
     private let category: ProductCategory?
 
-    init(category: ProductCategory? = nil, cartViewModel: CartViewModel) {
+    init(category: ProductCategory? = nil, cartViewModel: CartViewModel, shoppingViewModel: ShoppingViewModel) {
         self.category = category
         self.cartViewModel = cartViewModel
+        self.shoppingViewModel = shoppingViewModel
     }
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
@@ -24,9 +25,9 @@ struct ProductListView: View {
     private var filteredProducts: [Product] {
         let baseProducts: [Product]
         if let category = category {
-            baseProducts = viewModel.products.filter { $0.category == category }
+            baseProducts = shoppingViewModel.products.filter { $0.category == category }
         } else {
-            baseProducts = viewModel.products
+            baseProducts = shoppingViewModel.products
         }
 
         if searchText.isEmpty {
@@ -66,7 +67,7 @@ struct ProductListView: View {
                 .padding(.horizontal, AppMetrics.spacingLarge)
                 .padding(.top, AppMetrics.spacingLarge)
                 
-                if viewModel.isLoading {
+                if shoppingViewModel.isLoading {
                     Spacer()
                     VStack(spacing: AppMetrics.spacingLarge) {
                         ProgressView()
@@ -118,7 +119,6 @@ struct ProductListView: View {
                 selectedProduct = nil
             }
         }
-        .task { await viewModel.loadProducts() }
         .enableInjection()
     }
 }
