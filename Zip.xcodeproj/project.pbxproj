@@ -39,6 +39,7 @@
 		AC88C0942E54FCBC00CBD98E /* Zip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Zip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AC88C0A62E54FCBE00CBD98E /* ZipTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZipTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AC88C0B02E54FCBE00CBD98E /* ZipUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZipUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC93BC412E5A413D00E938B6 /* buildServer.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = buildServer.json; sourceTree = "<group>"; };
 		ACCB0F242E57EDF200B0DC7E /* .env */ = {isa = PBXFileReference; lastKnownFileType = text; path = .env; sourceTree = "<group>"; };
 		ACCB0F262E57EDFD00B0DC7E /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -96,6 +97,7 @@
 		AC88C08B2E54FCBB00CBD98E = {
 			isa = PBXGroup;
 			children = (
+				AC93BC412E5A413D00E938B6 /* buildServer.json */,
 				ACCB0F262E57EDFD00B0DC7E /* .gitignore */,
 				ACCB0F242E57EDF200B0DC7E /* .env */,
 				AC88C0962E54FCBC00CBD98E /* Zip */,

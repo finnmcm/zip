@@ -13,9 +13,11 @@ struct CheckoutView: View {
     @State private var showConfirmation: Bool = false
     @State private var tipAmount: Decimal = 0.0
     @State private var onCampus: Bool = true
+    @State var selectedBuilding: String = ""
     
     var body: some View {
         NavigationStack {
+            ScrollView {
             ZStack {
                 AppColors.background.ignoresSafeArea()
                 
@@ -166,9 +168,14 @@ struct CheckoutView: View {
                         .cornerRadius(AppMetrics.cornerRadiusLarge)
                         .padding(.horizontal, AppMetrics.spacingLarge)
                         
+                        HStack{
+                            Text("Delivery Location")
+                                .font(.title2.bold())
+                                .padding(.horizontal, AppMetrics.spacingLarge)
+                                Spacer()
+                        }
+                        BuildingSearchView(selectedBuilding: $selectedBuilding)
                     }
-                    
-                    Spacer()
                     
                     // Payment Button
                     VStack(spacing: AppMetrics.spacing) {
@@ -212,7 +219,6 @@ struct CheckoutView: View {
                     }
                 }
             }
-            .navigationTitle("Checkout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -226,6 +232,7 @@ struct CheckoutView: View {
                     .onDisappear {
                         dismiss()
                     }
+            }
             }
         }
         .enableInjection()
