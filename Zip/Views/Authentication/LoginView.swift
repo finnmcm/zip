@@ -12,7 +12,7 @@ struct LoginView: View {
     @FocusState private var focusedField: Field?
     
     enum Field: Hashable {
-        case firstName, lastName, email, password, confirmPassword
+        case firstName, lastName, email, phoneNumber, password, confirmPassword
     }
     
     var body: some View {
@@ -169,6 +169,17 @@ private struct SignUpForm: View {
                 focusedField: _focusedField,
                 textContentType: .emailAddress,
                 keyboardType: .emailAddress
+            )
+            
+            // Phone Number Field
+            FormField(
+                title: "Phone Number",
+                text: $viewModel.phoneNumber,
+                placeholder: "(123) 456-7890",
+                field: .phoneNumber,
+                focusedField: _focusedField,
+                textContentType: .telephoneNumber,
+                keyboardType: .phonePad
             )
             
             // Password Fields

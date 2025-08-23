@@ -10,9 +10,7 @@ final class User: Identifiable, Codable {
     var email: String
     var firstName: String
     var lastName: String
-    var phoneNumber: String?
-    var deliveryAddress: String?
-    var isVerified: Bool
+    var phoneNumber: String
     var createdAt: Date
     var updatedAt: Date
     
@@ -23,16 +21,13 @@ final class User: Identifiable, Codable {
     
     // Relationships - will be handled manually since we're not using SwiftData
     var orders: [Order] = []
-    var cartItems: [CartItem] = []
     
-    init(id: UUID = UUID(), email: String, firstName: String, lastName: String, phoneNumber: String? = nil, deliveryAddress: String? = nil, isVerified: Bool = false, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(id: UUID = UUID(), email: String, firstName: String, lastName: String, phoneNumber: String, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.email = email
         self.firstName = firstName
         self.lastName = lastName
         self.phoneNumber = phoneNumber
-        self.deliveryAddress = deliveryAddress
-        self.isVerified = isVerified
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -44,8 +39,6 @@ final class User: Identifiable, Codable {
         case firstName = "first_name"
         case lastName = "last_name"
         case phoneNumber = "phone_number"
-        case deliveryAddress = "delivery_address"
-        case isVerified = "is_verified"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -57,9 +50,7 @@ final class User: Identifiable, Codable {
         email = try container.decode(String.self, forKey: .email)
         firstName = try container.decode(String.self, forKey: .firstName)
         lastName = try container.decode(String.self, forKey: .lastName)
-        phoneNumber = try container.decodeIfPresent(String.self, forKey: .phoneNumber)
-        deliveryAddress = try container.decodeIfPresent(String.self, forKey: .deliveryAddress)
-        isVerified = try container.decode(Bool.self, forKey: .isVerified)
+        phoneNumber = try container.decode(String.self, forKey: .phoneNumber)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
@@ -71,9 +62,7 @@ final class User: Identifiable, Codable {
         try container.encode(email, forKey: .email)
         try container.encode(firstName, forKey: .firstName)
         try container.encode(lastName, forKey: .lastName)
-        try container.encodeIfPresent(phoneNumber, forKey: .phoneNumber)
-        try container.encodeIfPresent(deliveryAddress, forKey: .deliveryAddress)
-        try container.encode(isVerified, forKey: .isVerified)
+        try container.encode(phoneNumber, forKey: .phoneNumber)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
     }

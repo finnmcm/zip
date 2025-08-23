@@ -10,12 +10,7 @@ struct CategoryListView: View {
     @ObserveInjection var inject
     let cartViewModel: CartViewModel
     
-    private let categories = [
-        "Snacks",
-        "Chips and Candy", 
-        "Dorm/Party/School",
-        "Medical",
-    ]
+    private let categories = ProductCategory.allCases
     
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
     
@@ -66,7 +61,7 @@ struct CategoryListView: View {
 }
 
 struct CategoryCard: View {
-    let category: String
+    let category: ProductCategory
     
     var body: some View {
         VStack() {
@@ -76,11 +71,11 @@ struct CategoryCard: View {
             .foregroundStyle(.white)
             .overlay {
                 HStack{
-                    Image(systemName: iconName)
+                    Image(systemName: category.iconName)
                     .foregroundStyle(.purple)
                     .padding(.leading, 20)
                     .font(.title)
-                    Text(category)
+                    Text(category.displayName)
                         .font(.title)
                         .foregroundStyle(AppColors.accent)
                         .padding(.leading, 10)
@@ -90,16 +85,6 @@ struct CategoryCard: View {
             
     }
     .padding(.vertical, 10)
-    }
-    
-    private var iconName: String {
-        switch category {
-        case "Snacks": return "fork.knife"
-        case "Chips and Candy": return "birthday.cake"
-        case "Dorm/Party/School": return "party.popper"
-        case "Medical": return "heart"
-        default: return "shippingbox"
-        }
     }
 }
 

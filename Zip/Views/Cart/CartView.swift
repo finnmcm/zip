@@ -35,6 +35,9 @@ struct CartView: View {
                             .padding(.horizontal, AppMetrics.spacingLarge)
                     }
                     .padding(.top, 64)
+                    .onAppear {
+                        print("🛒 CartView: Empty cart state displayed")
+                    }
                 } else {
                     VStack(spacing: 0) {
                         // Cart Items
@@ -53,6 +56,9 @@ struct CartView: View {
                         }
                         .listStyle(.plain)
                         .background(AppColors.background)
+                        .onAppear {
+                            print("🛒 CartView: Cart items list displayed with \(cartViewModel.items.count) items")
+                        }
 
                         // Checkout Section
                         VStack(spacing: AppMetrics.spacing) {
@@ -111,6 +117,12 @@ struct CartView: View {
                 }
             }
             .navigationTitle("Cart")
+            .onAppear {
+                print("🛒 CartView: View appeared with \(cartViewModel.items.count) items")
+            }
+            .onChange(of: cartViewModel.items.count) { oldCount, newCount in
+                print("🛒 CartView: Items count changed from \(oldCount) to \(newCount)")
+            }
             .sheet(isPresented: $showCheckout) {
                 CheckoutView(viewModel: CheckoutViewModel(cart: cartViewModel))
             }

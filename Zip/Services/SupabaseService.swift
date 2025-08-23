@@ -80,39 +80,39 @@ final class SupabaseService: SupabaseServiceProtocol {
         print("📱 Using mock product data")
         return [
             // Drinks
-            Product(name: "Cold Brew Coffee", price: Decimal(3.99), imageURL: nil, category: "Drinks", inStock: true),
-            Product(name: "Bottled Water", price: Decimal(0.99), imageURL: nil, category: "Drinks", inStock: true),
-            Product(name: "Energy Drink", price: Decimal(2.49), imageURL: nil, category: "Drinks", inStock: true),
-            Product(name: "Hot Tea", price: Decimal(1.99), imageURL: nil, category: "Drinks", inStock: true),
-            Product(name: "Orange Juice", price: Decimal(2.99), imageURL: nil, category: "Drinks", inStock: true),
+            Product(inventoryName: "coffee", displayName: "Coffee", price: Decimal(1.99), imageURL: nil, category: .drinks),
+            Product(inventoryName: "water", displayName: "Water", price: Decimal(1.49), imageURL: nil, category: .drinks),
+            Product(inventoryName: "soda", displayName: "Soda", price: Decimal(1.79), imageURL: nil, category: .drinks),
+            Product(inventoryName: "energy_drink", displayName: "Energy Drink", price: Decimal(2.99), imageURL: nil, category: .drinks),
+            Product(inventoryName: "juice", displayName: "Juice", price: Decimal(2.49), imageURL: nil, category: .drinks),
             
             // Snacks
-            Product(name: "Protein Bar", price: Decimal(1.99), imageURL: nil, category: "Snacks", inStock: true),
-            Product(name: "Chips", price: Decimal(1.49), imageURL: nil, category: "Snacks", inStock: true),
-            Product(name: "Granola", price: Decimal(2.99), imageURL: nil, category: "Snacks", inStock: true),
-            Product(name: "Nuts Mix", price: Decimal(3.49), imageURL: nil, category: "Snacks", inStock: true),
-            Product(name: "Popcorn", price: Decimal(1.79), imageURL: nil, category: "Snacks", inStock: true),
+            Product(inventoryName: "protein_bar", displayName: "Protein Bar", price: Decimal(1.99), imageURL: nil, category: .chipscandy),
+            Product(inventoryName: "chips", displayName: "Chips", price: Decimal(1.49), imageURL: nil, category: .chipscandy),
+            Product(inventoryName: "granola", displayName: "Granola", price: Decimal(2.99), imageURL: nil, category: .chipscandy),
+            Product(inventoryName: "nuts_mix", displayName: "Nuts Mix", price: Decimal(3.49), imageURL: nil, category: .chipscandy),
+            Product(inventoryName: "popcorn", displayName: "Popcorn", price: Decimal(1.79), imageURL: nil, category: .chipscandy),
             
             // Study Supplies
-            Product(name: "Notebook", price: Decimal(2.49), imageURL: nil, category: "Study", inStock: true),
-            Product(name: "Pens (Pack of 3)", price: Decimal(1.99), imageURL: nil, category: "Study", inStock: true),
-            Product(name: "Highlighters", price: Decimal(2.99), imageURL: nil, category: "Study", inStock: true),
-            Product(name: "Sticky Notes", price: Decimal(1.49), imageURL: nil, category: "Study", inStock: true),
-            Product(name: "Index Cards", price: Decimal(0.99), imageURL: nil, category: "Study", inStock: true),
+            Product(inventoryName: "notebook", displayName: "Notebook", price: Decimal(2.49), imageURL: nil, category: .misc),
+            Product(inventoryName: "pens_pack", displayName: "Pens (Pack of 3)", price: Decimal(1.99), imageURL: nil, category: .misc),
+            Product(inventoryName: "highlighters", displayName: "Highlighters", price: Decimal(2.99), imageURL: nil, category: .misc),
+            Product(inventoryName: "sticky_notes", displayName: "Sticky Notes", price: Decimal(1.49), imageURL: nil, category: .misc),
+            Product(inventoryName: "index_cards", displayName: "Index Cards", price: Decimal(0.99), imageURL: nil, category: .misc),
             
             // Quick Meals
-            Product(name: "Sandwich", price: Decimal(4.99), imageURL: nil, category: "Meals", inStock: true),
-            Product(name: "Salad", price: Decimal(5.99), imageURL: nil, category: "Meals", inStock: true),
-            Product(name: "Soup", price: Decimal(3.99), imageURL: nil, category: "Meals", inStock: true),
-            Product(name: "Pizza Slice", price: Decimal(2.99), imageURL: nil, category: "Meals", inStock: true),
-            Product(name: "Burrito", price: Decimal(6.99), imageURL: nil, category: "Meals", inStock: true),
+            Product(inventoryName: "sandwich", displayName: "Sandwich", price: Decimal(4.99), imageURL: nil, category: .foodsnacks),
+            Product(inventoryName: "salad", displayName: "Salad", price: Decimal(5.99), imageURL: nil, category: .foodsnacks),
+            Product(inventoryName: "soup", displayName: "Soup", price: Decimal(3.99), imageURL: nil, category: .foodsnacks),
+            Product(inventoryName: "pizza_slice", displayName: "Pizza Slice", price: Decimal(2.99), imageURL: nil, category: .foodsnacks),
+            Product(inventoryName: "burrito", displayName: "Burrito", price: Decimal(6.99), imageURL: nil, category: .foodsnacks),
             
             // Health & Wellness
-            Product(name: "Pain Reliever", price: Decimal(4.99), imageURL: nil, category: "Health", inStock: true),
-            Product(name: "Band-Aids", price: Decimal(2.99), imageURL: nil, category: "Health", inStock: true),
-            Product(name: "Hand Sanitizer", price: Decimal(1.99), imageURL: nil, category: "Health", inStock: true),
-            Product(name: "Tissues", price: Decimal(1.49), imageURL: nil, category: "Health", inStock: true),
-            Product(name: "Vitamins", price: Decimal(8.99), imageURL: nil, category: "Health", inStock: true)
+            Product(inventoryName: "pain_reliever", displayName: "Pain Reliever", price: Decimal(4.99), imageURL: nil, category: .medical),
+            Product(inventoryName: "band_aids", displayName: "Band-Aids", price: Decimal(2.99), imageURL: nil, category: .medical),
+            Product(inventoryName: "hand_sanitizer", displayName: "Hand Sanitizer", price: Decimal(1.99), imageURL: nil, category: .medical),
+            Product(inventoryName: "tissues", displayName: "Tissues", price: Decimal(1.49), imageURL: nil, category: .medical),
+            Product(inventoryName: "vitamins", displayName: "Vitamins", price: Decimal(8.99), imageURL: nil, category: .medical)
         ]
     }
     

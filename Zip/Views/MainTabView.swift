@@ -28,6 +28,9 @@ struct MainTabView: View {
                     Text("Cart")
                 }
                 .badge(cartViewModel.items.isEmpty ? 0 : cartViewModel.items.reduce(0) { $0 + $1.quantity })
+                .onAppear {
+                    print("🛒 MainTabView: Cart tab appeared with \(cartViewModel.items.count) items")
+                }
             
             ProfileView()
                 .tabItem { 

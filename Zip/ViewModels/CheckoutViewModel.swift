@@ -13,7 +13,8 @@ final class CheckoutViewModel: ObservableObject {
     @Published var lastOrder: Order?
 
     private let stripe: StripeServiceProtocol
-    private let databaseManager = DatabaseManager.shared
+    // In-memory storage for testing
+    private var orders: [Order] = []
     let cart: CartViewModel
 
     init(stripe: StripeServiceProtocol = StripeService(), cart: CartViewModel) {
@@ -29,7 +30,7 @@ final class CheckoutViewModel: ObservableObject {
             _ = try await stripe.processPayment(amount: cart.subtotal)
             
             // Create order with current user (assuming we have one)
-            let user = User(email: "user@example.com", firstName: "User", lastName: "Name") // This should come from AuthViewModel
+            let user = User(email: "user@example.com", firstName: "User", lastName: "Name", phoneNumber: "") // This should come from AuthViewModel
             let order = Order(
                 user: user,
                 items: cart.items,
@@ -42,10 +43,8 @@ final class CheckoutViewModel: ObservableObject {
                 deliveryAddress: "Northwestern Campus"
             )
             
-            // Save order to persistence
-            var orders = databaseManager.loadOrders()
+            // Add to in-memory storage
             orders.append(order)
-            databaseManager.saveOrders(orders)
             
             lastOrder = order
             cart.clear()

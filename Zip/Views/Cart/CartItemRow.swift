@@ -16,7 +16,7 @@ struct CartItemRow: View {
     var body: some View {
         HStack(spacing: AppMetrics.spacing) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(item.product.name)
+                Text(item.product.displayName)
                     .font(.headline)
                     .foregroundStyle(AppColors.textPrimary)
                 Text("$\(NSDecimalNumber(decimal: item.product.price).doubleValue, specifier: "%.2f")")

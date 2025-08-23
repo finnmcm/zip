@@ -13,16 +13,17 @@ final class AuthViewModel: ObservableObject {
     @Published var confirmPassword: String = ""
     @Published var firstName: String = ""
     @Published var lastName: String = ""
+    @Published var phoneNumber: String = ""
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var currentUser: User?
     @Published var isSignUpMode: Bool = false
 
-    private let databaseManager = DatabaseManager.shared
+    // In-memory storage for testing
+    private var users: [User] = []
 
     init() {
-        // Load current user from persistence
-        loadCurrentUser()
+        // For testing, start with no current user
     }
 
     var isValidEmail: Bool {
@@ -37,8 +38,14 @@ final class AuthViewModel: ObservableObject {
         password == confirmPassword
     }
     
+    var isValidPhoneNumber: Bool {
+        // Basic phone number validation - at least 10 digits
+        let digits = phoneNumber.filter { $0.isNumber }
+        return digits.count >= 10
+    }
+    
     var isValidSignUp: Bool {
-        isValidEmail && isValidPassword && doPasswordsMatch && !firstName.trimmingCharacters(in: .whitespaces).isEmpty && !lastName.trimmingCharacters(in: .whitespaces).isEmpty
+        isValidEmail && isValidPassword && doPasswordsMatch && !firstName.trimmingCharacters(in: .whitespaces).isEmpty && !lastName.trimmingCharacters(in: .whitespaces).isEmpty && isValidPhoneNumber
     }
     
     var isValidLogin: Bool {
@@ -55,13 +62,11 @@ final class AuthViewModel: ObservableObject {
         defer { isLoading = false }
         
         // For MVP, just create a local user and mark as logged in
-        let user = User(email: email, firstName: firstName, lastName: lastName)
+        let user = User(email: email, firstName: firstName, lastName: lastName, phoneNumber: phoneNumber)
         currentUser = user
         
-        // Save user to persistence
-        var users = databaseManager.loadUsers()
+        // Add to in-memory storage
         users.append(user)
-        databaseManager.saveUsers(users)
         
         // Clear form
         clearForm()
@@ -77,8 +82,7 @@ final class AuthViewModel: ObservableObject {
         defer { isLoading = false }
         
         // Check if user already exists
-        let existingUsers = databaseManager.loadUsers()
-        if existingUsers.contains(where: { $0.email.lowercased() == email.lowercased() }) {
+        if users.contains(where: { $0.email.lowercased() == email.lowercased() }) {
             errorMessage = "An account with this email already exists"
             return
         }
@@ -87,15 +91,14 @@ final class AuthViewModel: ObservableObject {
         let user = User(
             email: email,
             firstName: firstName.trimmingCharacters(in: .whitespaces),
-            lastName: lastName.trimmingCharacters(in: .whitespaces)
+            lastName: lastName.trimmingCharacters(in: .whitespaces),
+            phoneNumber: phoneNumber.trimmingCharacters(in: .whitespaces)
         )
         
         currentUser = user
         
-        // Save user to persistence
-        var users = databaseManager.loadUsers()
+        // Add to in-memory storage
         users.append(user)
-        databaseManager.saveUsers(users)
         
         // Clear form
         clearForm()
@@ -113,19 +116,16 @@ final class AuthViewModel: ObservableObject {
         confirmPassword = ""
         firstName = ""
         lastName = ""
+        phoneNumber = ""
         errorMessage = nil
     }
 
     func logout() async {
         currentUser = nil
-        // Clear current user from persistence
-        databaseManager.clearModel(User.self, key: "currentUser")
     }
     
     private func loadCurrentUser() {
-        // For MVP, just check if there's a user in persistence
-        let users = databaseManager.loadUsers()
-        currentUser = users.first
+        // For testing, start with no current user
     }
 }
 

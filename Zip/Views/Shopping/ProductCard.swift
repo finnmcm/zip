@@ -9,7 +9,7 @@ import Inject
 struct ProductCard: View {
     @ObserveInjection var inject
     let product: Product
-    @ObservedObject var cartViewModel: CartViewModel
+    let cartViewModel: CartViewModel
     
     var body: some View {
         VStack(alignment: .leading, spacing: AppMetrics.spacing) {
@@ -26,13 +26,13 @@ struct ProductCard: View {
             
             VStack(alignment: .leading, spacing: AppMetrics.spacingSmall) {
                 // Product Name
-                Text(product.name)
+                Text(product.displayName)
                     .font(.headline)
                     .lineLimit(2)
                     .foregroundStyle(AppColors.textPrimary)
                 
                 // Category Badge
-                Text(product.category.capitalized)
+                Text(product.category.displayName)
                     .font(.caption)
                     .foregroundStyle(AppColors.accent)
                     .padding(.horizontal, 8)
@@ -47,6 +47,7 @@ struct ProductCard: View {
                 
                 // Add to Cart Button
                 Button(action: {
+                    print("🛒 ProductCard: Add to cart button tapped for '\(product.displayName)'")
                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                     impactFeedback.impactOccurred()
                     cartViewModel.add(product: product)
@@ -59,12 +60,12 @@ struct ProductCard: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
-                    .background(product.inStock ? AppColors.accent : .gray.opacity(0.3))
-                    .foregroundColor(product.inStock ? .white : .gray)
+                    .background(product.quantity > 0 ? AppColors.accent : .gray.opacity(0.3))
+                    .foregroundColor(product.quantity > 0 ? .white : .gray)
                     .cornerRadius(AppMetrics.cornerRadiusSmall)
                 }
                 .buttonStyle(.plain)
-                .disabled(!product.inStock)
+                .disabled(product.quantity <= 0)
             }
         }
         .padding(AppMetrics.spacing)

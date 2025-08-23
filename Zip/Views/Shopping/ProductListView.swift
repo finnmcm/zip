@@ -12,9 +12,9 @@ struct ProductListView: View {
     let cartViewModel: CartViewModel
     @State private var selectedProduct: Product?
     @State private var searchText = ""
-    private let category: String?
+    private let category: ProductCategory?
 
-    init(category: String? = nil, cartViewModel: CartViewModel) {
+    init(category: ProductCategory? = nil, cartViewModel: CartViewModel) {
         self.category = category
         self.cartViewModel = cartViewModel
     }
@@ -33,8 +33,8 @@ struct ProductListView: View {
             return baseProducts
         } else {
             return baseProducts.filter { product in
-                product.name.localizedCaseInsensitiveContains(searchText) ||
-                product.category.localizedCaseInsensitiveContains(searchText)
+                product.displayName.localizedCaseInsensitiveContains(searchText) ||
+                product.category.displayName.localizedCaseInsensitiveContains(searchText)
             }
         }
     }
@@ -111,7 +111,7 @@ struct ProductListView: View {
                 }
             }
         }
-        .navigationTitle(category ?? "Shop")
+        .navigationTitle(category?.displayName ?? "Shop")
         .sheet(item: $selectedProduct) { product in
             ProductDetailView(product: product, cartViewModel: cartViewModel) {
                 cartViewModel.add(product: product)

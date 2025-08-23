@@ -30,11 +30,11 @@ struct ProductDetailView: View {
                     
                     VStack(alignment: .leading, spacing: AppMetrics.spacing) {
                         // Product Info
-                        Text(product.name)
+                        Text(product.displayName)
                             .font(.title.bold())
                             .foregroundStyle(AppColors.textPrimary)
                         
-                        Text(product.category.capitalized)
+                        Text(product.category.displayName)
                             .font(.subheadline)
                             .foregroundStyle(AppColors.accent)
                             .padding(.horizontal, AppMetrics.spacing)
@@ -48,11 +48,11 @@ struct ProductDetailView: View {
                         
                         // Availability
                         HStack {
-                            Image(systemName: product.inStock ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .foregroundStyle(product.inStock ? .green : .red)
-                            Text(product.inStock ? "In Stock" : "Out of Stock")
+                            Image(systemName: product.quantity > 0 ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundStyle(product.quantity > 0 ? .green : .red)
+                            Text(product.quantity > 0 ? "In Stock" : "Out of Stock")
                                 .font(.subheadline)
-                                .foregroundStyle(product.inStock ? .green : .red)
+                                .foregroundStyle(product.quantity > 0 ? .green : .red)
                         }
                         .padding(.top, AppMetrics.spacing)
                         
@@ -66,6 +66,7 @@ struct ProductDetailView: View {
                         
                         // Add to Cart Button
                         Button(action: {
+                            print("🛒 ProductDetailView: Add to cart button tapped for '\(product.displayName)'")
                             cartViewModel.add(product: product)
                             addToCart()
                         }) {
@@ -76,11 +77,11 @@ struct ProductDetailView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(product.inStock ? AppColors.accent : .gray)
+                            .background(product.quantity > 0 ? AppColors.accent : .gray)
                             .foregroundColor(.white)
                             .cornerRadius(AppMetrics.cornerRadiusLarge)
                         }
-                        .disabled(!product.inStock)
+                        .disabled(product.quantity <= 0)
                         .buttonStyle(.plain)
                     }
                     .padding(.horizontal, AppMetrics.spacingLarge)
