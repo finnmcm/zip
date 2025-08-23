@@ -9,9 +9,11 @@ import Inject
 struct MainTabView: View {
     @ObserveInjection var inject
     @ObservedObject var cartViewModel: CartViewModel
+    @ObservedObject var authViewModel: AuthViewModel
     
-    init(cartViewModel: CartViewModel) {
+    init(cartViewModel: CartViewModel, authViewModel: AuthViewModel) {
         self.cartViewModel = cartViewModel
+        self.authViewModel = authViewModel
     }
     
     var body: some View {
@@ -32,7 +34,7 @@ struct MainTabView: View {
                     print("🛒 MainTabView: Cart tab appeared with \(cartViewModel.items.count) items")
                 }
             
-            ProfileView()
+            ProfileView(authViewModel: authViewModel)
                 .tabItem { 
                     Image(systemName: "person")
                     Text("Profile")

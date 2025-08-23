@@ -6,7 +6,7 @@
 import Foundation
 
 final class User: Identifiable, Codable {
-    let id: UUID
+    let id: String
     var email: String
     var firstName: String
     var lastName: String
@@ -22,7 +22,7 @@ final class User: Identifiable, Codable {
     // Relationships - will be handled manually since we're not using SwiftData
     var orders: [Order] = []
     
-    init(id: UUID = UUID(), email: String, firstName: String, lastName: String, phoneNumber: String, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(id: String, email: String, firstName: String, lastName: String, phoneNumber: String, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.email = email
         self.firstName = firstName
@@ -46,7 +46,7 @@ final class User: Identifiable, Codable {
     required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        id = try container.decode(UUID.self, forKey: .id)
+        id = try container.decode(String.self, forKey: .id)
         email = try container.decode(String.self, forKey: .email)
         firstName = try container.decode(String.self, forKey: .firstName)
         lastName = try container.decode(String.self, forKey: .lastName)
@@ -65,6 +65,39 @@ final class User: Identifiable, Codable {
         try container.encode(phoneNumber, forKey: .phoneNumber)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
+    }
+}
+
+// MARK: - User for Authentication
+struct AuthUser: Codable {
+    let id: String
+    let email: String
+    let firstName: String
+    let lastName: String
+    let phoneNumber: String
+    let createdAt: Date
+    let updatedAt: Date
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case email
+        case firstName = "first_name"
+        case lastName = "last_name"
+        case phoneNumber = "phone_number"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+    
+    func toUser() -> User {
+        return User(
+            id: id,
+            email: email,
+            firstName: firstName,
+            lastName: lastName,
+            phoneNumber: phoneNumber,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
     }
 }
 

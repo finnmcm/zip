@@ -8,7 +8,7 @@ import Inject
 
 struct ProfileView: View {
     @ObserveInjection var inject
-    @EnvironmentObject private var authViewModel: AuthViewModel
+    @ObservedObject var authViewModel: AuthViewModel
     
     var body: some View {
         NavigationStack {
@@ -23,14 +23,25 @@ struct ProfileView: View {
                             .foregroundStyle(AppColors.accent)
                         
                         if let user = authViewModel.currentUser {
-                            Text(user.email)
+                            VStack(spacing: AppMetrics.spacingSmall) {
+                                Text(user.fullName)
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(AppColors.textPrimary)
+                                
+                                Text(user.email)
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppColors.textSecondary)
+                                
+                                Text(user.phoneNumber)
+                                    .font(.caption)
+                                    .foregroundStyle(AppColors.textSecondary)
+                            }
+                        } else {
+                            Text("Not Signed In")
                                 .font(.headline)
-                                .foregroundStyle(AppColors.textPrimary)
+                                .foregroundStyle(AppColors.textSecondary)
                         }
-                        
-                        Text("Northwestern Professor")
-                            .font(.subheadline)
-                            .foregroundStyle(AppColors.textSecondary)
                     }
                     .padding(.top, AppMetrics.spacingLarge)
                     
@@ -74,29 +85,31 @@ struct ProfileView: View {
                     Spacer()
                     
                     // Logout Button
-                    Button(action: {
-                        Task {
-                            await authViewModel.logout()
+                    if authViewModel.isAuthenticated {
+                        Button(action: {
+                            Task {
+                                await authViewModel.logout()
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "rectangle.portrait.and.arrow.right")
+                                Text("Sign Out")
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(.red.opacity(0.1))
+                            .foregroundColor(.red)
+                            .cornerRadius(AppMetrics.cornerRadiusLarge)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppMetrics.cornerRadiusLarge)
+                                    .stroke(.red.opacity(0.3), lineWidth: 1)
+                            )
                         }
-                    }) {
-                        HStack {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                            Text("Sign Out")
-                                .fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(.red.opacity(0.1))
-                        .foregroundColor(.red)
-                        .cornerRadius(AppMetrics.cornerRadiusLarge)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppMetrics.cornerRadiusLarge)
-                                .stroke(.red.opacity(0.3), lineWidth: 1)
-                        )
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, AppMetrics.spacingLarge)
+                        .padding(.bottom, AppMetrics.spacingLarge)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, AppMetrics.spacingLarge)
-                    .padding(.bottom, AppMetrics.spacingLarge)
                 }
             }
             .navigationTitle("Profile")

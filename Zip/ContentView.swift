@@ -15,8 +15,8 @@ struct ContentView: View {
     
     var body: some View {
         Group {
-            if authViewModel.currentUser != nil {
-                MainTabView(cartViewModel: cartViewModel)
+            if authViewModel.isAuthenticated {
+                MainTabView(cartViewModel: cartViewModel, authViewModel: authViewModel)
                     .environmentObject(authViewModel)
             } else {
                 LoginView()

@@ -232,6 +232,19 @@ private struct SignInForm: View {
                 textContentType: .password,
                 isSecure: true
             )
+            
+            // Forgot Password Button
+            HStack {
+                Spacer()
+                Button("Forgot Password?") {
+                    Task {
+                        await viewModel.resetPassword()
+                    }
+                }
+                .font(.footnote)
+                .foregroundStyle(AppColors.accent)
+                .buttonStyle(.plain)
+            }
         }
     }
 }

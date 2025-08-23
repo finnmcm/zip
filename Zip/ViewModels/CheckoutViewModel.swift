@@ -30,7 +30,7 @@ final class CheckoutViewModel: ObservableObject {
             _ = try await stripe.processPayment(amount: cart.subtotal)
             
             // Create order with current user (assuming we have one)
-            let user = User(email: "user@example.com", firstName: "User", lastName: "Name", phoneNumber: "") // This should come from AuthViewModel
+            let user = User(id: "123", email: "user@example.com", firstName: "User", lastName: "Name", phoneNumber: "") // This should come from AuthViewModel
             let order = Order(
                 user: user,
                 items: cart.items,

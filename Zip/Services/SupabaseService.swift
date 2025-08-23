@@ -140,18 +140,84 @@ final class SupabaseService: SupabaseServiceProtocol {
     
     // MARK: - User Operations
     func createUser(_ user: User) async throws -> User {
-        // TODO: Implement when Supabase is configured
-        throw SupabaseError.notImplemented
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            let createdUser: AuthUser = try await supabase
+                .from("users")
+                .insert(user)
+                .select()
+                .single()
+                .execute()
+                .value
+            
+            print("✅ User created successfully: \(createdUser.email)")
+            return createdUser.toUser()
+            
+        } catch let error as PostgrestError {
+            print("❌ Database error creating user: \(error)")
+            throw SupabaseError.databaseError(error.localizedDescription)
+        } catch {
+            print("❌ Error creating user: \(error)")
+            throw SupabaseError.networkError(error)
+        }
     }
     
     func updateUser(_ user: User) async throws -> User {
-        // TODO: Implement when Supabase is configured
-        throw SupabaseError.notImplemented
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            let updatedUser: AuthUser = try await supabase
+                .from("users")
+                .update(user)
+                .eq("id", value: user.id)
+                .select()
+                .single()
+                .execute()
+                .value
+            
+            print("✅ User updated successfully: \(updatedUser.email)")
+            return updatedUser.toUser()
+            
+        } catch let error as PostgrestError {
+            print("❌ Database error updating user: \(error)")
+            throw SupabaseError.databaseError(error.localizedDescription)
+        } catch {
+            print("❌ Error updating user: \(error)")
+            throw SupabaseError.networkError(error)
+        }
     }
     
     func fetchUser(id: UUID) async throws -> User? {
-        // TODO: Implement when Supabase is configured
-        throw SupabaseError.notImplemented
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            let users: [AuthUser] = try await supabase
+                .from("users")
+                .select()
+                .eq("id", value: id)
+                .execute()
+                .value
+            
+            guard let user = users.first else {
+                return nil
+            }
+            
+            return user.toUser()
+            
+        } catch let error as PostgrestError {
+            print("❌ Database error fetching user: \(error)")
+            throw SupabaseError.databaseError(error.localizedDescription)
+        } catch {
+            print("❌ Error fetching user: \(error)")
+            throw SupabaseError.networkError(error)
+        }
     }
     
     // MARK: - Order Operations
@@ -194,6 +260,7 @@ enum SupabaseError: LocalizedError {
     case networkError(Error)
     case decodingError(Error)
     case invalidResponse
+    case databaseError(String)
     
     var errorDescription: String? {
         switch self {
@@ -207,6 +274,8 @@ enum SupabaseError: LocalizedError {
             return "Data decoding error: \(error.localizedDescription)"
         case .invalidResponse:
             return "Invalid response from server."
+        case .databaseError(let message):
+            return "Database error: \(message)"
         }
     }
 }
