@@ -12,6 +12,7 @@ struct CheckoutView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showConfirmation: Bool = false
     @State private var tipAmount: Decimal = 0.0
+    @State private var onCampus: Bool = true
     
     var body: some View {
         NavigationStack {
@@ -133,31 +134,38 @@ struct CheckoutView: View {
 
                     // Delivery Info
                     VStack(alignment: .leading, spacing: AppMetrics.spacing) {
-                        Text("Delivery Information")
-                            .font(.title2.bold())
-                            .padding(.horizontal, AppMetrics.spacingLarge)
-                        
-                        VStack(spacing: AppMetrics.spacing) {
-                            HStack {
-                                Image(systemName: "location")
-                                    .foregroundStyle(AppColors.accent)
-                                Text("Northwestern Campus")
-                                    .font(.body)
+                        HStack {
+                            Text("Delivery Information")
+                                .font(.title2.bold())
+                                .padding(.horizontal, AppMetrics.spacingLarge)
                                 Spacer()
-                            }
-                            
-                            HStack {
-                                Image(systemName: "clock")
-                                    .foregroundStyle(AppColors.accent)
-                                Text("Estimated delivery: 20-30 minutes")
-                                    .font(.body)
-                                Spacer()
-                            }
                         }
-                        .padding()
-                        .background(AppColors.secondaryBackground)
+                        HStack{
+                            Button(action: { onCampus = true }) {
+                                Text("On Campus")
+                                    .font(.headline)
+                                    .foregroundStyle( !onCampus ? AppColors.textSecondary : AppColors.accent)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, AppMetrics.spacing)
+                                    .background( !onCampus ? AppColors.secondaryBackground : AppColors.accent.opacity(0.1))
+                                }
+                                .buttonStyle(.plain)
+            
+                            Button(action: { onCampus = false }) {
+                                Text("Off Campus")
+                                    .font(.headline)
+                                    .font(.headline)
+                                    .foregroundStyle(onCampus ? AppColors.textSecondary : AppColors.accent)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, AppMetrics.spacing)
+                                    .background(onCampus ? AppColors.secondaryBackground : AppColors.accent.opacity(0.1))
+                            }
+                            .buttonStyle(.plain)
+                         }
+                         .background(AppColors.secondaryBackground)
                         .cornerRadius(AppMetrics.cornerRadiusLarge)
                         .padding(.horizontal, AppMetrics.spacingLarge)
+                        
                     }
                     
                     Spacer()
