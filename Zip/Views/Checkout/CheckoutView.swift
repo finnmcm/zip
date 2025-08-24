@@ -14,6 +14,7 @@ struct CheckoutView: View {
     @State private var tipAmount: Decimal = 0.0
     @State private var onCampus: Bool = true
     @State var selectedBuilding: String = ""
+    @State var selectedAddress: String = ""
     
     var body: some View {
         NavigationStack {
@@ -167,14 +168,13 @@ struct CheckoutView: View {
                          .background(AppColors.secondaryBackground)
                         .cornerRadius(AppMetrics.cornerRadiusLarge)
                         .padding(.horizontal, AppMetrics.spacingLarge)
-                        
-                        HStack{
-                            Text("Delivery Location")
-                                .font(.title2.bold())
-                                .padding(.horizontal, AppMetrics.spacingLarge)
-                                Spacer()
+
+                        if onCampus {
+                            BuildingSearchView(selectedBuilding: $selectedBuilding)
                         }
-                        BuildingSearchView(selectedBuilding: $selectedBuilding)
+                        else{
+                            AddressSelectionView(selectedAddress: $selectedAddress)
+                        }
                     }
                     
                     // Payment Button
