@@ -6,7 +6,7 @@
 import SwiftUI
 
 enum AppColors {
-    static let northwesternPurple = Color(hex: "#4E2A84")
+    static let northwesternPurple = Color(hex: "#79E0D3")
     static let background = Color(.systemBackground)
     static let secondaryBackground = Color(.secondarySystemBackground)
     static let textPrimary = Color.primary

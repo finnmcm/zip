@@ -4,6 +4,7 @@ struct BuildingSearchView: View {
     @StateObject private var buildingService = BuildingService.shared
     @State private var searchText = ""
     @Binding var selectedBuilding: String
+    @State var isRoomService = false
     
     var searchResults: [String] {
         if searchText.isEmpty {
@@ -117,6 +118,76 @@ struct BuildingSearchView: View {
                     }
                     .frame(maxHeight: 200)
                 }
+                HStack{
+                    Text("Additional Information")
+                        .font(.headline)
+                        .foregroundStyle(AppColors.textPrimary)
+                        .padding(.leading, AppMetrics.spacingLarge)
+                        .padding(.top, AppMetrics.spacingLarge)
+                    Spacer()
+                }
+                 HStack{
+                    HStack(spacing: AppMetrics.spacingSmall) {
+                    
+                    HStack(spacing: AppMetrics.spacingSmall) {
+                        
+                        TextField("Room number? Surroundings?", text: $searchText)
+                            .textFieldStyle(.plain)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                        
+                        if !searchText.isEmpty {
+                            Button("Clear") {
+                                searchText = ""
+                                selectedBuilding = ""
+                            }
+                            .font(.caption)
+                            .foregroundStyle(AppColors.accent)
+                        }
+                    }
+                    .padding(.horizontal, AppMetrics.spacingSmall)
+                    .padding(.vertical, AppMetrics.spacingSmall)
+                    .cornerRadius(AppMetrics.cornerRadiusLarge)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppMetrics.cornerRadiusSmall)
+                            .stroke(AppColors.textSecondary, lineWidth: 1.2)
+                    )
+                }
+                .padding(.horizontal, AppMetrics.spacingLarge)
+                .padding(.top, AppMetrics.spacingSmall)
+                }
+                 HStack{
+            Button {
+                isRoomService = true
+            } label: {
+                RoundedRectangle(cornerRadius: 10.0)
+                .stroke(!isRoomService ? AppColors.accent : AppColors.textSecondary, lineWidth: 2)
+                .frame(maxWidth: .infinity)
+                .frame(width: 180, height: 50)
+                .overlay(
+                    Label("Leave at Door", systemImage: "door.left.hand.open")
+                    .foregroundStyle(!isRoomService ? AppColors.accent : AppColors.textSecondary)
+                        .font(.headline)
+                        .foregroundStyle(AppColors.accent)
+                )
+            }
+            Button {
+                isRoomService = false
+            } label: {
+                RoundedRectangle(cornerRadius: 10.0)
+                .stroke(isRoomService ? AppColors.accent : AppColors.textSecondary, lineWidth: 2)
+                .frame(maxWidth: .infinity)
+                .frame(width: 180, height: 50)
+                .overlay(
+                    Label("Room Service", systemImage: "person.2")
+                    .foregroundStyle(isRoomService ? AppColors.accent : AppColors.textSecondary)
+                        .font(.headline)
+                        .foregroundStyle(AppColors.accent)
+                )
+            }
+        }
+        .padding(.top, AppMetrics.spacingLarge)
+
                 Spacer()
             }
         }

@@ -66,7 +66,7 @@ class AddressSearchViewModel: NSObject, ObservableObject {
             .store(in: &cancellables)
     }
     
-    func selectAddress(_ completion: MKLocalSearchCompletion) {
+    func selectAddress(_ completion: MKLocalSearchCompletion, preserveSearchText: Bool = false) {
         // Use MKLocalSearch for precise geocoding (Apple Maps method)
         let searchRequest = MKLocalSearch.Request(completion: completion)
         searchRequest.resultTypes = [.address]
@@ -90,18 +90,22 @@ class AddressSearchViewModel: NSObject, ObservableObject {
                 self.selectedLocation = location.coordinate
                 self.checkDeliveryRadius(location: location)
                 
-                // Format address like Apple Maps
-                let formattedAddress = self.formatAddress(
-                    title: completion.title,
-                    subtitle: completion.subtitle,
-                    mapItem: mapItem
-                )
-                self.searchText = formattedAddress
+                // Only update search text if we're not preserving it
+                if !preserveSearchText {
+                    // Format address like Apple Maps
+                    let formattedAddress = self.formatAddress(
+                        title: completion.title,
+                        subtitle: completion.subtitle,
+                        mapItem: mapItem
+                    )
+                    self.searchText = formattedAddress
+                }
+                
                 self.searchResults = []
                 self.isSearching = false
                 
-                // Save to recent searches
-                self.saveRecentSearch(formattedAddress)
+                // Save to recent searches (use the completion title for consistency)
+                self.saveRecentSearch(completion.title)
             }
         }
     }

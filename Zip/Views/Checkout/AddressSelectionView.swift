@@ -11,6 +11,7 @@ struct AddressSelectionView: View {
     @StateObject private var viewModel = AddressSearchViewModel(deliveryLocation: deliveryLocation)
     @State private var showingOutOfRangeAlert = false
     @Binding var selectedAddress: String
+    @State var leaveAtDoor = false
     
     init(selectedAddress: Binding<String>) {
         self._selectedAddress = selectedAddress
@@ -116,50 +117,55 @@ struct AddressSelectionView: View {
             
             Spacer()
             
-            // Confirm Button
-            Button(action: {
-                if viewModel.isWithinDeliveryRadius {
-                    // Proceed with order
-                } else {
-                    showingOutOfRangeAlert = true
-                }
-            }) {
-                Text("Confirm Delivery Address")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(viewModel.selectedLocation != nil && 
-                              viewModel.isWithinDeliveryRadius ? 
-                              Color.blue : Color.gray)
-                    .cornerRadius(10)
+        HStack{
+            Button {
+                leaveAtDoor = true
+            } label: {
+                RoundedRectangle(cornerRadius: 10.0)
+                .stroke(leaveAtDoor ? AppColors.accent : AppColors.textSecondary, lineWidth: 2)
+                .frame(maxWidth: .infinity)
+                .frame(width: 180, height: 50)
+                .overlay(
+                    Label("Leave at Door", systemImage: "door.left.hand.open")
+                    .foregroundStyle(leaveAtDoor ? AppColors.accent : AppColors.textSecondary)
+                        .font(.headline)
+                        .foregroundStyle(AppColors.accent)
+                )
             }
-            .disabled(viewModel.selectedLocation == nil || 
-                     !viewModel.isWithinDeliveryRadius)
-            .padding()
+            Button {
+                leaveAtDoor = false
+            } label: {
+                RoundedRectangle(cornerRadius: 10.0)
+                .stroke(!leaveAtDoor ? AppColors.accent : AppColors.textSecondary, lineWidth: 2)
+                .frame(maxWidth: .infinity)
+                .frame(width: 180, height: 50)
+                .overlay(
+                    Label("Meet at Door", systemImage: "person.2")
+                    .foregroundStyle(!leaveAtDoor ? AppColors.accent : AppColors.textSecondary)
+                        .font(.headline)
+                        .foregroundStyle(AppColors.accent)
+                )
+            }
+        }
+        .padding(.top, AppMetrics.spacingLarge)
         }
         .alert("Out of Delivery Range", isPresented: $showingOutOfRangeAlert) {
             Button("OK", role: .cancel) { }
         } message: {
             Text("Sorry, we only deliver within 1 mile of our location.")
         }
-        .onAppear {
-            // Update search text to show selected address if available
-            if !selectedAddress.isEmpty {
-                viewModel.searchText = selectedAddress
-            }
-        }
     }
     
     private func selectAddress(_ result: MKLocalSearchCompletion) {
-        viewModel.selectAddress(result)
-        
-        // Extract street and number from the address
+        // Extract street and number from the address first
         let abbreviatedAddress = extractStreetAndNumber(from: result.title)
         selectedAddress = abbreviatedAddress
         
         // Update the search text to show the abbreviated address
         viewModel.searchText = abbreviatedAddress
+        
+        // Call selectAddress with preserveSearchText = true to prevent overriding our abbreviated address
+        viewModel.selectAddress(result, preserveSearchText: true)
         
         // Clear search results since an address is now selected
         viewModel.searchResults = []
