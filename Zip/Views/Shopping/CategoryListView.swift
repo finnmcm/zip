@@ -21,24 +21,21 @@ struct CategoryListView: View {
                 AppColors.background.ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: AppMetrics.spacingLarge) {
+                    VStack(spacing: 0) {
                         // Header
-                        HStack{
-                            ZStack{
-                                Circle()
-                                .frame(width: 50)
+                        HStack {
+                            Rectangle()
                                 .foregroundStyle(AppColors.accent)
-                                Image(systemName: "shippingbox")
-                                .foregroundStyle(.white)
-                                .font(.title)
-                            }
+                                .frame(width: 120, height: 2)
                             
-                            Text("What are you craving?")
-                            .font(.title2)
-                            Spacer()
+                            Image("logo_inverted")
+                                .resizable()
+                                .frame(width: 100, height: 100)
+                            
+                            Rectangle()
+                                .foregroundStyle(AppColors.accent)
+                                .frame(width: 120, height: 2)
                         }
-                        .padding(.leading, 20)
-                        .padding(.top, 10)
                         
                         // Categories Grid
                         VStack {
@@ -86,7 +83,6 @@ struct CategoryListView: View {
                             }
                         }
                         .padding(.horizontal, AppMetrics.spacingLarge)
-                        .padding(.top, 20)
                         
                         Spacer(minLength: 0)
                     }
@@ -113,6 +109,7 @@ struct CategoryCard: View {
     
     var body: some View {
         VStack(spacing: AppMetrics.spacing) {
+        NavigationLink(destination: ProductListView(category: category, cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel)) {
             HStack{
                 Image(systemName: category.iconName)
                 .foregroundStyle(AppColors.northwesternPurple)
@@ -124,16 +121,14 @@ struct CategoryCard: View {
                 .padding(.top, 10)
 
                 Spacer()
-            NavigationLink(destination: ProductListView(category: category, cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel)) {
                 Image(systemName: "chevron.right")
                     .foregroundStyle(AppColors.textSecondary)
                     .font(.title)
                     .padding(.trailing, 20)
                     .padding(.top, 10)
             }
-            .buttonStyle(.plain)
-            }
-            
+        }
+        .buttonStyle(.plain)
             // Featured Products Section
             if !featuredProducts.isEmpty {
                 VStack(alignment: .leading, spacing: AppMetrics.spacingSmall) {

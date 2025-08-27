@@ -47,37 +47,30 @@ struct ProfileView: View {
                     
                     // Profile Options
                     VStack(spacing: AppMetrics.spacing) {
+                        NavigationLink(destination: OrderHistoryView()) {
                         ProfileOptionRow(
                             icon: "bag",
                             title: "Order History",
                             subtitle: "View your past orders"
-                        ) {
-                            // TODO: Navigate to order history
-                        }
-                        
+                        ) 
+                        }                        
                         ProfileOptionRow(
                             icon: "location",
                             title: "Delivery Addresses",
                             subtitle: "Manage your delivery locations"
-                        ) {
-                            // TODO: Navigate to address management
-                        }
+                        ) 
                         
                         ProfileOptionRow(
                             icon: "creditcard",
                             title: "Payment Methods",
                             subtitle: "Manage your payment options"
-                        ) {
-                            // TODO: Navigate to payment methods
-                        }
+                        ) 
                         
                         ProfileOptionRow(
                             icon: "questionmark.circle",
                             title: "Help & Support",
                             subtitle: "Get help with your orders"
-                        ) {
-                            // TODO: Navigate to support
-                        }
+                        ) 
                         
                     }
                     .padding(.horizontal, AppMetrics.spacingLarge)
@@ -130,10 +123,8 @@ private struct ProfileOptionRow: View {
     let icon: String
     let title: String
     let subtitle: String
-    let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
             HStack(spacing: AppMetrics.spacing) {
                 Image(systemName: icon)
                     .font(.title2)
@@ -158,7 +149,5 @@ private struct ProfileOptionRow: View {
             .padding()
             .background(AppColors.secondaryBackground)
             .cornerRadius(AppMetrics.cornerRadiusLarge)
-        }
-        .buttonStyle(.plain)
     }
 }

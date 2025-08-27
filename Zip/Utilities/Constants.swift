@@ -9,7 +9,7 @@ enum AppColors {
     static let northwesternPurple = Color(hex: "#79E0D3")
     static let background = Color(.systemBackground)
     static let secondaryBackground = Color(.secondarySystemBackground)
-    static let textPrimary = Color.primary
+    static let textPrimary = Color(hex: "#068f7c")
     static let textSecondary = Color.secondary
     static let accent = northwesternPurple
 }
@@ -20,6 +20,11 @@ enum AppMetrics {
     static let spacingSmall: CGFloat = 8
     static let spacing: CGFloat = 12
     static let spacingLarge: CGFloat = 20
+}
+
+enum AppImages {
+    static let logo = "logo"
+    static let logoInverted = "logo_inverted"
 }
 
 // MARK: - Database Table Names

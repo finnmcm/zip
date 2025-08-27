@@ -5,6 +5,7 @@ struct BuildingSearchView: View {
     @State private var searchText = ""
     @Binding var selectedBuilding: String
     @State var isRoomService = false
+    @State var deliveryInfo = ""
     
     var searchResults: [String] {
         if searchText.isEmpty {
@@ -126,24 +127,23 @@ struct BuildingSearchView: View {
                         .padding(.top, AppMetrics.spacingLarge)
                     Spacer()
                 }
+                HStack{
+                     Text("Note: Zippers will leave your order at the front of the building if not specified otherwise!")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColors.textSecondary)
+                        .padding(.leading, AppMetrics.spacingLarge)
+                    Spacer()
+                }
                  HStack{
                     HStack(spacing: AppMetrics.spacingSmall) {
                     
                     HStack(spacing: AppMetrics.spacingSmall) {
                         
-                        TextField("Room number? Surroundings?", text: $searchText)
+                        TextField("Room number? Surroundings?", text: $deliveryInfo)
                             .textFieldStyle(.plain)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
-                        
-                        if !searchText.isEmpty {
-                            Button("Clear") {
-                                searchText = ""
-                                selectedBuilding = ""
-                            }
-                            .font(.caption)
-                            .foregroundStyle(AppColors.accent)
-                        }
+                    
                     }
                     .padding(.horizontal, AppMetrics.spacingSmall)
                     .padding(.vertical, AppMetrics.spacingSmall)
@@ -156,37 +156,7 @@ struct BuildingSearchView: View {
                 .padding(.horizontal, AppMetrics.spacingLarge)
                 .padding(.top, AppMetrics.spacingSmall)
                 }
-                 HStack{
-            Button {
-                isRoomService = true
-            } label: {
-                RoundedRectangle(cornerRadius: 10.0)
-                .stroke(!isRoomService ? AppColors.accent : AppColors.textSecondary, lineWidth: 2)
-                .frame(maxWidth: .infinity)
-                .frame(width: 180, height: 50)
-                .overlay(
-                    Label("Leave at Door", systemImage: "door.left.hand.open")
-                    .foregroundStyle(!isRoomService ? AppColors.accent : AppColors.textSecondary)
-                        .font(.headline)
-                        .foregroundStyle(AppColors.accent)
-                )
-            }
-            Button {
-                isRoomService = false
-            } label: {
-                RoundedRectangle(cornerRadius: 10.0)
-                .stroke(isRoomService ? AppColors.accent : AppColors.textSecondary, lineWidth: 2)
-                .frame(maxWidth: .infinity)
-                .frame(width: 180, height: 50)
-                .overlay(
-                    Label("Room Service", systemImage: "person.2")
-                    .foregroundStyle(isRoomService ? AppColors.accent : AppColors.textSecondary)
-                        .font(.headline)
-                        .foregroundStyle(AppColors.accent)
-                )
-            }
-        }
-        .padding(.top, AppMetrics.spacingLarge)
+                
 
                 Spacer()
             }

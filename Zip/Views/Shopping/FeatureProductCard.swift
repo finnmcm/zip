@@ -34,7 +34,7 @@ struct FeatureProductCard: View {
                 // Price
                 Text(product.displayName)
                     .font(.headline.bold())
-                    .foregroundStyle(AppColors.accent)
+                    .foregroundStyle(AppColors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(AppMetrics.spacing)

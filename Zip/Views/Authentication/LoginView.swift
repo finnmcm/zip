@@ -47,13 +47,11 @@ private struct LogoSection: View {
     var body: some View {
         VStack(spacing: AppMetrics.spacing) {
             ZStack {
-                Circle()
-                    .fill(AppColors.accent.opacity(0.1))
-                    .frame(width: 100, height: 100)
-                
-                Image(systemName: "shippingbox.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(AppColors.accent)
+                Image(AppImages.logo)
+                .resizable()
+                .frame(width: 100, height: 100)
+                       // .clipShape(Circle())
+                   // .foregroundStyle(AppColors.accent)
             }
             .scaleEffect(focusedField != nil ? 1.1 : 1.0)
             .animation(.easeInOut(duration: 0.3), value: focusedField)
@@ -62,7 +60,7 @@ private struct LogoSection: View {
                 .font(.system(size: 44, weight: .bold))
                 .foregroundColor(AppColors.accent)
             
-            Text("Fast campus delivery for Northwestern")
+            Text("Rapid College Delivery - Cheaper, Faster, Smoother")
                 .font(.subheadline)
                 .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
