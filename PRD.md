@@ -168,6 +168,7 @@ Zip provides an on-demand delivery service that:
 - **Data Persistence**: UserDefaults for local storage
 - **Backend**: Supabase PostgreSQL with REST API
 - **Payment**: Stripe iOS SDK integration
+  - PaymentSheet via Supabase Edge Function `create-payment-intent`
 
 ### 5.2 Performance Requirements
 - **App Launch**: <3 seconds cold start

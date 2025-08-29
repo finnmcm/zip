@@ -189,3 +189,4 @@ if email.isValidNorthwesternEmail {
 - **Multi-factor Authentication**: SMS/Email verification
 - **Session Management**: Token refresh, auto-logout
 - **Offline Support**: Local authentication state caching
+ - **Payments Integration**: Stripe PaymentSheet with Supabase Edge Functions, webhook reconciliation

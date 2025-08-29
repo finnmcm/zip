@@ -16,6 +16,18 @@ final class CartViewModel: ObservableObject {
     }
     @Published var isUpdating: Bool = false
     @Published var errorMessage: String?
+    
+    // Banner notification properties
+    @Published var showBanner: Bool = false
+    @Published var bannerMessage: String = ""
+    @Published var bannerType: BannerType = .success
+    @Published var isExiting: Bool = false // New property to track exit animation state
+    
+    enum BannerType {
+        case success
+        case error
+        case info
+    }
 
     init() {
         print("🛒 CartViewModel: Initializing...")
@@ -39,6 +51,7 @@ final class CartViewModel: ObservableObject {
             // Provide haptic feedback
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
             impactFeedback.impactOccurred()
+            showBannerNotification(message: "\(product.displayName) quantity updated!", type: .success)
         } else {
             print("🛒 CartViewModel: Creating new cart item for '\(product.displayName)'")
             let newItem = CartItem(product: product, quantity: quantity, userId: UUID()) // Using placeholder UUID for now
@@ -47,9 +60,11 @@ final class CartViewModel: ObservableObject {
             // Provide haptic feedback for new item
             let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
             impactFeedback.impactOccurred()
+            showBannerNotification(message: "\(product.displayName) added to cart!", type: .success)
         }
         
         print("🛒 CartViewModel: Add operation complete - final items count: \(items.count)")
+        showBannerNotification(message: "Item added to cart!", type: .success)
     }
 
     func decrement(item: CartItem) {
@@ -96,11 +111,43 @@ final class CartViewModel: ObservableObject {
         print("🛒 CartViewModel: Items count after removal: \(items.count)")
         let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
         impactFeedback.impactOccurred()
+        showBannerNotification(message: "\(item.product.displayName) removed from cart", type: .info)
     }
 
     func clear() {
         print("🛒 CartViewModel: Clearing all items")
         items.removeAll()
+        showBannerNotification(message: "Cart cleared", type: .info)
+    }
+    
+    // MARK: - Banner Notifications
+    
+    func showBannerNotification(message: String, type: BannerType = .success) {
+        bannerMessage = message
+        bannerType = type
+        showBanner = true
+        
+        // Auto-hide after 0.5 seconds
+        Task {
+            try? await Task.sleep(nanoseconds: 1000_000_000) // 0.5 seconds
+            await MainActor.run {
+                hideBanner()
+            }
+        }
+    }
+    
+    func hideBanner() {
+        // First trigger the exit animation
+        isExiting = true
+        
+        // Wait for the exit animation to complete before actually hiding
+        Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds to match animation duration
+            await MainActor.run {
+                showBanner = false
+                isExiting = false
+            }
+        }
     }
 
     var subtotal: Decimal {

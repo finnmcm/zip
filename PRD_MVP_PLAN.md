@@ -47,7 +47,7 @@
 7) Views – Cart & Checkout
 - [ ] `CartItemRow` with stepper.
 - [ ] `CartView` shows items, subtotal/fees/total.
-- [ ] `CheckoutView` + `PaymentView` (stub) + `OrderConfirmationView`.
+- [ ] `CheckoutView` + `PaymentSheet` + `OrderConfirmationView`.
 
 8) Root Navigation
 - [ ] `ContentView`: conditional routing (Login vs Main tabs).
@@ -63,9 +63,12 @@
 - [ ] Prepare TODOs for Supabase/Stripe real integrations.
 
 ### Non-Goals (MVP)
-- Real Supabase integration (use stubs/mock data).
-- Real Stripe payment (use stubbed success).
 - Push notifications, order tracking beyond confirmation.
+
+### Payments (Updated)
+- Create PaymentIntent via Supabase Edge Function `create-payment-intent` using `STRIPE_SECRET_KEY`.
+- Initialize Stripe in `ZipApp` with `Configuration.stripePublishableKey`.
+- Use `StripeService.processPayment(amount:tip:description:)` to present PaymentSheet and confirm payment.
 
 ### Risks & Mitigations
 - Missing SDKs: Use stubs to avoid build failures.

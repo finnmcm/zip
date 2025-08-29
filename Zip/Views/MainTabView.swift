@@ -23,13 +23,11 @@ struct MainTabView: View {
             CategoryListView(cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel)
                 .tabItem { 
                     Image(systemName: "bag")
-                    Text("Shop")
                 }
             
             CartView(cartViewModel: cartViewModel)
                 .tabItem { 
                     Image(systemName: "cart")
-                    Text("Cart")
                 }
                 .badge(cartViewModel.items.isEmpty ? 0 : cartViewModel.items.reduce(0) { $0 + $1.quantity })
                 .onAppear {
@@ -39,11 +37,32 @@ struct MainTabView: View {
             ProfileView(authViewModel: authViewModel)
                 .tabItem { 
                     Image(systemName: "person")
-                    Text("Profile")
                 }
         }
         .tint(AppColors.accent)
         .enableInjection()
+        .overlay(
+            // Banner notification overlay
+            VStack {
+                Spacer()
+                
+                if cartViewModel.showBanner {
+                    BannerNotificationView(
+                        message: cartViewModel.bannerMessage,
+                        type: cartViewModel.bannerType,
+                        onDismiss: {
+                            cartViewModel.hideBanner()
+                        },
+                        isExiting: cartViewModel.isExiting
+                    )
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.8)),
+                        removal: .move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.8)).combined(with: .offset(y: 50))
+                    ))
+                    .animation(.spring(response: 0.5, dampingFraction: 0.8), value: cartViewModel.showBanner)
+                }
+            }
+        )
     }
 }
 

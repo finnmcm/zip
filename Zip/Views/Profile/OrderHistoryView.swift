@@ -156,15 +156,13 @@ struct OrderHistoryView: View {
             Order(
                 user: dummyUser,
                 items: [
-                    CartItem(product: dummyProducts[0], quantity: 2, userId: UUID()),
+                    CartItem(product: dummyProducts[0], quantity: 1, userId: UUID()),
                     CartItem(product: dummyProducts[2], quantity: 1, userId: UUID())
                 ],
                 status: .delivered,
                 rawAmount: 12.97,
-                deliveryFee: 0.99,
                 tip: 2.00,
-                totalAmount: 15.96,
-                tax: 0.00,
+                totalAmount: 14.97,
                 deliveryAddress: "Elder Hall, Room 305",
                 createdAt: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
                 estimatedDeliveryTime: Calendar.current.date(byAdding: .minute, value: 25, to: Date()) ?? Date(),
@@ -180,10 +178,8 @@ struct OrderHistoryView: View {
                 ],
                 status: .delivered,
                 rawAmount: 10.46,
-                deliveryFee: 0.99,
                 tip: 1.50,
-                totalAmount: 12.95,
-                tax: 0.00,
+                totalAmount: 11.96,
                 deliveryAddress: "Willard Hall, Room 127",
                 createdAt: Calendar.current.date(byAdding: .day, value: -3, to: Date()) ?? Date(),
                 estimatedDeliveryTime: Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date(),
@@ -198,10 +194,8 @@ struct OrderHistoryView: View {
                 ],
                 status: .outForDelivery,
                 rawAmount: 10.97,
-                deliveryFee: 0.99,
                 tip: 1.75,
-                totalAmount: 13.71,
-                tax: 0.00,
+                totalAmount: 12.72,
                 deliveryAddress: "Sargent Hall, Room 412",
                 createdAt: Calendar.current.date(byAdding: .hour, value: -2, to: Date()) ?? Date(),
                 estimatedDeliveryTime: Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date()
@@ -215,10 +209,8 @@ struct OrderHistoryView: View {
                 ],
                 status: .preparing,
                 rawAmount: 6.47,
-                deliveryFee: 0.99,
                 tip: 1.00,
-                totalAmount: 8.46,
-                tax: 0.00,
+                totalAmount: 7.47,
                 deliveryAddress: "Foster-Walker Complex, Room 208",
                 createdAt: Calendar.current.date(byAdding: .minute, value: -45, to: Date()) ?? Date(),
                 estimatedDeliveryTime: Calendar.current.date(byAdding: .minute, value: 35, to: Date()) ?? Date()
@@ -232,10 +224,8 @@ struct OrderHistoryView: View {
                 ],
                 status: .cancelled,
                 rawAmount: 7.96,
-                deliveryFee: 0.99,
                 tip: 0.00,
-                totalAmount: 8.95,
-                tax: 0.00,
+                totalAmount: 7.96,
                 deliveryAddress: "Allison Hall, Room 156",
                 createdAt: Calendar.current.date(byAdding: .day, value: -5, to: Date()) ?? Date()
             )
@@ -530,26 +520,10 @@ struct OrderDetailView: View {
                 }
                 
                 HStack {
-                    Text("Delivery Fee")
-                        .foregroundColor(AppColors.textSecondary)
-                    Spacer()
-                 /*   Text("$\(order.deliveryFee, specifier: "%.2f")")
-                        .foregroundColor(AppColors.textPrimary)*/
-                }
-                
-                HStack {
                     Text("Tip")
                         .foregroundColor(AppColors.textSecondary)
                     Spacer()
                   /*  Text("$\(order.tip, specifier: "%.2f")")
-                        .foregroundColor(AppColors.textPrimary)*/
-                }
-                
-                HStack {
-                    Text("Tax")
-                        .foregroundColor(AppColors.textSecondary)
-                    Spacer()
-                 /*   Text("$\(order.tax, specifier: "%.2f")")
                         .foregroundColor(AppColors.textPrimary)*/
                 }
                 

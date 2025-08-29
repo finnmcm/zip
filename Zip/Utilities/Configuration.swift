@@ -107,6 +107,14 @@ final class Configuration {
     
     // MARK: - Stripe Configuration
     var stripePublishableKey: String {
+        // Prefer environment variable or .env
+        if let key = ProcessInfo.processInfo.environment["STRIPE_PUBLISHABLE_KEY"], !key.isEmpty {
+            return key
+        }
+        if let key = EnvironmentLoader.shared.getValue(for: "STRIPE_PUBLISHABLE_KEY"), !key.isEmpty {
+            return key
+        }
+        // Fallbacks
         switch environment {
         case .development:
             return "YOUR_DEV_STRIPE_PUBLISHABLE_KEY"

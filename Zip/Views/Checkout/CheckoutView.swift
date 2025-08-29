@@ -90,7 +90,7 @@ struct CheckoutView: View {
                             Spacer()
                     }
                     HStack(spacing: 0) {
-            Button(action: { tipAmount = 3.00 }) {
+            Button(action: { tipAmount = 3.00; viewModel.tipAmount = 3.00 }) {
                 Text("$3.00")
                     .font(.headline)
                     .foregroundStyle(tipAmount != 3.00 ? AppColors.textSecondary : AppColors.accent)
@@ -100,7 +100,7 @@ struct CheckoutView: View {
             }
             .buttonStyle(.plain)
             
-            Button(action: { tipAmount = 2.00 }) {
+            Button(action: { tipAmount = 2.00; viewModel.tipAmount = 2.00 }) {
                 Text("$2.00")
                     .font(.headline)
                     .font(.headline)
@@ -110,7 +110,7 @@ struct CheckoutView: View {
                     .background(tipAmount != 2.00 ? AppColors.secondaryBackground : AppColors.accent.opacity(0.1))
             }
             .buttonStyle(.plain)
-            Button(action: { tipAmount = 1.00 }) {
+            Button(action: { tipAmount = 1.00; viewModel.tipAmount = 1.00 }) {
                 Text("$1.00")
                     .font(.headline)
                     .font(.headline)
@@ -120,7 +120,7 @@ struct CheckoutView: View {
                     .background(tipAmount != 1.00 ? AppColors.secondaryBackground : AppColors.accent.opacity(0.1))
             }
             .buttonStyle(.plain)
-            Button(action: { tipAmount = 0.00 }) {
+            Button(action: { tipAmount = 0.00; viewModel.tipAmount = 0.00 }) {
                 Text("No Tip")
                     .font(.headline)
                     .font(.headline)

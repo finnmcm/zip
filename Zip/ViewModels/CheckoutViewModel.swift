@@ -11,6 +11,7 @@ final class CheckoutViewModel: ObservableObject {
     @Published var isProcessing: Bool = false
     @Published var errorMessage: String?
     @Published var lastOrder: Order?
+    @Published var tipAmount: Decimal = 0.0
 
     private let stripe: StripeServiceProtocol
     // In-memory storage for testing
@@ -26,30 +27,28 @@ final class CheckoutViewModel: ObservableObject {
         guard cart.subtotal > 0 else { return }
         isProcessing = true
         defer { isProcessing = false }
-        do {
-            _ = try await stripe.processPayment(amount: cart.subtotal)
-            
-            // Create order with current user (assuming we have one)
-            let user = User(id: "123", email: "user@example.com", firstName: "User", lastName: "Name", phoneNumber: "") // This should come from AuthViewModel
+
+        let description = "Zip Order"
+        let result = await stripe.processPayment(amount: cart.subtotal, tip: tipAmount, description: description, orderId: nil)
+        if result.success {
+            // Create order with current user (placeholder until real auth wiring)
+            let user = User(id: "123", email: "user@example.com", firstName: "User", lastName: "Name", phoneNumber: "")
+            let total = cart.subtotal + tipAmount
             let order = Order(
                 user: user,
                 items: cart.items,
                 status: .confirmed,
                 rawAmount: cart.subtotal,
-                deliveryFee: 0.99,
-                tip: 0.0,
-                totalAmount: cart.subtotal,
-                tax: cart.subtotal * 0.08,
+                tip: tipAmount,
+                totalAmount: total,
                 deliveryAddress: "Northwestern Campus"
             )
-            
-            // Add to in-memory storage
             orders.append(order)
-            
             lastOrder = order
             cart.clear()
-        } catch {
-            errorMessage = "Payment failed. Please try again."
+            errorMessage = nil
+        } else {
+            errorMessage = result.errorMessage ?? "Payment failed. Please try again."
         }
     }
 }

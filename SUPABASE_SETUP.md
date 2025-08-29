@@ -248,12 +248,41 @@ CREATE POLICY "Authenticated users can upload product images" ON storage.objects
 
 ## Step 6: Edge Functions Setup (for Stripe Integration)
 
-### 6.1 Create Edge Function for Stripe Webhooks
-1. Go to Edge Functions
-2. Create a new function called `stripe-webhook`
-3. Use the template from the Stripe integration guide
+### 6.1 Create Payment Intent Function
+The repo includes `supabase/functions/create-payment-intent/index.ts` which creates a Stripe PaymentIntent and returns `clientSecret`.
 
-### 6.2 Deploy Edge Functions
+Set environment variables in Supabase Project Settings → Functions:
+
+- `STRIPE_SECRET_KEY` = your Stripe secret key (e.g., `sk_test_...`)
+
+Local serve:
+
+```bash
+supabase start
+supabase functions serve create-payment-intent --no-verify-jwt
+```
+
+Deploy:
+
+```bash
+supabase functions deploy create-payment-intent
+```
+
+Test locally:
+
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 12.34, "currency": "usd", "description": "Zip Order"}' \
+  http://127.0.0.1:54321/functions/v1/create-payment-intent | jq
+```
+
+### 6.2 Webhooks (Optional for MVP)
+`supabase/functions/stripe-webhook` is a placeholder. You can later implement webhook events such as `payment_intent.succeeded` to reconcile orders.
+
+Deploy webhook function when implemented:
+
 ```bash
 supabase functions deploy stripe-webhook
 ```
