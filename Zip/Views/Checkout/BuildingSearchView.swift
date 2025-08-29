@@ -4,8 +4,7 @@ struct BuildingSearchView: View {
     @StateObject private var buildingService = BuildingService.shared
     @State private var searchText = ""
     @Binding var selectedBuilding: String
-    @State var isRoomService = false
-    @State var deliveryInfo = ""
+    @ObservedObject var viewModel: CheckoutViewModel
     
     var searchResults: [String] {
         if searchText.isEmpty {
@@ -98,18 +97,6 @@ struct BuildingSearchView: View {
                                         
                                         Spacer()
                                     }
-                                  /*  .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: AppMetrics.cornerRadius)
-                                            .fill(selectedBuilding == building ? AppColors.accent.opacity(0.1) : AppColors.secondaryBackground)
-                                    )
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: AppMetrics.cornerRadius)
-                                            .stroke(
-                                                selectedBuilding == building ? AppColors.accent : AppColors.secondaryBackground,
-                                                lineWidth: selectedBuilding == building ? 2 : 0
-                                            )
-                                    )*/
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -119,6 +106,7 @@ struct BuildingSearchView: View {
                     }
                     .frame(maxHeight: 200)
                 }
+                
                 HStack{
                     Text("Additional Information")
                         .font(.headline)
@@ -127,6 +115,7 @@ struct BuildingSearchView: View {
                         .padding(.top, AppMetrics.spacingLarge)
                     Spacer()
                 }
+                
                 HStack{
                      Text("Note: Zippers will leave your order at the front of the building if not specified otherwise!")
                         .font(.subheadline)
@@ -134,16 +123,13 @@ struct BuildingSearchView: View {
                         .padding(.leading, AppMetrics.spacingLarge)
                     Spacer()
                 }
-                 HStack{
+                
+                HStack{
                     HStack(spacing: AppMetrics.spacingSmall) {
-                    
-                    HStack(spacing: AppMetrics.spacingSmall) {
-                        
-                        TextField("Room number? Surroundings?", text: $deliveryInfo)
+                        TextField("Room number? Surroundings?", text: $viewModel.deliveryInstructions)
                             .textFieldStyle(.plain)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
-                    
                     }
                     .padding(.horizontal, AppMetrics.spacingSmall)
                     .padding(.vertical, AppMetrics.spacingSmall)
@@ -155,8 +141,6 @@ struct BuildingSearchView: View {
                 }
                 .padding(.horizontal, AppMetrics.spacingLarge)
                 .padding(.top, AppMetrics.spacingSmall)
-                }
-                
 
                 Spacer()
             }
@@ -170,9 +154,3 @@ struct BuildingSearchView: View {
         }
     }
 }
-/*
-#Preview {
-    NavigationView {
-        BuildingSearchView()
-    }
-}*/

@@ -12,9 +12,11 @@ struct AddressSelectionView: View {
     @State private var showingOutOfRangeAlert = false
     @Binding var selectedAddress: String
     @State var leaveAtDoor = false
+    @ObservedObject var checkoutViewModel: CheckoutViewModel
     
-    init(selectedAddress: Binding<String>) {
+    init(selectedAddress: Binding<String>, checkoutViewModel: CheckoutViewModel) {
         self._selectedAddress = selectedAddress
+        self.checkoutViewModel = checkoutViewModel
     }
     
     var body: some View {
@@ -120,6 +122,7 @@ struct AddressSelectionView: View {
         HStack{
             Button {
                 leaveAtDoor = true
+                checkoutViewModel.deliveryInstructions = "Leave at door"
             } label: {
                 RoundedRectangle(cornerRadius: 10.0)
                 .stroke(leaveAtDoor ? AppColors.accent : AppColors.textSecondary, lineWidth: 2)
@@ -134,6 +137,7 @@ struct AddressSelectionView: View {
             }
             Button {
                 leaveAtDoor = false
+                checkoutViewModel.deliveryInstructions = "Meet at door"
             } label: {
                 RoundedRectangle(cornerRadius: 10.0)
                 .stroke(!leaveAtDoor ? AppColors.accent : AppColors.textSecondary, lineWidth: 2)

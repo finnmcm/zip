@@ -25,7 +25,7 @@ struct MainTabView: View {
                     Image(systemName: "bag")
                 }
             
-            CartView(cartViewModel: cartViewModel)
+            CartView(cartViewModel: cartViewModel, authViewModel: authViewModel)
                 .tabItem { 
                     Image(systemName: "cart")
                 }

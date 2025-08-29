@@ -1,210 +1,293 @@
-# Stripe Webhook Function
+# Stripe Webhook Functions
 
-This Supabase Edge Function handles Stripe webhook events to automatically update order statuses when payments are processed.
+This directory contains the Stripe webhook implementation for the Zip iOS app, which handles payment events and updates order statuses in real-time.
 
-## Features
+## Overview
 
-- **Payment Success Handling**: Updates order status to "confirmed" when payment succeeds
-- **Payment Failure Handling**: Updates order status to "cancelled" when payment fails
-- **Payment Cancellation**: Updates order status to "cancelled" when payment is canceled
-- **Charge Events**: Handles both successful and failed charges
-- **Signature Verification**: Securely verifies webhook signatures from Stripe
-- **Database Updates**: Automatically updates order statuses in Supabase
+The webhook functions provide comprehensive order lifecycle management by:
+- Processing Stripe payment events
+- Updating order statuses in the database
+- Managing delivery time estimates
+- Handling refunds and disputes
+- Logging all payment activities for analytics
 
-## Supported Webhook Events
+## Supported Stripe Events
 
+### Payment Intent Events
 - `payment_intent.succeeded` - Payment completed successfully
 - `payment_intent.payment_failed` - Payment failed
-- `payment_intent.canceled` - Payment was canceled
+- `payment_intent.canceled` - Payment canceled
+- `payment_intent.processing` - Payment being processed
+- `payment_intent.requires_action` - Payment requires user action
+
+### Charge Events
 - `charge.succeeded` - Charge completed successfully
 - `charge.failed` - Charge failed
+- `charge.refunded` - Charge refunded
+- `charge.dispute.created` - Dispute created
+- `charge.dispute.closed` - Dispute resolved
 
-## Setup Instructions
+### Invoice Events
+- `invoice.payment_succeeded` - Invoice payment completed
+- `invoice.payment_failed` - Invoice payment failed
 
-### 1. Environment Variables
+### Refund Events
+- `charge.refund.updated` - Refund information updated
 
-Set the following environment variables in your Supabase project:
+### Subscription Events
+- `customer.subscription.deleted` - Subscription canceled
+
+## Order Status Flow
+
+```
+pending → confirmed → preparing → out_for_delivery → delivered
+    ↓
+cancelled (if payment fails/cancels)
+    ↓
+refunded (if refunded)
+    ↓
+disputed (if dispute created)
+```
+
+## Database Schema
+
+The webhook functions work with the following database structure:
+
+### Orders Table
+- `id` - Unique order identifier
+- `status` - Current order status
+- `payment_intent_id` - Stripe payment intent ID
+- `estimated_delivery_time` - Expected delivery time
+- `refund_amount` - Refund amount if applicable
+- `refund_reason` - Reason for refund
+
+### Order Status History Table
+- Tracks all status changes with timestamps
+- Includes reasons and metadata for each change
+
+### Payment Events Table
+- Logs all Stripe webhook events
+- Links events to orders for tracking
+
+## Environment Variables
+
+Required environment variables:
 
 ```bash
-# Stripe Configuration
 STRIPE_SECRET_KEY=sk_test_... # Your Stripe secret key
-STRIPE_WEBHOOK_SECRET=whsec_... # Your Stripe webhook endpoint secret
-
-# Supabase Configuration
-SUPABASE_URL=https://your-project.supabase.co
+STRIPE_WEBHOOK_SECRET=whsec_... # Your webhook endpoint secret
+SUPABASE_URL=https://... # Your Supabase project URL
 SUPABASE_SERVICE_ROLE_KEY=eyJ... # Your Supabase service role key
 ```
 
-### 2. Stripe Webhook Configuration
+## Local Development
 
-In your Stripe Dashboard:
+### Prerequisites
+1. Supabase CLI installed
+2. Stripe account with webhook endpoint configured
+3. Local Supabase instance running
 
-1. Go to **Developers** → **Webhooks**
-2. Click **Add endpoint**
-3. Set the endpoint URL to: `https://your-project.supabase.co/functions/v1/stripe-webhook`
-4. Select the following events:
+### Setup
+1. Start local Supabase:
+   ```bash
+   supabase start
+   ```
+
+2. Set environment variables:
+   ```bash
+   supabase secrets set STRIPE_SECRET_KEY=sk_test_...
+   supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+
+3. Deploy the function:
+   ```bash
+   supabase functions deploy stripe-webhook
+   ```
+
+### Testing Locally
+
+#### Test with Stripe CLI
+1. Install Stripe CLI
+2. Forward webhooks to local endpoint:
+   ```bash
+   stripe listen --forward-to localhost:54321/functions/v1/stripe-webhook
+   ```
+
+3. Trigger test events:
+   ```bash
+   stripe trigger payment_intent.succeeded
+   stripe trigger payment_intent.payment_failed
+   stripe trigger charge.succeeded
+   ```
+
+#### Test with cURL
+```bash
+curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/stripe-webhook' \
+  --header 'Authorization: Bearer YOUR_ANON_KEY' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "type": "payment_intent.succeeded",
+    "data": {
+      "object": {
+        "id": "pi_test123",
+        "metadata": {
+          "order_id": "test-order-uuid"
+        },
+        "amount": 2000,
+        "currency": "usd"
+      }
+    }
+  }'
+```
+
+## Production Deployment
+
+### Stripe Dashboard Setup
+1. Go to Stripe Dashboard > Developers > Webhooks
+2. Add endpoint: `https://your-project.supabase.co/functions/v1/stripe-webhook`
+3. Select events to listen for:
    - `payment_intent.succeeded`
    - `payment_intent.payment_failed`
    - `payment_intent.canceled`
    - `charge.succeeded`
    - `charge.failed`
-5. Copy the webhook signing secret and add it to `STRIPE_WEBHOOK_SECRET`
+   - `charge.refunded`
+   - `charge.dispute.created`
+   - `charge.dispute.closed`
 
-### 3. Order Metadata Requirements
-
-When creating payment intents, ensure you include the `order_id` in the metadata:
-
-```swift
-// In your iOS app when creating payment intent
-let metadata = [
-    "order_id": order.id.uuidString,
-    "user_id": user.id.uuidString
-]
-
-// This metadata will be used by the webhook to identify which order to update
-```
-
-### 4. Database Schema
-
-Ensure your `orders` table has the following columns:
-
-```sql
-CREATE TABLE orders (
-    id UUID PRIMARY KEY,
-    status TEXT NOT NULL DEFAULT 'pending',
-    payment_intent_id TEXT,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    -- ... other order fields
-);
-
--- Create an index on payment_intent_id for efficient lookups
-CREATE INDEX idx_orders_payment_intent_id ON orders(payment_intent_id);
-```
-
-## Deployment
-
-### Local Development
-
-1. Start Supabase locally:
+### Supabase Deployment
+1. Deploy function:
    ```bash
-   supabase start
+   supabase functions deploy stripe-webhook --project-ref YOUR_PROJECT_REF
    ```
 
-2. Test the function:
+2. Set production secrets:
    ```bash
-   curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/stripe-webhook' \
-     --header 'Authorization: Bearer YOUR_ANON_KEY' \
-     --header 'Content-Type: application/json' \
-     --data '{"type":"payment_intent.succeeded","data":{"object":{"id":"pi_test123","metadata":{"order_id":"test-order"}}}}'
+   supabase secrets set --project-ref YOUR_PROJECT_REF STRIPE_SECRET_KEY=sk_live_...
+   supabase secrets set --project-ref YOUR_PROJECT_REF STRIPE_WEBHOOK_SECRET=whsec_...
    ```
-
-### Production Deployment
-
-1. Deploy to Supabase:
-   ```bash
-   supabase functions deploy stripe-webhook
-   ```
-
-2. Set environment variables in production:
-   ```bash
-   supabase secrets set STRIPE_SECRET_KEY=sk_live_...
-   supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...
-   ```
-
-## How It Works
-
-1. **Webhook Reception**: Stripe sends webhook events to this function
-2. **Signature Verification**: The function verifies the webhook signature using your webhook secret
-3. **Event Processing**: Based on the event type, the appropriate handler function is called
-4. **Order Update**: The function updates the order status in your Supabase database
-5. **Response**: Returns a success response to Stripe
 
 ## Error Handling
 
-The function includes comprehensive error handling:
+The webhook implements comprehensive error handling:
 
-- **Signature Verification**: Rejects webhooks with invalid signatures
-- **Missing Metadata**: Logs warnings when order_id is not found
-- **Database Errors**: Logs and handles database update failures
-- **Invalid Events**: Gracefully handles unsupported event types
+### Signature Verification
+- Validates Stripe webhook signatures
+- Logs verification failures with debugging info
+- Returns appropriate HTTP status codes
 
-## Monitoring
+### Database Operations
+- Graceful handling of database connection issues
+- Detailed error logging for failed updates
+- Continues processing other events if one fails
 
-Check the function logs in your Supabase dashboard:
+### Event Processing
+- Individual event processing errors don't fail the entire webhook
+- All errors are logged for debugging
+- Webhook acknowledges receipt even if processing fails
 
-1. Go to **Edge Functions** → **stripe-webhook**
-2. Click **Logs** to view execution history
-3. Monitor for any errors or warnings
+## Monitoring and Logging
 
-## Testing
+### Log Levels
+- ✅ Success operations
+- ❌ Errors and failures
+- ⚠️ Warnings and edge cases
+- 📊 Analytics and tracking
+- 🔧 Configuration and setup
+- 🔄 Processing status
 
-### Test Webhook Events
-
-Use Stripe CLI to test webhook events locally:
-
-```bash
-# Install Stripe CLI
-brew install stripe/stripe-cli/stripe
-
-# Login to Stripe
-stripe login
-
-# Forward webhooks to local function
-stripe listen --forward-to localhost:54321/functions/v1/stripe-webhook
-```
-
-### Test Order Updates
-
-1. Create a test order in your app
-2. Process a test payment
-3. Check that the order status updates correctly
-4. Verify the webhook logs show successful processing
-
-## Security Considerations
-
-- **Webhook Secret**: Never expose your webhook secret in client-side code
-- **Service Role Key**: The function uses the service role key to update orders
-- **Signature Verification**: All webhooks are verified using Stripe's signature
-- **Environment Variables**: Sensitive keys are stored as environment variables
+### Key Metrics to Monitor
+- Webhook delivery success rate
+- Order status update success rate
+- Processing time per event
+- Error frequency by event type
+- Database operation performance
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Webhook Not Receiving Events**
-   - Check that the endpoint URL is correct
-   - Verify the webhook is active in Stripe Dashboard
-   - Check Supabase function logs for errors
+#### Webhook Signature Verification Fails
+- Check `STRIPE_WEBHOOK_SECRET` is correct
+- Ensure webhook endpoint URL matches Stripe dashboard
+- Verify Stripe API version compatibility
 
-2. **Order Status Not Updating**
-   - Ensure `order_id` is included in payment intent metadata
-   - Check that the order exists in your database
-   - Verify the service role key has proper permissions
+#### Database Update Failures
+- Check `SUPABASE_SERVICE_ROLE_KEY` has proper permissions
+- Verify database schema matches expected structure
+- Check RLS policies allow service role operations
 
-3. **Signature Verification Failures**
-   - Confirm the webhook secret is correct
-   - Check that the webhook endpoint URL matches exactly
-   - Ensure the function is receiving the raw body
+#### Event Processing Errors
+- Review logs for specific error messages
+- Check order metadata contains required fields
+- Verify Stripe event structure hasn't changed
 
 ### Debug Mode
-
-Enable additional logging by setting:
-
+Enable detailed logging by setting:
 ```bash
-supabase secrets set DEBUG=true
+SUPABASE_FUNCTIONS_DEBUG=true
 ```
+
+### Health Check
+Test webhook health with:
+```bash
+curl -X GET 'https://your-project.supabase.co/functions/v1/stripe-webhook/health'
+```
+
+## Security Considerations
+
+### Authentication
+- Webhook endpoint doesn't require JWT authentication
+- Stripe signature verification ensures authenticity
+- Service role key used for database operations
+
+### Data Validation
+- All input data validated before processing
+- SQL injection prevention through parameterized queries
+- Amount validation prevents negative values
+
+### Access Control
+- Row Level Security (RLS) enabled on all tables
+- Users can only access their own orders
+- Service role has necessary permissions for webhook operations
+
+## Performance Optimization
+
+### Database Operations
+- Efficient indexing on frequently queried fields
+- Batch operations where possible
+- Connection pooling for database operations
+
+### Event Processing
+- Asynchronous processing of non-critical operations
+- Efficient error handling to prevent blocking
+- Logging optimized for production environments
+
+## Future Enhancements
+
+### Planned Features
+- Real-time notifications via Supabase realtime
+- Integration with delivery tracking systems
+- Advanced analytics and reporting
+- Automated dispute resolution workflows
+
+### Scalability Improvements
+- Event queuing for high-volume scenarios
+- Horizontal scaling of webhook processors
+- Caching layer for frequently accessed data
 
 ## Support
 
 For issues or questions:
-
-1. Check the Supabase function logs
-2. Verify Stripe webhook configuration
+1. Check the logs for error details
+2. Verify environment variable configuration
 3. Test with Stripe CLI locally
-4. Review environment variable configuration
+4. Review database schema and permissions
+5. Check Stripe webhook dashboard for delivery status
 
-## Related Files
+## Related Documentation
 
-- `index.ts` - Main webhook handler
-- `deno.json` - Deno configuration and imports
-- `README.md` - This documentation file
+- [Stripe Webhook Guide](https://stripe.com/docs/webhooks)
+- [Supabase Edge Functions](https://supabase.com/docs/guides/functions)
+- [Database Schema](001_create_orders_table.sql)
+- [Webhook Integration Guide](../../WEBHOOK_SETUP_GUIDE.md)

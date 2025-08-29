@@ -99,9 +99,93 @@ final class SupabaseService: SupabaseServiceProtocol {
         return nil
     }
     // MARK: - Order Operations
+    
+    // Database models for Supabase operations
+    private struct OrderData: Codable {
+        let id: String
+        let user_id: String
+        let status: String
+        let raw_amount: Double
+        let tip: Double
+        let total_amount: Double
+        let created_at: String
+        let delivery_address: String
+        let delivery_instructions: String?
+        let is_campus_delivery: Bool
+        let updated_at: String
+        let stripe_payment_intent_id: String?
+    }
+    
+    private struct OrderItemData: Codable {
+        let id: String
+        let order_id: String
+        let product_id: String
+        let quantity: Int
+        let unit_price: Double
+        let total_price: Double
+        let created_at: String
+        let updated_at: String
+    }
+    
     func createOrder(_ order: Order) async throws -> Order {
-        // TODO: Implement when Supabase is configured
-        throw SupabaseError.notImplemented
+        // Check if Supabase client is configured
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            // Create order data for Supabase
+            let orderData = OrderData(
+                id: order.id.uuidString,
+                user_id: order.user.id,
+                status: order.status.rawValue,
+                raw_amount: NSDecimalNumber(decimal: order.rawAmount).doubleValue,
+                tip: NSDecimalNumber(decimal: order.tip).doubleValue,
+                total_amount: NSDecimalNumber(decimal: order.total_amount).doubleValue,
+                created_at: ISO8601DateFormatter().string(from: order.createdAt),
+                delivery_address: order.deliveryAddress,
+                delivery_instructions: order.deliveryInstructions,
+                is_campus_delivery: order.isCampusDelivery,
+                updated_at: ISO8601DateFormatter().string(from: order.updatedAt),
+                stripe_payment_intent_id: order.paymentIntentId
+            )
+            
+            // Insert the order into the orders table
+            try await supabase
+                .from("orders")
+                .insert(orderData)
+                .execute()
+            
+            print("✅ Successfully created order with ID: \(order.id)")
+            
+            // Now create order items for each cart item
+            for cartItem in order.items {
+                let orderItemData = OrderItemData(
+                    id: UUID().uuidString,
+                    order_id: order.id.uuidString,
+                    product_id: cartItem.product.id.uuidString,
+                    quantity: cartItem.quantity,
+                    unit_price: NSDecimalNumber(decimal: cartItem.product.price).doubleValue,
+                    total_price: NSDecimalNumber(decimal: cartItem.product.price * Decimal(cartItem.quantity)).doubleValue,
+                    created_at: ISO8601DateFormatter().string(from: Date()),
+                    updated_at: ISO8601DateFormatter().string(from: Date())
+                )
+                
+                try await supabase
+                    .from("order_items")
+                    .insert(orderItemData)
+                    .execute()
+            }
+            
+            print("✅ Successfully created order items for order: \(order.id)")
+            
+            // Return the created order
+            return order
+            
+        } catch {
+            print("❌ Error creating order in Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
     }
     
     func fetchUserOrders(userId: UUID) async throws -> [Order] {

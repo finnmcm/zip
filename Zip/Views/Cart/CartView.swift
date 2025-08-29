@@ -9,9 +9,15 @@ import Inject
 struct CartView: View {
     @ObserveInjection var inject
     @ObservedObject var cartViewModel: CartViewModel
+    @ObservedObject var authViewModel: AuthViewModel
     @State private var checkoutViewModel: CheckoutViewModel?
     @State private var showConfirmation: Bool = false
     @State private var showCheckout: Bool = false
+
+    init(cartViewModel: CartViewModel, authViewModel: AuthViewModel) {
+        self.cartViewModel = cartViewModel
+        self.authViewModel = authViewModel
+    }
 
     var body: some View {
         NavigationStack {
@@ -124,7 +130,7 @@ struct CartView: View {
                 print("🛒 CartView: Items count changed from \(oldCount) to \(newCount)")
             }
             .sheet(isPresented: $showCheckout) {
-                CheckoutView(viewModel: CheckoutViewModel(cart: cartViewModel))
+                CheckoutView(viewModel: CheckoutViewModel(cart: cartViewModel, authViewModel: authViewModel))
             }
             .sheet(isPresented: $showConfirmation) {
                 OrderConfirmationView(order: checkoutViewModel?.lastOrder)
