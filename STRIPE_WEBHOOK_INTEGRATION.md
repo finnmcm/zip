@@ -235,7 +235,6 @@ Consider adding custom logging for:
 ### Additional Webhook Events
 - `invoice.payment_succeeded` - For subscription payments
 - `customer.subscription.updated` - For subscription changes
-- `refund.created` - For refund processing
 
 ### Enhanced Order Management
 - Automatic inventory updates

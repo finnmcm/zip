@@ -13,7 +13,14 @@ struct BannerNotificationView: View {
     @State private var isVisible = false
     
     private var backgroundColor: Color {
-        return .white
+        switch type {
+        case .success:
+            return AppColors.success
+        case .error:
+            return AppColors.error
+        case .info:
+            return AppColors.info
+        }
     }
     
     private var iconName: String {
@@ -41,10 +48,16 @@ struct BannerNotificationView: View {
             
             Spacer()
             
+            Button(action: onDismiss) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.white.opacity(0.8))
+                    .font(.title3)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, AppMetrics.spacingLarge)
         .padding(.vertical, AppMetrics.spacing)
-        .background(AppColors.accent)
+        .background(backgroundColor)
         .cornerRadius(AppMetrics.cornerRadiusLarge)
         .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
         .padding(.horizontal, AppMetrics.spacingLarge)

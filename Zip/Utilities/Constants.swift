@@ -12,6 +12,9 @@ enum AppColors {
     static let textPrimary = Color(hex: "#068f7c")
     static let textSecondary = Color.secondary
     static let accent = northwesternPurple
+    static let error = Color.red
+    static let success = Color.green
+    static let info = Color.blue
 }
 
 enum AppMetrics {

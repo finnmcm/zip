@@ -12,7 +12,7 @@ final class Order: Identifiable, Codable {
     var status: OrderStatus
     var rawAmount: Decimal
     var tip: Decimal
-    var total_amount: Decimal
+    var totalAmount: Decimal
     var createdAt: Date
     var deliveryAddress: String
     var paymentIntentId: String?
@@ -23,11 +23,6 @@ final class Order: Identifiable, Codable {
     
     // Database metadata
     var updatedAt: Date
-    
-    // Computed properties
-    var totalAmount: Decimal {
-        return rawAmount + tip
-    }
     
     var isDelivered: Bool {
         return status == .delivered
@@ -51,7 +46,7 @@ final class Order: Identifiable, Codable {
         self.status = status
         self.rawAmount = rawAmount
         self.tip = tip
-        self.total_amount = totalAmount
+        self.totalAmount = totalAmount
         self.createdAt = createdAt
         self.deliveryAddress = deliveryAddress
         self.estimatedDeliveryTime = estimatedDeliveryTime
@@ -90,7 +85,7 @@ final class Order: Identifiable, Codable {
         status = try container.decode(OrderStatus.self, forKey: .status)
         rawAmount = try container.decode(Decimal.self, forKey: .rawAmount)
         tip = try container.decode(Decimal.self, forKey: .tip)
-        total_amount = try container.decode(Decimal.self, forKey: .totalAmount)
+        totalAmount = try container.decode(Decimal.self, forKey: .totalAmount)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         estimatedDeliveryTime = try container.decodeIfPresent(Date.self, forKey: .estimatedDeliveryTime)
         actualDeliveryTime = try container.decodeIfPresent(Date.self, forKey: .actualDeliveryTime)
@@ -112,7 +107,7 @@ final class Order: Identifiable, Codable {
         try container.encode(status, forKey: .status)
         try container.encode(rawAmount, forKey: .rawAmount)
         try container.encode(tip, forKey: .tip)
-        try container.encode(total_amount, forKey: .totalAmount)
+        try container.encode(totalAmount, forKey: .totalAmount)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encodeIfPresent(estimatedDeliveryTime, forKey: .estimatedDeliveryTime)
         try container.encodeIfPresent(actualDeliveryTime, forKey: .actualDeliveryTime)

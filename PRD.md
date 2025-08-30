@@ -260,7 +260,7 @@ Zip provides an on-demand delivery service that:
 ### 9.2 Terms of Service
 - **User Agreements**: Clear terms and conditions
 - **Privacy Policy**: Transparent data usage policies
-- **Refund Policy**: Clear refund and cancellation terms
+- **Cancellation Policy**: Clear cancellation terms
 - **Liability Limitations**: Appropriate legal protections
 
 ---

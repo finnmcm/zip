@@ -113,7 +113,7 @@ final class SupabaseService: SupabaseServiceProtocol {
         let delivery_instructions: String?
         let is_campus_delivery: Bool
         let updated_at: String
-        let stripe_payment_intent_id: String?
+        let payment_intent_id: String?
     }
     
     private struct OrderItemData: Codable {
@@ -141,13 +141,13 @@ final class SupabaseService: SupabaseServiceProtocol {
                 status: order.status.rawValue,
                 raw_amount: NSDecimalNumber(decimal: order.rawAmount).doubleValue,
                 tip: NSDecimalNumber(decimal: order.tip).doubleValue,
-                total_amount: NSDecimalNumber(decimal: order.total_amount).doubleValue,
+                total_amount: NSDecimalNumber(decimal: order.totalAmount).doubleValue,
                 created_at: ISO8601DateFormatter().string(from: order.createdAt),
                 delivery_address: order.deliveryAddress,
                 delivery_instructions: order.deliveryInstructions,
                 is_campus_delivery: order.isCampusDelivery,
                 updated_at: ISO8601DateFormatter().string(from: order.updatedAt),
-                stripe_payment_intent_id: order.paymentIntentId
+                payment_intent_id: order.paymentIntentId
             )
             
             // Insert the order into the orders table

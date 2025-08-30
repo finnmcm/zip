@@ -5,6 +5,7 @@
 
 import Foundation
 import SwiftUI
+import UIKit
 
 @MainActor
 final class CheckoutViewModel: ObservableObject {
@@ -16,6 +17,8 @@ final class CheckoutViewModel: ObservableObject {
     @Published var selectedBuilding: String = ""
     @Published var selectedAddress: String = ""
     @Published var deliveryInstructions: String = ""
+    @Published var showErrorBanner: Bool = false
+    @Published var paymentError: String?
 
     private let stripe: StripeServiceProtocol
     private let supabase: SupabaseServiceProtocol
@@ -78,15 +81,60 @@ final class CheckoutViewModel: ObservableObject {
                 orders.append(createdOrder)
                 cart.clear()
                 errorMessage = nil
+                paymentError = nil
+                showErrorBanner = false
+                
+                // Provide haptic feedback for successful payment
+                let impactFeedback = UINotificationFeedbackGenerator()
+                impactFeedback.notificationOccurred(.success)
             } else {
                 // Payment failed - we should update the order status to cancelled
-                errorMessage = result.errorMessage ?? "Payment failed. Please try again."
+                paymentError = result.errorMessage ?? "Payment failed. Please try again."
+                showErrorBanner = true
+                errorMessage = nil
+                
+                // Provide haptic feedback for payment failure
+                let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+                impactFeedback.impactOccurred()
+                
+                // Auto-dismiss error banner after 5 seconds
+                Task {
+                    try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+                    await MainActor.run {
+                        if showErrorBanner {
+                            dismissErrorBanner()
+                        }
+                    }
+                }
+                
                 // TODO: Update order status to cancelled in Supabase
             }
         } catch {
-            errorMessage = "Failed to create order. Please try again."
+            paymentError = "Failed to create order. Please try again."
+            showErrorBanner = true
+            errorMessage = nil
+            
+            // Provide haptic feedback for order creation failure
+            let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+            impactFeedback.impactOccurred()
+            
+            // Auto-dismiss error banner after 5 seconds
+            Task {
+                try? await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+                await MainActor.run {
+                    if showErrorBanner {
+                        dismissErrorBanner()
+                    }
+                }
+            }
+            
             print("❌ Error creating order: \(error)")
         }
+    }
+    
+    func dismissErrorBanner() {
+        showErrorBanner = false
+        paymentError = nil
     }
 }
 

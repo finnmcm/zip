@@ -7,7 +7,7 @@ This guide provides step-by-step instructions for implementing and deploying the
 The webhook functions provide real-time order management by:
 - **Automatically updating order statuses** based on Stripe payment events
 - **Managing delivery time estimates** for successful payments
-- **Handling refunds and disputes** automatically
+- **Handling disputes** automatically
 - **Logging all payment activities** for analytics and debugging
 - **Ensuring data consistency** between Stripe and your database
 
@@ -18,7 +18,7 @@ Stripe Events → Webhook Function → Database Updates → Order Status Changes
      ↓              ↓                    ↓              ↓
 Payment Success → Process Event → Update Order → Set Delivery Time
 Payment Failure → Process Event → Cancel Order → Log Failure
-Refund Process → Process Event → Mark Refunded → Update Amounts
+Dispute Process → Process Event → Mark Disputed → Update Status
 ```
 
 ## Prerequisites
@@ -122,12 +122,10 @@ Refund Process → Process Event → Mark Refunded → Update Amounts
    - payment_intent.requires_action
    - charge.succeeded
    - charge.failed
-   - charge.refunded
    - charge.dispute.created
    - charge.dispute.closed
    - invoice.payment_succeeded
    - invoice.payment_failed
-   - charge.refund.updated
    ```
 
 3. **Copy webhook signing secret:**
@@ -229,7 +227,7 @@ Refund Process → Process Event → Mark Refunded → Update Amounts
 1. Payment fails → Status: cancelled
 2. Payment requires action → Status: pending
 3. Dispute created → Status: disputed
-4. Refund processed → Status: refunded
+4. Dispute processed → Status: disputed
 ```
 
 ### Status Transitions
@@ -407,7 +405,7 @@ const channel = supabase
 ### 3. Automated Actions
 - Auto-cancel orders after payment failure
 - Send delivery reminders
-- Process refunds automatically
+- Process disputes automatically
 
 ## Support and Resources
 

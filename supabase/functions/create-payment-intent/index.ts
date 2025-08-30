@@ -13,6 +13,7 @@ type CreatePaymentIntentRequest = {
 
 type CreatePaymentIntentResponse = {
   clientSecret: string;
+  paymentIntentId: string;
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -65,6 +66,7 @@ Deno.serve(async (req) => {
 
     const response: CreatePaymentIntentResponse = {
       clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
     };
 
     return jsonResponse(response, 200);

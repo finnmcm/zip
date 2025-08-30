@@ -202,28 +202,7 @@ class WebhookTester {
         expectedStatus: 200,
         expectedResponse: { received: true, processed: true }
       },
-      {
-        type: "charge.refunded",
-        description: "Charge refunded",
-        data: {
-          object: {
-            id: testChargeId,
-            object: "charge",
-            amount: 2000,
-            amount_refunded: 2000,
-            currency: "usd",
-            status: "succeeded",
-            payment_intent: testPaymentIntentId,
-            metadata: {
-              order_id: testOrderId,
-              user_id: "user_test_123"
-            },
-            created: Math.floor(Date.now() / 1000)
-          }
-        },
-        expectedStatus: 200,
-        expectedResponse: { received: true, processed: true }
-      },
+
       {
         type: "charge.dispute.created",
         description: "Dispute created",
@@ -317,28 +296,7 @@ class WebhookTester {
         expectedResponse: { received: true, processed: true }
       },
 
-      // Refund Events
-      {
-        type: "charge.refund.updated",
-        description: "Refund updated",
-        data: {
-          object: {
-            id: "re_test_1234567890",
-            object: "refund",
-            amount: 2000,
-            currency: "usd",
-            status: "succeeded",
-            reason: "requested_by_customer",
-            metadata: {
-              order_id: testOrderId,
-              user_id: "user_test_123"
-            },
-            created: Math.floor(Date.now() / 1000)
-          }
-        },
-        expectedStatus: 200,
-        expectedResponse: { received: true, processed: true }
-      },
+
 
       // Subscription Events
       {

@@ -8,7 +8,7 @@ The webhook functions provide comprehensive order lifecycle management by:
 - Processing Stripe payment events
 - Updating order statuses in the database
 - Managing delivery time estimates
-- Handling refunds and disputes
+- Handling disputes
 - Logging all payment activities for analytics
 
 ## Supported Stripe Events
@@ -23,16 +23,12 @@ The webhook functions provide comprehensive order lifecycle management by:
 ### Charge Events
 - `charge.succeeded` - Charge completed successfully
 - `charge.failed` - Charge failed
-- `charge.refunded` - Charge refunded
 - `charge.dispute.created` - Dispute created
 - `charge.dispute.closed` - Dispute resolved
 
 ### Invoice Events
 - `invoice.payment_succeeded` - Invoice payment completed
 - `invoice.payment_failed` - Invoice payment failed
-
-### Refund Events
-- `charge.refund.updated` - Refund information updated
 
 ### Subscription Events
 - `customer.subscription.deleted` - Subscription canceled
@@ -43,8 +39,6 @@ The webhook functions provide comprehensive order lifecycle management by:
 pending → confirmed → preparing → out_for_delivery → delivered
     ↓
 cancelled (if payment fails/cancels)
-    ↓
-refunded (if refunded)
     ↓
 disputed (if dispute created)
 ```
@@ -58,8 +52,6 @@ The webhook functions work with the following database structure:
 - `status` - Current order status
 - `payment_intent_id` - Stripe payment intent ID
 - `estimated_delivery_time` - Expected delivery time
-- `refund_amount` - Refund amount if applicable
-- `refund_reason` - Reason for refund
 
 ### Order Status History Table
 - Tracks all status changes with timestamps
@@ -151,7 +143,7 @@ curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/stripe-we
    - `payment_intent.canceled`
    - `charge.succeeded`
    - `charge.failed`
-   - `charge.refunded`
+   
    - `charge.dispute.created`
    - `charge.dispute.closed`
 
