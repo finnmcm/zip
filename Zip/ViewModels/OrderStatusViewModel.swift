@@ -71,6 +71,23 @@ final class OrderStatusViewModel: ObservableObject {
         await loadActiveOrder(userId: userId)
     }
     
+    /// Callback for when orders need to be refreshed
+    var onOrdersRefresh: ((String) async -> Void)?
+    
+    /// Refreshes orders using the callback (if provided)
+    /// - Parameter userId: The ID of the current user
+    func refreshOrders(userId: String) async {
+        print("🔄 OrderStatusViewModel: refreshOrders called for userId: \(userId)")
+        if let onOrdersRefresh = onOrdersRefresh {
+            print("🔗 OrderStatusViewModel: Using callback to refresh orders")
+            await onOrdersRefresh(userId)
+        } else {
+            print("⚠️ OrderStatusViewModel: No callback available, falling back to original method")
+            // Fall back to the original method
+            await refreshOrderStatus(userId: userId)
+        }
+    }
+    
     /// Dismisses the current banner
     func dismissBanner() {
         activeOrder = nil
@@ -87,14 +104,35 @@ final class OrderStatusViewModel: ObservableObject {
         }
     }
     
+    /// Loads the active order from pre-fetched orders instead of fetching from server
+    /// - Parameter orders: Array of orders to search through for the active order
+    func loadActiveOrderFromOrders(_ orders: [Order]) {
+        print("🎯 OrderStatusViewModel: Loading active order from \(orders.count) pre-fetched orders")
+        // Find the most recent active order (in_queue or in_progress)
+        activeOrder = orders.first { order in
+            [OrderStatus.inQueue, OrderStatus.inProgress].contains(order.status)
+        }
+        
+        if let activeOrder = activeOrder {
+            print("✅ OrderStatusViewModel: Active order found from pre-fetched orders: \(activeOrder.id) - Status: \(activeOrder.status.rawValue)")
+        } else {
+            print("ℹ️ OrderStatusViewModel: No active orders found in pre-fetched orders")
+        }
+    }
+    
     // MARK: - Private Methods
     
     private func startRefreshTimer() {
+        print("⏰ OrderStatusViewModel: Starting refresh timer with \(refreshInterval) second interval")
         refreshTimer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { [weak self] _ in
-            Task {
+            Task { @MainActor in
+                guard let self = self else { return }
                 // Only refresh if we have an active order
-                if let activeOrder = self?.activeOrder {
-                    await self?.refreshOrderStatus(userId: activeOrder.user.id)
+                if let activeOrder = self.activeOrder {
+                    print("⏰ OrderStatusViewModel: Timer triggered, refreshing orders for active order: \(activeOrder.id)")
+                    await self.refreshOrders(userId: activeOrder.user.id)
+                } else {
+                    print("⏰ OrderStatusViewModel: Timer triggered but no active order to refresh")
                 }
             }
         }

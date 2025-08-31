@@ -10,14 +10,16 @@ struct CartView: View {
     @ObserveInjection var inject
     @ObservedObject var cartViewModel: CartViewModel
     @ObservedObject var authViewModel: AuthViewModel
+    @ObservedObject var orderStatusViewModel: OrderStatusViewModel
 
     @State private var checkoutViewModel: CheckoutViewModel?
     @State private var showConfirmation: Bool = false
     @State private var showCheckout: Bool = false
 
-    init(cartViewModel: CartViewModel, authViewModel: AuthViewModel) {
+    init(cartViewModel: CartViewModel, authViewModel: AuthViewModel, orderStatusViewModel: OrderStatusViewModel) {
         self.cartViewModel = cartViewModel
         self.authViewModel = authViewModel
+        self.orderStatusViewModel = orderStatusViewModel
     }
 
     var body: some View {
@@ -131,7 +133,7 @@ struct CartView: View {
                 print("🛒 CartView: Items count changed from \(oldCount) to \(newCount)")
             }
             .sheet(isPresented: $showCheckout) {
-                CheckoutView(viewModel: CheckoutViewModel(cart: cartViewModel, authViewModel: authViewModel))
+                CheckoutView(viewModel: CheckoutViewModel(cart: cartViewModel, authViewModel: authViewModel, orderStatusViewModel: orderStatusViewModel))
             }
             .sheet(isPresented: $showConfirmation) {
                 OrderConfirmationView(order: checkoutViewModel?.lastOrder)

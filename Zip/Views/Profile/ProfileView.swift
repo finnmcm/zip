@@ -46,14 +46,7 @@ struct ProfileView: View {
                     .padding(.top, AppMetrics.spacingLarge)
                     
                     // Profile Options
-                    VStack(spacing: AppMetrics.spacing) {
-                        NavigationLink(destination: OrderHistoryView()) {
-                        ProfileOptionRow(
-                            icon: "bag",
-                            title: "Order History",
-                            subtitle: "View your past orders"
-                        ) 
-                        }                        
+                    VStack(spacing: AppMetrics.spacing) {                       
                         ProfileOptionRow(
                             icon: "location",
                             title: "Delivery Addresses",

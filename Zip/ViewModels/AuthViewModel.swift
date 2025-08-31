@@ -231,6 +231,36 @@ final class AuthViewModel: ObservableObject {
             isAuthenticated = false
         }
     }
+
+    // MARK: - User Data Management
+    
+    /// Updates the current user's orders
+    /// - Parameter orders: Array of orders to assign to the current user
+    func updateUserOrders(_ orders: [Order]) {
+        print("👤 AuthViewModel: updateUserOrders called with \(orders.count) orders")
+        guard let currentUser = currentUser else { 
+            print("❌ AuthViewModel: No current user to update orders for")
+            return 
+        }
+        
+        print("👤 AuthViewModel: Updating orders for user: \(currentUser.email)")
+        // Create a new user instance with updated orders
+        let updatedUser = User(
+            id: currentUser.id,
+            email: currentUser.email,
+            firstName: currentUser.firstName,
+            lastName: currentUser.lastName,
+            phoneNumber: currentUser.phoneNumber,
+            createdAt: currentUser.createdAt,
+            updatedAt: currentUser.updatedAt
+        )
+        updatedUser.orders = orders
+        
+        // Update the current user
+        self.currentUser = updatedUser
+        
+        print("✅ AuthViewModel: Updated user orders: \(orders.count) orders")
+    }
 }
 
 

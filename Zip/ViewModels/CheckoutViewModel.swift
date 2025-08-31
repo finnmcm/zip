@@ -23,6 +23,7 @@ final class CheckoutViewModel: ObservableObject {
     private let stripe: StripeServiceProtocol
     private let supabase: SupabaseServiceProtocol
     private let authViewModel: AuthViewModel
+    private let orderStatusViewModel: OrderStatusViewModel
 
     // In-memory storage for testing
     private var orders: [Order] = []
@@ -31,11 +32,13 @@ final class CheckoutViewModel: ObservableObject {
     init(stripe: StripeServiceProtocol = StripeService(), 
          supabase: SupabaseServiceProtocol = SupabaseService(), 
          cart: CartViewModel,
-         authViewModel: AuthViewModel) {
+         authViewModel: AuthViewModel,
+         orderStatusViewModel: OrderStatusViewModel) {
         self.stripe = stripe
         self.supabase = supabase
         self.cart = cart
         self.authViewModel = authViewModel
+        self.orderStatusViewModel = orderStatusViewModel
     }
 
     func confirmPayment() async {
@@ -65,7 +68,8 @@ final class CheckoutViewModel: ObservableObject {
         
         do {
             // Create order in Supabase backend
-            let createdOrder = try await supabase.createOrder(order)
+            var createdOrder = try await supabase.createOrder(order)
+            createdOrder.status = .inQueue
             lastOrder = createdOrder
             
             // Now process the payment
@@ -86,6 +90,9 @@ final class CheckoutViewModel: ObservableObject {
                 showErrorBanner = false
                 
                 lastOrder = createdOrder
+                
+                // Update the OrderStatusViewModel with the new active order
+                orderStatusViewModel.activeOrder = createdOrder
                 
                 // Provide haptic feedback for successful payment
                 let impactFeedback = UINotificationFeedbackGenerator()

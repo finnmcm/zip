@@ -8,10 +8,11 @@
 import SwiftUI
 
 struct OrderHistoryView: View {
-    @State private var orders: [Order] = []
+    @ObservedObject var authViewModel: AuthViewModel
     @State private var isLoading = false
     @State private var selectedOrder: Order?
     @State private var showingOrderDetail = false
+    @State private var errorMessage: String?
     
     var body: some View {
         NavigationStack {
@@ -19,8 +20,8 @@ struct OrderHistoryView: View {
                 AppColors.background
                     .ignoresSafeArea()
                 
-                if orders.isEmpty && !isLoading {
-                    emptyStateView
+                if isLoading {
+                    loadingView
                 } else {
                     orderListView
                 }
@@ -30,9 +31,12 @@ struct OrderHistoryView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Refresh") {
-                        loadOrders()
+                        Task {
+                            await refreshOrders()
+                        }
                     }
                     .foregroundColor(AppColors.accent)
+                    .disabled(isLoading)
                 }
             }
             .sheet(isPresented: $showingOrderDetail) {
@@ -43,8 +47,63 @@ struct OrderHistoryView: View {
             .onAppear {
                 loadOrders()
             }
+            .refreshable {
+                await refreshOrders()
+            }
         }
     }
+    
+    // MARK: - Computed Properties
+    
+    private var userOrders: [Order] {
+        authViewModel.currentUser?.orders ?? []
+    }
+    
+    // MARK: - Loading View
+    
+    private var loadingView: some View {
+        VStack(spacing: AppMetrics.spacingLarge) {
+            ProgressView()
+                .scaleEffect(1.5)
+                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
+            
+            Text("Loading Orders...")
+                .font(.body)
+                .foregroundColor(AppColors.textSecondary)
+        }
+    }
+    
+    // MARK: - Error View
+    
+    private var errorView: some View {
+        VStack(spacing: AppMetrics.spacingLarge) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 60))
+                .foregroundColor(AppColors.textSecondary)
+            
+            Text("Error Loading Orders")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(AppColors.textPrimary)
+            
+            Text(errorMessage ?? "An unknown error occurred")
+                .font(.body)
+                .foregroundColor(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, AppMetrics.spacingLarge)
+            
+            Button("Try Again") {
+                Task {
+                    await refreshOrders()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(AppColors.accent)
+        }
+        .padding()
+    }
+    
+    // MARK: - Empty State View
     
     private var emptyStateView: some View {
         VStack(spacing: AppMetrics.spacingLarge) {
@@ -62,19 +121,16 @@ struct OrderHistoryView: View {
                 .foregroundColor(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, AppMetrics.spacingLarge)
-            
-            Button("Start Shopping") {
-                // Navigate to shopping view
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColors.accent)
+
         }
         .padding()
     }
     
+    // MARK: - Order List View
+    
     private var orderListView: some View {
         List {
-            ForEach(orders) { order in
+            ForEach(userOrders) { order in
                 OrderHistoryRow(order: order) {
                     selectedOrder = order
                     showingOrderDetail = true
@@ -82,156 +138,65 @@ struct OrderHistoryView: View {
             }
         }
         .listStyle(.plain)
-        .refreshable {
+    }
+    
+    // MARK: - Data Loading Methods
+    
+    private func loadOrders() {
+        // If we already have orders from the user, no need to load
+        if !userOrders.isEmpty {
+            return
+        }
+        
+        // If no user is authenticated, show empty state
+        guard authViewModel.currentUser != nil else {
+            return
+        }
+        
+        // Load orders if we don't have them yet
+        Task {
             await refreshOrders()
         }
     }
     
-    private func loadOrders() {
-        isLoading = true
-        
-        // Simulate network delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            orders = generateDummyOrders()
-            isLoading = false
-        }
-    }
-    
     private func refreshOrders() async {
-        // Simulate async refresh
-        try? await Task.sleep(nanoseconds: 1_000_000_000)
-        await MainActor.run {
-            orders = generateDummyOrders()
+        guard let currentUser = authViewModel.currentUser else {
+            await MainActor.run {
+                errorMessage = "Please sign in to view your order history"
+            }
+            return
         }
-    }
-    
-    private func generateDummyOrders() -> [Order] {
-        let dummyUser = User(
-            id: "dummy-user-123",
-            email: "student@u.northwestern.edu",
-            firstName: "Alex",
-            lastName: "Johnson",
-            phoneNumber: "+1-555-0123"
-        )
         
-        let dummyProducts = [
-            Product(
-                inventoryName: "coffee_latte",
-                displayName: "Vanilla Latte",
-                price: 4.99,
-                quantity: 10,
-                category: .drinks
-            ),
-            Product(
-                inventoryName: "energy_drink",
-                displayName: "Red Bull",
-                price: 3.49,
-                quantity: 15,
-                category: .drinks
-            ),
-            Product(
-                inventoryName: "chips_bbq",
-                displayName: "BBQ Chips",
-                price: 2.99,
-                quantity: 20,
-                category: .chipscandy
-            ),
-            Product(
-                inventoryName: "granola_bar",
-                displayName: "Granola Bar",
-                price: 1.99,
-                quantity: 25,
-                category: .foodsnacks
-            ),
-            Product(
-                inventoryName: "water_bottle",
-                displayName: "Water Bottle",
-                price: 1.49,
-                quantity: 30,
-                category: .drinks
-            )
-        ]
+        await MainActor.run {
+            isLoading = true
+            errorMessage = nil
+        }
         
-        let orders = [
-            Order(
-                user: dummyUser,
-                items: [
-                    CartItem(product: dummyProducts[0], quantity: 1, userId: UUID()),
-                    CartItem(product: dummyProducts[2], quantity: 1, userId: UUID())
-                ],
-                status: .delivered,
-                rawAmount: 12.97,
-                tip: 2.00,
-                totalAmount: 14.97,
-                deliveryAddress: "Elder Hall, Room 305",
-                createdAt: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date(),
-                estimatedDeliveryTime: Calendar.current.date(byAdding: .minute, value: 25, to: Date()) ?? Date(),
-                actualDeliveryTime: Calendar.current.date(byAdding: .minute, value: 23, to: Date()) ?? Date()
-            ),
+        do {
+            let supabaseService = SupabaseService()
             
-            Order(
-                user: dummyUser,
-                items: [
-                    CartItem(product: dummyProducts[1], quantity: 1, userId: UUID()),
-                    CartItem(product: dummyProducts[3], quantity: 2, userId: UUID()),
-                    CartItem(product: dummyProducts[4], quantity: 1, userId: UUID())
-                ],
-                status: .delivered,
-                rawAmount: 10.46,
-                tip: 1.50,
-                totalAmount: 11.96,
-                deliveryAddress: "Willard Hall, Room 127",
-                createdAt: Calendar.current.date(byAdding: .day, value: -3, to: Date()) ?? Date(),
-                estimatedDeliveryTime: Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date(),
-                actualDeliveryTime: Calendar.current.date(byAdding: .minute, value: 28, to: Date()) ?? Date()
-            ),
-            
-            Order(
-                user: dummyUser,
-                items: [
-                    CartItem(product: dummyProducts[0], quantity: 1, userId: UUID()),
-                    CartItem(product: dummyProducts[2], quantity: 2, userId: UUID())
-                ],
-                status: .inQueue,
-                rawAmount: 10.97,
-                tip: 1.75,
-                totalAmount: 12.72,
-                deliveryAddress: "Sargent Hall, Room 412",
-                createdAt: Calendar.current.date(byAdding: .hour, value: -2, to: Date()) ?? Date(),
-                estimatedDeliveryTime: Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date()
-            ),
-            
-            Order(
-                user: dummyUser,
-                items: [
-                    CartItem(product: dummyProducts[1], quantity: 1, userId: UUID()),
-                    CartItem(product: dummyProducts[4], quantity: 2, userId: UUID())
-                ],
-                status: .inProgress,
-                rawAmount: 6.47,
-                tip: 1.00,
-                totalAmount: 7.47,
-                deliveryAddress: "Foster-Walker Complex, Room 208",
-                createdAt: Calendar.current.date(byAdding: .minute, value: -45, to: Date()) ?? Date(),
-                estimatedDeliveryTime: Calendar.current.date(byAdding: .minute, value: 35, to: Date()) ?? Date()
-            ),
-            
-            Order(
-                user: dummyUser,
-                items: [
-                    CartItem(product: dummyProducts[3], quantity: 3, userId: UUID()),
-                    CartItem(product: dummyProducts[0], quantity: 1, userId: UUID())
-                ],
-                status: .cancelled,
-                rawAmount: 7.96,
-                tip: 0.00,
-                totalAmount: 7.96,
-                deliveryAddress: "Allison Hall, Room 156",
-                createdAt: Calendar.current.date(byAdding: .day, value: -5, to: Date()) ?? Date()
-            )
-        ]
-        
-        return orders.sorted { $0.createdAt > $1.createdAt }
+            if supabaseService.isClientConfigured {
+                // Fetch fresh orders from Supabase
+                let orders = try await supabaseService.fetchUserOrders(userId: currentUser.id)
+                
+                await MainActor.run {
+                    // Update the user's orders in AuthViewModel
+                    authViewModel.updateUserOrders(orders)
+                    isLoading = false
+                }
+            } else {
+                // Supabase not configured, show error
+                await MainActor.run {
+                    errorMessage = "Order service is not available. Please try again later."
+                    isLoading = false
+                }
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = "Failed to load orders: \(error.localizedDescription)"
+                isLoading = false
+            }
+        }
     }
 }
 
@@ -446,15 +411,15 @@ struct OrderDetailView: View {
                         
                         Spacer()
                         
-                      /*  VStack(alignment: .trailing, spacing: 2) {
-                            Text("$\(item.product.price, specifier: "%.2f")")
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("$\(NSDecimalNumber(decimal: item.product.price).doubleValue, specifier: "%.2f")")
                                 .font(.body)
                                 .foregroundColor(AppColors.textPrimary)
                             
                             Text("Qty: \(item.quantity)")
                                 .font(.caption)
                                 .foregroundColor(AppColors.textSecondary)
-                        }*/
+                        }
                     }
                     .padding()
                     .background(AppColors.secondaryBackground)
@@ -517,16 +482,16 @@ struct OrderDetailView: View {
                     Text("Subtotal")
                         .foregroundColor(AppColors.textSecondary)
                     Spacer()
-                   /* Text("$\(order.rawAmount, specifier: "%.2f")")
-                        .foregroundColor(AppColors.textPrimary)*/
+                    Text("$\(NSDecimalNumber(decimal: order.rawAmount).doubleValue, specifier: "%.2f")")
+                        .foregroundColor(AppColors.textPrimary)
                 }
                 
                 HStack {
                     Text("Tip")
                         .foregroundColor(AppColors.textSecondary)
                     Spacer()
-                  /*  Text("$\(order.tip, specifier: "%.2f")")
-                        .foregroundColor(AppColors.textPrimary)*/
+                    Text("$\(NSDecimalNumber(decimal: order.tip).doubleValue, specifier: "%.2f")")
+                        .foregroundColor(AppColors.textPrimary)
                 }
                 
                 Divider()
@@ -536,10 +501,10 @@ struct OrderDetailView: View {
                         .font(.headline)
                         .foregroundColor(AppColors.textPrimary)
                     Spacer()
-                 /*   Text("$\(order.totalAmount, specifier: "%.2f")")
+                    Text("$\(NSDecimalNumber(decimal: order.totalAmount).doubleValue, specifier: "%.2f")")
                         .font(.headline)
                         .fontWeight(.semibold)
-                        .foregroundColor(AppColors.accent)*/
+                        .foregroundColor(AppColors.accent)
                 }
             }
             .padding()
@@ -550,5 +515,5 @@ struct OrderDetailView: View {
 }
 
 #Preview {
-    OrderHistoryView()
+    OrderHistoryView(authViewModel: AuthViewModel())
 }
