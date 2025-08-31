@@ -11,7 +11,7 @@ struct OrderConfirmationView: View {
                 .font(.system(size: 56))
                 .foregroundStyle(.green)
             
-            Text("Order Confirmed")
+            Text("Order Placed!")
                 .font(.title.bold())
             
             if let order = order {

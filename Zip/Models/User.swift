@@ -5,7 +5,7 @@
 
 import Foundation
 
-final class User: Identifiable, Codable {
+final class User: Identifiable, Codable, Equatable {
     let id: String
     var email: String
     var firstName: String
@@ -65,6 +65,11 @@ final class User: Identifiable, Codable {
         try container.encode(phoneNumber, forKey: .phoneNumber)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
+    }
+    
+    // MARK: - Equatable Implementation
+    static func == (lhs: User, rhs: User) -> Bool {
+        return lhs.id == rhs.id
     }
 }
 

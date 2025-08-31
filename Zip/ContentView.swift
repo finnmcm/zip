@@ -12,7 +12,7 @@ struct ContentView: View {
     @ObserveInjection var inject
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var cartViewModel = CartViewModel()
-    @StateObject private var shoppingViewModel = ShoppingViewModel()
+        @StateObject private var shoppingViewModel = ShoppingViewModel()
     
     var body: some View {
         Group {

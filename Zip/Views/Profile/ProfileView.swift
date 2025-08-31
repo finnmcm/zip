@@ -70,7 +70,17 @@ struct ProfileView: View {
                             icon: "questionmark.circle",
                             title: "Help & Support",
                             subtitle: "Get help with your orders"
-                        ) 
+                        )
+                        
+                        #if DEBUG
+                        NavigationLink(destination: OrderStatusBannerDemo()) {
+                            ProfileOptionRow(
+                                icon: "banner",
+                                title: "Order Banner Demo",
+                                subtitle: "Test order status banner"
+                            )
+                        }
+                        #endif 
                         
                     }
                     .padding(.horizontal, AppMetrics.spacingLarge)

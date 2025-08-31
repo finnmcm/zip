@@ -33,7 +33,7 @@ BEGIN
     END IF;
 
     -- Only adjust inventory on first transition to a successful payment state
-    IF lower(p_new_status) = 'confirmed' AND lower(coalesce(v_prev_status, '')) <> 'confirmed' THEN
+    IF lower(p_new_status) = 'in_queue' AND lower(coalesce(v_prev_status, '')) <> 'in_queue' THEN
         -- Decrement product quantities based on order items; clamp at zero
         -- Support schema where stock_quantity/in_stock are used
         IF EXISTS (
@@ -118,7 +118,7 @@ BEGIN
     END IF;
 
     -- Adjust inventory on first confirm
-    IF lower(p_new_status) = 'confirmed' AND lower(coalesce(v_prev_status, '')) <> 'confirmed' THEN
+    IF lower(p_new_status) = 'in_queue' AND lower(coalesce(v_prev_status, '')) <> 'in_queue' THEN
         IF EXISTS (
             SELECT 1 FROM information_schema.columns 
             WHERE table_name = 'products' AND column_name = 'stock_quantity'

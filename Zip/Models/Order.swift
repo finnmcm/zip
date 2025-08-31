@@ -33,7 +33,7 @@ final class Order: Identifiable, Codable {
     }
     
     var canBeCancelled: Bool {
-        return [.pending, .confirmed, .preparing].contains(status)
+        return [.pending, .inQueue, .inProgress].contains(status)
     }
     
     // Relationships - will be handled manually since we're not using SwiftData
@@ -121,20 +121,20 @@ final class Order: Identifiable, Codable {
 
 enum OrderStatus: String, Codable, CaseIterable {
     case pending = "pending"
-    case confirmed = "confirmed"
-    case preparing = "preparing"
-    case outForDelivery = "out_for_delivery"
+    case inQueue = "in_queue"
+    case inProgress = "in_progress"
     case delivered = "delivered"
     case cancelled = "cancelled"
+    case disputed = "disputed"
     
     var displayName: String {
         switch self {
         case .pending: return "Pending"
-        case .confirmed: return "Confirmed"
-        case .preparing: return "Preparing"
-        case .outForDelivery: return "Out for Delivery"
+        case .inQueue: return "In Queue"
+        case .inProgress: return "In Progress"
         case .delivered: return "Delivered"
         case .cancelled: return "Cancelled"
+        case .disputed: return "Disputed"
         }
     }
 }

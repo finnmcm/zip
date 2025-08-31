@@ -36,7 +36,7 @@ The webhook functions provide comprehensive order lifecycle management by:
 ## Order Status Flow
 
 ```
-pending → confirmed → preparing → out_for_delivery → delivered
+pending → in_queue → in_progress → delivered
     ↓
 cancelled (if payment fails/cancels)
     ↓

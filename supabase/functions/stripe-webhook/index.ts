@@ -1,13 +1,13 @@
 // Deno Deploy (Supabase Edge) Stripe webhook to update order status and adjust inventory
 // Events handled -> status mapping:
-// 'payment_intent.succeeded': 'confirmed'
+// 'payment_intent.succeeded': 'in_queue'
 // 'payment_intent.payment_failed': 'cancelled'
 // 'payment_intent.canceled': 'cancelled'
-// 'charge.succeeded': 'confirmed'
+// 'charge.succeeded': 'in_queue'
 // 'charge.failed': 'cancelled'
 // 'charge.dispute.created': 'disputed'
-// 'charge.dispute.closed': 'confirmed'
-// 'invoice.payment_succeeded': 'confirmed'
+// 'charge.dispute.closed': 'in_queue'
+// 'invoice.payment_succeeded': 'in_queue'
 // 'invoice.payment_failed': 'cancelled'
 // 'customer.subscription.deleted': 'cancelled'
 
@@ -28,17 +28,17 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-type Status = 'confirmed' | 'cancelled' | 'disputed';
+type Status = 'in_queue' | 'in_progress' | 'delivered' | 'cancelled' | 'disputed';
 
 const eventTypeToStatus: Record<string, Status | undefined> = {
-  'payment_intent.succeeded': 'confirmed',
+  'payment_intent.succeeded': 'in_queue',
   'payment_intent.payment_failed': 'cancelled',
   'payment_intent.canceled': 'cancelled',
-  'charge.succeeded': 'confirmed',
+  'charge.succeeded': 'in_queue',
   'charge.failed': 'cancelled',
   'charge.dispute.created': 'disputed',
-  'charge.dispute.closed': 'confirmed',
-  'invoice.payment_succeeded': 'confirmed',
+  'charge.dispute.closed': 'in_queue',
+  'invoice.payment_succeeded': 'in_queue',
   'invoice.payment_failed': 'cancelled',
   'customer.subscription.deleted': 'cancelled',
 };

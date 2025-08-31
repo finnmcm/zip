@@ -192,7 +192,7 @@ struct OrderHistoryView: View {
                     CartItem(product: dummyProducts[0], quantity: 1, userId: UUID()),
                     CartItem(product: dummyProducts[2], quantity: 2, userId: UUID())
                 ],
-                status: .outForDelivery,
+                status: .inQueue,
                 rawAmount: 10.97,
                 tip: 1.75,
                 totalAmount: 12.72,
@@ -207,7 +207,7 @@ struct OrderHistoryView: View {
                     CartItem(product: dummyProducts[1], quantity: 1, userId: UUID()),
                     CartItem(product: dummyProducts[4], quantity: 2, userId: UUID())
                 ],
-                status: .preparing,
+                status: .inProgress,
                 rawAmount: 6.47,
                 tip: 1.00,
                 totalAmount: 7.47,
@@ -329,15 +329,17 @@ struct StatusBadge: View {
     
     private var statusColor: Color {
         switch status {
-        case .pending, .confirmed:
+        case .pending:
             return .orange
-        case .preparing:
+        case .inQueue:
             return .blue
-        case .outForDelivery:
+        case .inProgress:
             return AppColors.northwesternPurple
         case .delivered:
             return .green
         case .cancelled:
+            return .red
+        case .disputed:
             return .red
         }
     }

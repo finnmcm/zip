@@ -31,7 +31,7 @@ END $$;
 SELECT 'Test 1: Update order status' as test_name;
 SELECT update_order_status(
     (SELECT id FROM orders LIMIT 1),
-    'confirmed',
+    'in_queue',
     'pi_test123',
     'Test payment success',
     '{"test": true, "source": "test_script"}'
@@ -100,7 +100,7 @@ SELECT * FROM get_user_recent_orders((SELECT user_id FROM orders LIMIT 1), 5);
 
 -- Test 11: Get orders by status
 SELECT 'Test 11: Get orders by status' as test_name;
-SELECT * FROM get_orders_by_status('confirmed', 10);
+SELECT * FROM get_orders_by_status('in_queue', 10);
 
 -- Test 12: Get payment intent details
 SELECT 'Test 12: Get payment intent details' as test_name;

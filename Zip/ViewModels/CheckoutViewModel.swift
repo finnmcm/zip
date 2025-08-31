@@ -23,6 +23,7 @@ final class CheckoutViewModel: ObservableObject {
     private let stripe: StripeServiceProtocol
     private let supabase: SupabaseServiceProtocol
     private let authViewModel: AuthViewModel
+
     // In-memory storage for testing
     private var orders: [Order] = []
     let cart: CartViewModel
@@ -83,6 +84,8 @@ final class CheckoutViewModel: ObservableObject {
                 errorMessage = nil
                 paymentError = nil
                 showErrorBanner = false
+                
+                lastOrder = createdOrder
                 
                 // Provide haptic feedback for successful payment
                 let impactFeedback = UINotificationFeedbackGenerator()

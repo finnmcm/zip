@@ -10,6 +10,7 @@ struct CartView: View {
     @ObserveInjection var inject
     @ObservedObject var cartViewModel: CartViewModel
     @ObservedObject var authViewModel: AuthViewModel
+
     @State private var checkoutViewModel: CheckoutViewModel?
     @State private var showConfirmation: Bool = false
     @State private var showCheckout: Bool = false
