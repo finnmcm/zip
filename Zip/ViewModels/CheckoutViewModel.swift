@@ -57,6 +57,16 @@ final class CheckoutViewModel: ObservableObject {
         let total = cart.subtotal + Decimal(0.99) + tipAmount // Include delivery fee
         let finalTotal = max(0, total - appliedStoreCredit)
         
+        print("🔍 confirmPayment called")
+        print("🔍 cart.subtotal: $\(cart.subtotal)")
+        print("🔍 delivery fee: $0.99")
+        print("🔍 tipAmount: $\(tipAmount)")
+        print("🔍 total: $\(total)")
+        print("🔍 appliedStoreCredit: $\(appliedStoreCredit)")
+        print("🔍 finalTotal: $\(finalTotal)")
+        print("🔍 currentUser.storeCredit: $\(currentUser.storeCredit)")
+        print("🔍 appliedStoreCredit >= total: \(appliedStoreCredit >= total)")
+        
         let order = Order(
             user: currentUser,
             items: cart.items,
@@ -75,10 +85,24 @@ final class CheckoutViewModel: ObservableObject {
             let createdOrder = try await supabase.createOrder(order)
             lastOrder = createdOrder
             
+            // Check if user has sufficient store credit to cover the entire order
+            let maxStoreCredit = min(currentUser.storeCredit, total)
+            print("🔍 maxStoreCredit available: $\(maxStoreCredit)")
+            
+            // If user has enough store credit to cover the entire order, apply it automatically
+            if currentUser.storeCredit >= total && appliedStoreCredit == 0 {
+                print("🔍 Auto-applying store credit to cover entire order")
+                appliedStoreCredit = total
+            }
+            
             // Handle payment based on store credit application
             if appliedStoreCredit >= total {
                 // Store credit covers entire amount - no payment needed
                 print("💳 Store credit covers entire order amount")
+                print("💳 Applied store credit: $\(appliedStoreCredit)")
+                print("💳 Total order amount: $\(total)")
+                print("💳 Order ID: \(createdOrder.id)")
+                
                 createdOrder.status = .inQueue
                 orders.append(createdOrder)
                 cart.clear()
@@ -92,7 +116,13 @@ final class CheckoutViewModel: ObservableObject {
                 orderStatusViewModel.activeOrder = createdOrder
                 
                 // Update user's store credit in Supabase
+                print("💳 Updating user store credit...")
                 await updateUserStoreCredit(amount: appliedStoreCredit)
+                
+                // Manually call the Supabase database function to update order status and inventory
+                print("💳 Calling updateOrderStatusAndInventory for order: \(createdOrder.id)")
+                await updateOrderStatusAndInventory(orderId: createdOrder.id)
+                print("💳 Finished calling updateOrderStatusAndInventory")
                 
                 // Provide haptic feedback for successful order
                 let impactFeedback = UINotificationFeedbackGenerator()
@@ -223,6 +253,25 @@ final class CheckoutViewModel: ObservableObject {
             }
         } catch {
             print("❌ Error updating user store credit: \(error)")
+        }
+    }
+    
+    /// Manually calls the Supabase database function to update order status and inventory
+    /// - Parameter orderId: The UUID of the order to update
+    private func updateOrderStatusAndInventory(orderId: UUID) async {
+        print("🔍 updateOrderStatusAndInventory called with orderId: \(orderId)")
+        do {
+            print("🔍 Calling supabase.updateOrderStatusAndInventory...")
+            let success = try await supabase.updateOrderStatusAndInventory(orderId: orderId)
+            print("🔍 supabase.updateOrderStatusAndInventory returned: \(success)")
+            if success {
+                print("✅ Successfully updated order status and inventory for order: \(orderId)")
+            } else {
+                print("⚠️ Order status and inventory update returned false for order: \(orderId)")
+            }
+        } catch {
+            print("❌ Error updating order status and inventory: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
         }
     }
 }

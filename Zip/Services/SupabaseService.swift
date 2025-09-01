@@ -6,6 +6,8 @@
 import Foundation
 import Supabase
 
+
+
 protocol SupabaseServiceProtocol {
     func fetchProducts() async throws -> [Product]
     func fetchProduct(id: UUID) async throws -> Product?
@@ -18,6 +20,7 @@ protocol SupabaseServiceProtocol {
     func clearUserCart(userId: String) async throws -> Bool
     func fetchUser(userId: String) async throws -> User?
     func updateUserStoreCredit(userId: String, newStoreCredit: Decimal) async throws -> User?
+    func updateOrderStatusAndInventory(orderId: UUID) async throws -> Bool
 }
 
 final class SupabaseService: SupabaseServiceProtocol {
@@ -503,6 +506,40 @@ final class SupabaseService: SupabaseServiceProtocol {
             return response.first
         } catch {
             print("❌ Error updating user store credit in Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    /// Manually calls the Supabase database function 'update_order_status_and_inventory_by_order_id'
+    /// This function is called when a user completes their order fully through store credit
+    /// - Parameter orderId: The UUID of the order to update
+    /// - Returns: True if the function was called successfully, false otherwise
+    func updateOrderStatusAndInventory(orderId: UUID) async throws -> Bool {
+        print("🔍 SupabaseService.updateOrderStatusAndInventory called with orderId: \(orderId)")
+        
+        guard let supabase = supabase else {
+            print("❌ Supabase client not configured")
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        print("🔍 Supabase client is configured, proceeding with RPC call")
+        
+        do {
+            // Call the Supabase database function using rpc
+            // This function doesn't return a value, so we just execute it
+            print("🔍 Calling RPC function update_order_status_and_inventory_by_order_id...")
+            print("🔍 Parameters: p_new_status=in_queue, p_order_id=\(orderId.uuidString), p_payment_intent_id=''")
+            
+            _ = try await supabase
+                .rpc("update_order_status_and_inventory_by_order_id", params: ["p_new_status": "in_queue", "p_order_id": orderId.uuidString, "p_payment_intent_id": ""])
+                .execute()
+            
+            print("✅ Successfully called update_order_status_and_inventory_by_order_id for order: \(orderId)")
+            return true
+            
+        } catch {
+            print("❌ Error calling update_order_status_and_inventory_by_order_id: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
             throw SupabaseError.networkError(error)
         }
     }
