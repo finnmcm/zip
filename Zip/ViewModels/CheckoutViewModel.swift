@@ -19,10 +19,12 @@ final class CheckoutViewModel: ObservableObject {
     @Published var deliveryInstructions: String = ""
     @Published var showErrorBanner: Bool = false
     @Published var paymentError: String?
+    @Published var appliedStoreCredit: Decimal = 0.0
+    @Published var showStoreCreditOption: Bool = false
 
     private let stripe: StripeServiceProtocol
     private let supabase: SupabaseServiceProtocol
-    private let authViewModel: AuthViewModel
+    let authViewModel: AuthViewModel
     private let orderStatusViewModel: OrderStatusViewModel
 
     // In-memory storage for testing
@@ -52,14 +54,16 @@ final class CheckoutViewModel: ObservableObject {
         defer { isProcessing = false }
 
         // Create the order first
-        let total = cart.subtotal + tipAmount
+        let total = cart.subtotal + Decimal(0.99) + tipAmount // Include delivery fee
+        let finalTotal = max(0, total - appliedStoreCredit)
+        
         let order = Order(
             user: currentUser,
             items: cart.items,
             status: .pending,
             rawAmount: cart.subtotal,
             tip: tipAmount,
-            totalAmount: total,
+            totalAmount: finalTotal,
             deliveryAddress: isCampusDelivery ? selectedBuilding : selectedAddress,
             createdAt: Date(),
             deliveryInstructions: deliveryInstructions,
@@ -68,11 +72,35 @@ final class CheckoutViewModel: ObservableObject {
         
         do {
             // Create order in Supabase backend
-            var createdOrder = try await supabase.createOrder(order)
-            createdOrder.status = .inQueue
+            let createdOrder = try await supabase.createOrder(order)
             lastOrder = createdOrder
             
-            // Now process the payment
+            // Handle payment based on store credit application
+            if appliedStoreCredit >= total {
+                // Store credit covers entire amount - no payment needed
+                print("💳 Store credit covers entire order amount")
+                createdOrder.status = .inQueue
+                orders.append(createdOrder)
+                cart.clear()
+                errorMessage = nil
+                paymentError = nil
+                showErrorBanner = false
+                
+                lastOrder = createdOrder
+                
+                // Update the OrderStatusViewModel with the new active order
+                orderStatusViewModel.activeOrder = createdOrder
+                
+                // Update user's store credit in Supabase
+                await updateUserStoreCredit(amount: appliedStoreCredit)
+                
+                // Provide haptic feedback for successful order
+                let impactFeedback = UINotificationFeedbackGenerator()
+                impactFeedback.notificationOccurred(.success)
+                return
+            }
+            
+            // Process payment for remaining amount
             let description = "Zip Order #\(createdOrder.id.uuidString.prefix(8))"
             let result = await stripe.processPayment(
                 amount: cart.subtotal, 
@@ -145,6 +173,57 @@ final class CheckoutViewModel: ObservableObject {
     func dismissErrorBanner() {
         showErrorBanner = false
         paymentError = nil
+    }
+    
+    // MARK: - Store Credit Methods
+    
+    /// Applies store credit to the current order
+    /// - Parameter amount: Amount of store credit to apply
+    func applyStoreCredit(_ amount: Decimal) {
+        let maxApplicable = min(amount, cart.subtotal + Decimal(0.99) + tipAmount)
+        appliedStoreCredit = maxApplicable
+        print("💳 Applied store credit: $\(maxApplicable)")
+    }
+    
+    /// Removes applied store credit
+    func removeStoreCredit() {
+        appliedStoreCredit = 0.0
+        print("💳 Removed store credit")
+    }
+    
+    /// Gets the final amount after store credit is applied
+    var finalAmount: Decimal {
+        let total = cart.subtotal + Decimal(0.99) + tipAmount // Include delivery fee
+        return max(0, total - appliedStoreCredit)
+    }
+    
+    /// Checks if user has sufficient store credit
+    var hasSufficientStoreCredit: Bool {
+        guard let currentUser = authViewModel.currentUser else { return false }
+        return currentUser.storeCredit >= cart.subtotal + Decimal(0.99) + tipAmount
+    }
+    
+    /// Gets the maximum store credit that can be applied
+    var maxStoreCreditApplicable: Decimal {
+        guard let currentUser = authViewModel.currentUser else { return 0.0 }
+        return min(currentUser.storeCredit, cart.subtotal + Decimal(0.99) + tipAmount)
+    }
+    
+    /// Updates the user's store credit after applying it to an order
+    /// - Parameter amount: Amount of store credit that was applied
+    private func updateUserStoreCredit(amount: Decimal) async {
+        guard let currentUser = authViewModel.currentUser else { return }
+        
+        do {
+            let newStoreCredit = currentUser.storeCredit - amount
+            if let updatedUser = try await supabase.updateUserStoreCredit(userId: currentUser.id, newStoreCredit: newStoreCredit) {
+                // Update the current user in AuthViewModel
+                authViewModel.currentUser = updatedUser
+                print("💳 Updated user store credit: $\(newStoreCredit)")
+            }
+        } catch {
+            print("❌ Error updating user store credit: \(error)")
+        }
     }
 }
 

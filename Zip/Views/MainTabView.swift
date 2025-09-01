@@ -67,7 +67,7 @@ struct MainTabView: View {
     
     var body: some View {
         TabView {
-            CategoryListView(cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel)
+            CategoryListView(cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel, orderStatusViewModel: orderStatusViewModel)
                 .tabItem { 
                     Image(systemName: "bag")
                 }
@@ -132,42 +132,5 @@ struct MainTabView: View {
                 orderStatusViewModel.dismissBanner()
             }
         }
-
-        .overlay(
-            // Banner notification overlay
-            VStack {
-                // Order status banner at the top
-                OrderStatusBannerContainer(
-                    activeOrder: orderStatusViewModel.activeOrder,
-                    onBannerTap: {
-                        orderStatusViewModel.handleBannerTap()
-                    },
-                    onBannerDismiss: {
-                        orderStatusViewModel.dismissBanner()
-                    }
-                )
-                
-                Spacer()
-                
-                // Cart notification banner at the bottom
-                if cartViewModel.showBanner {
-                    BannerNotificationView(
-                        message: cartViewModel.bannerMessage,
-                        type: cartViewModel.bannerType,
-                        onDismiss: {
-                            cartViewModel.hideBanner()
-                        },
-                        isExiting: cartViewModel.isExiting
-                    )
-                    .transition(.asymmetric(
-                        insertion: .move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.8)),
-                        removal: .move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.8)).combined(with: .offset(y: 50))
-                    ))
-                    .animation(.spring(response: 0.5, dampingFraction: 0.8), value: cartViewModel.showBanner)
-                }
-            }
-        )
     }
 }
-
-

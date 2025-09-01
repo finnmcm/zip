@@ -11,6 +11,7 @@ final class User: Identifiable, Codable, Equatable {
     var firstName: String
     var lastName: String
     var phoneNumber: String
+    var storeCredit: Decimal
     var createdAt: Date
     var updatedAt: Date
     
@@ -22,12 +23,13 @@ final class User: Identifiable, Codable, Equatable {
     // Relationships - will be handled manually since we're not using SwiftData
     var orders: [Order] = []
     
-    init(id: String, email: String, firstName: String, lastName: String, phoneNumber: String, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(id: String, email: String, firstName: String, lastName: String, phoneNumber: String, storeCredit: Decimal = 0.0, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.email = email
         self.firstName = firstName
         self.lastName = lastName
         self.phoneNumber = phoneNumber
+        self.storeCredit = storeCredit
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -39,6 +41,7 @@ final class User: Identifiable, Codable, Equatable {
         case firstName = "first_name"
         case lastName = "last_name"
         case phoneNumber = "phone_number"
+        case storeCredit = "store_credit"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -51,6 +54,7 @@ final class User: Identifiable, Codable, Equatable {
         firstName = try container.decode(String.self, forKey: .firstName)
         lastName = try container.decode(String.self, forKey: .lastName)
         phoneNumber = try container.decode(String.self, forKey: .phoneNumber)
+        storeCredit = try container.decode(Decimal.self, forKey: .storeCredit)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
@@ -63,6 +67,7 @@ final class User: Identifiable, Codable, Equatable {
         try container.encode(firstName, forKey: .firstName)
         try container.encode(lastName, forKey: .lastName)
         try container.encode(phoneNumber, forKey: .phoneNumber)
+        try container.encode(storeCredit, forKey: .storeCredit)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
     }
@@ -80,6 +85,7 @@ struct AuthUser: Codable {
     let firstName: String
     let lastName: String
     let phoneNumber: String
+    let storeCredit: Decimal
     let createdAt: Date
     let updatedAt: Date
     
@@ -89,6 +95,7 @@ struct AuthUser: Codable {
         case firstName = "first_name"
         case lastName = "last_name"
         case phoneNumber = "phone_number"
+        case storeCredit = "store_credit"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -100,6 +107,7 @@ struct AuthUser: Codable {
             firstName: firstName,
             lastName: lastName,
             phoneNumber: phoneNumber,
+            storeCredit: storeCredit,
             createdAt: createdAt,
             updatedAt: updatedAt
         )

@@ -63,7 +63,7 @@ final class AuthenticationService: AuthenticationServiceProtocol {
             print(">>> Current UID:", userId)
 
         
-        let newUser: User = User(id: userId, email: email, firstName: firstName, lastName: lastName, phoneNumber: phoneNumber)
+        let newUser: User = User(id: userId, email: email, firstName: firstName, lastName: lastName, phoneNumber: phoneNumber, storeCredit: 0.0)
         print(newUser)
             _ = try await supabase
                 .from("users")

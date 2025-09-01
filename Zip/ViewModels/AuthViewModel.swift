@@ -245,15 +245,16 @@ final class AuthViewModel: ObservableObject {
         
         print("👤 AuthViewModel: Updating orders for user: \(currentUser.email)")
         // Create a new user instance with updated orders
-        let updatedUser = User(
-            id: currentUser.id,
-            email: currentUser.email,
-            firstName: currentUser.firstName,
-            lastName: currentUser.lastName,
-            phoneNumber: currentUser.phoneNumber,
-            createdAt: currentUser.createdAt,
-            updatedAt: currentUser.updatedAt
-        )
+                    let updatedUser = User(
+                id: currentUser.id,
+                email: currentUser.email,
+                firstName: currentUser.firstName,
+                lastName: currentUser.lastName,
+                phoneNumber: currentUser.phoneNumber,
+                storeCredit: currentUser.storeCredit,
+                createdAt: currentUser.createdAt,
+                updatedAt: currentUser.updatedAt
+            )
         updatedUser.orders = orders
         
         // Update the current user

@@ -13,6 +13,8 @@ struct OrderHistoryView: View {
     @State private var selectedOrder: Order?
     @State private var showingOrderDetail = false
     @State private var errorMessage: String?
+    @State private var refreshTask: Task<Void, Never>?
+    @State private var lastRefreshTime: Date = .distantPast
     
     var body: some View {
         NavigationStack {
@@ -28,17 +30,7 @@ struct OrderHistoryView: View {
             }
             .navigationTitle("Order History")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Refresh") {
-                        Task {
-                            await refreshOrders()
-                        }
-                    }
-                    .foregroundColor(AppColors.accent)
-                    .disabled(isLoading)
-                }
-            }
+
             .sheet(isPresented: $showingOrderDetail) {
                 if let order = selectedOrder {
                     OrderDetailView(order: order)
@@ -47,8 +39,12 @@ struct OrderHistoryView: View {
             .onAppear {
                 loadOrders()
             }
+            .onDisappear {
+                // Cancel any pending refresh tasks when view disappears
+                refreshTask?.cancel()
+            }
             .refreshable {
-                await refreshOrders()
+                await performRefresh()
             }
         }
     }
@@ -94,7 +90,7 @@ struct OrderHistoryView: View {
             
             Button("Try Again") {
                 Task {
-                    await refreshOrders()
+                    await performRefresh()
                 }
             }
             .buttonStyle(.borderedProminent)
@@ -155,8 +151,27 @@ struct OrderHistoryView: View {
         
         // Load orders if we don't have them yet
         Task {
+            await performRefresh()
+        }
+    }
+    
+    private func performRefresh() async {
+        // Cancel any existing refresh task
+        refreshTask?.cancel()
+        
+        // Check if we're refreshing too frequently (debounce)
+        let timeSinceLastRefresh = Date().timeIntervalSince(lastRefreshTime)
+        if timeSinceLastRefresh < 2.0 { // 2 second minimum between refreshes
+            return
+        }
+        
+        // Create a new refresh task
+        refreshTask = Task {
             await refreshOrders()
         }
+        
+        // Wait for the task to complete
+        await refreshTask?.value
     }
     
     private func refreshOrders() async {
@@ -179,10 +194,16 @@ struct OrderHistoryView: View {
                 // Fetch fresh orders from Supabase
                 let orders = try await supabaseService.fetchUserOrders(userId: currentUser.id)
                 
+                // Check if the task was cancelled
+                if Task.isCancelled {
+                    return
+                }
+                
                 await MainActor.run {
                     // Update the user's orders in AuthViewModel
                     authViewModel.updateUserOrders(orders)
                     isLoading = false
+                    lastRefreshTime = Date()
                 }
             } else {
                 // Supabase not configured, show error
@@ -192,9 +213,22 @@ struct OrderHistoryView: View {
                 }
             }
         } catch {
+            // Check if the task was cancelled
+            if Task.isCancelled {
+                await MainActor.run {
+                    isLoading = false
+                }
+                return
+            }
+            
             await MainActor.run {
-                errorMessage = "Failed to load orders: \(error.localizedDescription)"
-                isLoading = false
+                if let urlError = error as? URLError, urlError.code == .cancelled {
+                    // Request was cancelled, don't show error
+                    isLoading = false
+                } else {
+                    errorMessage = "Failed to load orders: \(error.localizedDescription)"
+                    isLoading = false
+                }
             }
         }
     }

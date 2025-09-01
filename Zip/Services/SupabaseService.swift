@@ -11,10 +11,13 @@ protocol SupabaseServiceProtocol {
     func fetchProduct(id: UUID) async throws -> Product?
     func createOrder(_ order: Order) async throws -> Order
     func fetchUserOrders(userId: String) async throws -> [Order]
+    func fetchOrderStatus(orderId: UUID) async throws -> Order?
     func addToCart(_ cartItem: CartItem) async throws -> CartItem
     func removeFromCart(id: UUID) async throws -> Bool
     func fetchUserCart(userId: String) async throws -> [CartItem]
     func clearUserCart(userId: String) async throws -> Bool
+    func fetchUser(userId: String) async throws -> User?
+    func updateUserStoreCredit(userId: String, newStoreCredit: Decimal) async throws -> User?
 }
 
 final class SupabaseService: SupabaseServiceProtocol {
@@ -201,6 +204,9 @@ final class SupabaseService: SupabaseServiceProtocol {
     }
     
     func fetchUserOrders(userId: String) async throws -> [Order] {
+        // Check for cancellation early
+        try Task.checkCancellation()
+        
         // Check if Supabase client is configured
         guard let supabase = supabase else {
             throw SupabaseError.clientNotConfigured
@@ -218,8 +224,14 @@ final class SupabaseService: SupabaseServiceProtocol {
             
             var orders: [Order] = []
             
+            // Check for cancellation after fetching orders
+            try Task.checkCancellation()
+            
             // Process each order and fetch its items
             for orderData in ordersResponse {
+                // Check for cancellation
+                try Task.checkCancellation()
+                
                 // Fetch order items for this order
                 let orderItemsResponse: [OrderItemData] = try await supabase
                     .from("order_items")
@@ -274,6 +286,9 @@ final class SupabaseService: SupabaseServiceProtocol {
                     }
                 }
                 
+                // Check for cancellation before creating order
+                try Task.checkCancellation()
+                
                 // Parse dates
                 let dateFormatter = ISO8601DateFormatter()
                 let createdAt = dateFormatter.date(from: orderData.created_at) ?? Date()
@@ -287,6 +302,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     firstName: "", // Will be populated when we fetch user details
                     lastName: "", // Will be populated when we fetch user details
                     phoneNumber: "", // Will be populated when we fetch user details
+                    storeCredit: 0.0, // Will be populated when we fetch user details
                     createdAt: createdAt,
                     updatedAt: updatedAt
                 )
@@ -324,6 +340,169 @@ final class SupabaseService: SupabaseServiceProtocol {
             
         } catch {
             print("❌ Error fetching user orders from Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    func fetchOrderStatus(orderId: UUID) async throws -> Order? {
+        // Check if Supabase client is configured
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            // Fetch the order data
+            let orderData: OrderData? = try await supabase
+                .from("orders")
+                .select()
+                .eq("id", value: orderId.uuidString)
+                .single()
+                .execute()
+                .value
+            
+            if let orderData = orderData {
+                // Fetch order items for this order
+                let orderItemsResponse: [OrderItemData] = try await supabase
+                    .from("order_items")
+                    .select()
+                    .eq("order_id", value: orderData.id)
+                    .execute()
+                    .value
+                
+                // Convert order items to CartItems
+                var cartItems: [CartItem] = []
+                for itemData in orderItemsResponse {
+                    // Fetch the product for this item
+                    let productResponse: [ProductData] = try await supabase
+                        .from("products")
+                        .select()
+                        .eq("id", value: itemData.product_id)
+                        .execute()
+                        .value
+                    
+                    if let productData = productResponse.first {
+                        // Parse product category
+                        guard let category = ProductCategory(rawValue: productData.category) else {
+                            print("⚠️ Unknown product category: \(productData.category)")
+                            continue
+                        }
+                        
+                        // Parse dates
+                        let dateFormatter = ISO8601DateFormatter()
+                        let productCreatedAt = dateFormatter.date(from: productData.created_at) ?? Date()
+                        let productUpdatedAt = dateFormatter.date(from: productData.updated_at) ?? Date()
+                        
+                        // Create Product object
+                        let product = Product(
+                            id: UUID(uuidString: productData.id) ?? UUID(),
+                            inventoryName: productData.inventoryName,
+                            displayName: productData.displayName,
+                            price: Decimal(productData.price),
+                            quantity: productData.quantity,
+                            imageURL: productData.imageURL,
+                            category: category,
+                            createdAt: productCreatedAt,
+                            updatedAt: productUpdatedAt
+                        )
+                        
+                        // Create CartItem
+                        let cartItem = CartItem(
+                            product: product,
+                            quantity: itemData.quantity,
+                            userId: UUID(uuidString: orderData.user_id) ?? UUID() // Assuming user_id is the user who created the order
+                        )
+                        cartItems.append(cartItem)
+                    }
+                }
+                
+                // Parse dates
+                let dateFormatter = ISO8601DateFormatter()
+                let createdAt = dateFormatter.date(from: orderData.created_at) ?? Date()
+                let updatedAt = dateFormatter.date(from: orderData.updated_at) ?? Date()
+                
+                // Create User object (we'll need to fetch this from users table)
+                // For now, create a minimal user object with the ID we have
+                let user = User(
+                    id: orderData.user_id,
+                    email: "", // Will be populated when we fetch user details
+                    firstName: "", // Will be populated when we fetch user details
+                    lastName: "", // Will be populated when we fetch user details
+                    phoneNumber: "", // Will be populated when we fetch user details
+                    storeCredit: 0.0, // Will be populated when we fetch user details
+                    createdAt: createdAt,
+                    updatedAt: updatedAt
+                )
+                
+                // Parse OrderStatus
+                guard let status = OrderStatus(rawValue: orderData.status) else {
+                    print("⚠️ Unknown order status: \(orderData.status)")
+                    return nil
+                }
+                
+                // Create Order object
+                return Order(
+                    id: UUID(uuidString: orderData.id) ?? UUID(),
+                    user: user,
+                    items: cartItems,
+                    status: status,
+                    rawAmount: Decimal(orderData.raw_amount),
+                    tip: Decimal(orderData.tip),
+                    totalAmount: Decimal(orderData.total_amount),
+                    deliveryAddress: orderData.delivery_address,
+                    createdAt: createdAt,
+                    estimatedDeliveryTime: nil, // Will be added when we have this field
+                    actualDeliveryTime: nil, // Will be added when we have this field
+                    paymentIntentId: orderData.payment_intent_id,
+                    updatedAt: updatedAt,
+                    deliveryInstructions: orderData.delivery_instructions,
+                    isCampusDelivery: orderData.is_campus_delivery
+                )
+            }
+            return nil
+        } catch {
+            print("❌ Error fetching order status from Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    // MARK: - User Operations
+    func fetchUser(userId: String) async throws -> User? {
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            let response: [User] = try await supabase
+                .from("users")
+                .select()
+                .eq("id", value: userId)
+                .execute()
+                .value
+            
+            return response.first
+        } catch {
+            print("❌ Error fetching user from Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    func updateUserStoreCredit(userId: String, newStoreCredit: Decimal) async throws -> User? {
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            let response: [User] = try await supabase
+                .from("users")
+                .update(["store_credit": newStoreCredit])
+                .eq("id", value: userId)
+                .select()
+                .execute()
+                .value
+            
+            return response.first
+        } catch {
+            print("❌ Error updating user store credit in Supabase: \(error)")
             throw SupabaseError.networkError(error)
         }
     }

@@ -9,6 +9,8 @@ enum AppColors {
     static let northwesternPurple = Color(hex: "#79E0D3")
     static let background = Color(.systemBackground)
     static let secondaryBackground = Color(.secondarySystemBackground)
+    static let surface = Color(.systemBackground)
+    static let border = Color(.separator)
     static let textPrimary = Color(hex: "#068f7c")
     static let textSecondary = Color.secondary
     static let accent = northwesternPurple
@@ -18,6 +20,7 @@ enum AppColors {
 }
 
 enum AppMetrics {
+    static let cornerRadius: CGFloat = 12
     static let cornerRadiusSmall: CGFloat = 10
     static let cornerRadiusLarge: CGFloat = 18
     static let spacingSmall: CGFloat = 8

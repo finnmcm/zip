@@ -79,6 +79,7 @@ struct BannerNotificationView: View {
                 }
             }
         }
+        .allowsHitTesting(true)
     }
 }
 

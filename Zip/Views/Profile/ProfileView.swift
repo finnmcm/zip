@@ -36,6 +36,14 @@ struct ProfileView: View {
                                 Text(user.phoneNumber)
                                     .font(.caption)
                                     .foregroundStyle(AppColors.textSecondary)
+                                
+                                HStack {
+                                    Image(systemName: "creditcard.fill")
+                                        .foregroundStyle(AppColors.accent)
+                                    Text("Zip Credit: $\(String(format: "%.2f", NSDecimalNumber(decimal: user.storeCredit).doubleValue))")
+                                        .font(.caption)
+                                        .foregroundStyle(AppColors.textSecondary)
+                                }
                             }
                         } else {
                             Text("Not Signed In")

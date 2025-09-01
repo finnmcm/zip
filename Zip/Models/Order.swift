@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import SwiftUI // Added for Color
 
 final class Order: Identifiable, Codable {
     let id: UUID
@@ -135,6 +136,17 @@ enum OrderStatus: String, Codable, CaseIterable {
         case .delivered: return "Delivered"
         case .cancelled: return "Cancelled"
         case .disputed: return "Disputed"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .pending: return .orange
+        case .inQueue: return AppColors.northwesternPurple
+        case .inProgress: return AppColors.accent
+        case .delivered: return .green
+        case .cancelled: return .red
+        case .disputed: return .orange
         }
     }
 }

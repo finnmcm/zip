@@ -93,16 +93,7 @@ final class OrderStatusViewModel: ObservableObject {
         activeOrder = nil
     }
     
-    /// Handles banner tap - navigates to order details
-    func handleBannerTap() {
-        // This would typically navigate to order details or tracking view
-        // For now, we'll just print a message
-        if let orderId = activeOrder?.id {
-            print("🎯 Banner tapped for order: \(orderId)")
-        } else {
-            print("🎯 Banner tapped for order: unknown")
-        }
-    }
+
     
     /// Loads the active order from pre-fetched orders instead of fetching from server
     /// - Parameter orders: Array of orders to search through for the active order
@@ -153,7 +144,8 @@ extension OrderStatusViewModel {
             email: "mock@u.northwestern.edu",
             firstName: "John",
             lastName: "Doe",
-            phoneNumber: "123-456-7890"
+            phoneNumber: "123-456-7890",
+            storeCredit: 0.0
         )
         
         let mockOrder = Order(

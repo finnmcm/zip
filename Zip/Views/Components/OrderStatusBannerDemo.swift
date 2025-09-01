@@ -72,9 +72,6 @@ struct OrderStatusBannerDemo: View {
             VStack {
                 OrderStatusBannerContainer(
                     activeOrder: orderStatusViewModel.activeOrder,
-                    onBannerTap: {
-                        orderStatusViewModel.handleBannerTap()
-                    },
                     onBannerDismiss: {
                         orderStatusViewModel.dismissBanner()
                     }
@@ -91,7 +88,8 @@ struct OrderStatusBannerDemo: View {
             email: "demo@u.northwestern.edu",
             firstName: "Demo",
             lastName: "User",
-            phoneNumber: "123-456-7890"
+            phoneNumber: "123-456-7890",
+            storeCredit: 0.0
         )
         
         let mockOrder = Order(

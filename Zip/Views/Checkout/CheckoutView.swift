@@ -68,9 +68,21 @@ struct CheckoutView: View {
                                     Text("Total")
                                         .font(.title3.bold())
                                     Spacer()
-                                    Text("$\(NSDecimalNumber(decimal: viewModel.cart.subtotal + Decimal(0.99) + viewModel.tipAmount).doubleValue, specifier: "%.2f")")
+                                    Text("$\(NSDecimalNumber(decimal: viewModel.finalAmount).doubleValue, specifier: "%.2f")")
                                         .font(.title3.bold())
                                         .foregroundStyle(AppColors.accent)
+                                }
+                                
+                                if viewModel.appliedStoreCredit > 0 {
+                                    HStack {
+                                        Text("After Store Credit")
+                                            .font(.caption)
+                                            .foregroundStyle(AppColors.textSecondary)
+                                        Spacer()
+                                        Text("$\(NSDecimalNumber(decimal: viewModel.finalAmount).doubleValue, specifier: "%.2f")")
+                                            .font(.caption)
+                                            .foregroundStyle(AppColors.accent)
+                                    }
                                 }
                             }
                             .padding()
@@ -127,6 +139,60 @@ struct CheckoutView: View {
             .background(AppColors.secondaryBackground)
             .cornerRadius(AppMetrics.cornerRadiusLarge)
             .padding(.horizontal, AppMetrics.spacingLarge)
+
+                        // Store Credit Section
+                        if let currentUser = viewModel.authViewModel.currentUser, currentUser.storeCredit > 0 {
+                            VStack(alignment: .leading, spacing: AppMetrics.spacing) {
+                                HStack {
+                                    Text("Store Credit")
+                                        .font(.title2.bold())
+                                        .padding(.horizontal, AppMetrics.spacingLarge)
+                                    Spacer()
+                                }
+                                
+                                VStack(spacing: AppMetrics.spacing) {
+                                    HStack {
+                                        Text("Available: $\(String(format: "%.2f", NSDecimalNumber(decimal: currentUser.storeCredit).doubleValue))")
+                                            .font(.subheadline)
+                                            .foregroundStyle(AppColors.textSecondary)
+                                        Spacer()
+                                    }
+                                    
+                                    if viewModel.appliedStoreCredit > 0 {
+                                        HStack {
+                                            Text("Applied: -$\(String(format: "%.2f", NSDecimalNumber(decimal: viewModel.appliedStoreCredit).doubleValue))")
+                                                .font(.subheadline)
+                                                .foregroundStyle(AppColors.accent)
+                                            Spacer()
+                                            Button("Remove") {
+                                                viewModel.removeStoreCredit()
+                                            }
+                                            .font(.caption)
+                                            .foregroundStyle(AppColors.accent)
+                                        }
+                                    }
+                                    
+                                    HStack {
+                                        Button("Apply $\(String(format: "%.2f", NSDecimalNumber(decimal: viewModel.maxStoreCreditApplicable).doubleValue))") {
+                                            viewModel.applyStoreCredit(viewModel.maxStoreCreditApplicable)
+                                        }
+                                        .font(.caption)
+                                        .padding(.horizontal, AppMetrics.spacing)
+                                        .padding(.vertical, AppMetrics.spacingSmall)
+                                        .background(AppColors.accent)
+                                        .foregroundStyle(.white)
+                                        .cornerRadius(AppMetrics.cornerRadiusSmall)
+                                        .disabled(viewModel.appliedStoreCredit > 0)
+                                        
+                                        Spacer()
+                                    }
+                                }
+                                .padding()
+                                .background(AppColors.secondaryBackground)
+                                .cornerRadius(AppMetrics.cornerRadiusLarge)
+                                .padding(.horizontal, AppMetrics.spacingLarge)
+                            }
+                        }
 
                         // Delivery Info
                         VStack(alignment: .leading, spacing: AppMetrics.spacing) {
@@ -201,11 +267,11 @@ struct CheckoutView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(AppColors.accent)
+                                .background(viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "" ? AppColors.textSecondary : AppColors.accent)
                                 .foregroundColor(.white)
                                 .cornerRadius(AppMetrics.cornerRadiusLarge)
                             }
-                            .disabled(viewModel.isProcessing)
+                            .disabled(viewModel.isProcessing || viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "")
                             .buttonStyle(.plain)
                             .padding(.horizontal, AppMetrics.spacingLarge)
                             .padding(.bottom, AppMetrics.spacingLarge)
