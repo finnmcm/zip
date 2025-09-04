@@ -23,9 +23,23 @@ struct ProductDetailView: View {
                             .fill(AppColors.secondaryBackground)
                             .frame(height: 300)
                         
-                        Image(systemName: "shippingbox")
-                            .font(.system(size: 80))
-                            .foregroundStyle(AppColors.accent.opacity(0.7))
+                        if let imageURL = product.primaryImageURL, !imageURL.isEmpty {
+                            AsyncImage(url: URL(string: imageURL)) { image in
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(height: 300)
+                                    .clipped()
+                            } placeholder: {
+                                Image(systemName: "shippingbox")
+                                    .font(.system(size: 80))
+                                    .foregroundStyle(AppColors.accent.opacity(0.7))
+                            }
+                        } else {
+                            Image(systemName: "shippingbox")
+                                .font(.system(size: 80))
+                                .foregroundStyle(AppColors.accent.opacity(0.7))
+                        }
                     }
                     
                     VStack(alignment: .leading, spacing: AppMetrics.spacing) {

@@ -11,6 +11,8 @@ import Supabase
 protocol SupabaseServiceProtocol {
     func fetchProducts() async throws -> [Product]
     func fetchProduct(id: UUID) async throws -> Product?
+    func fetchProductImages() async throws -> [ProductImage]
+    func fetchProductImages(for productIds: [UUID]) async throws -> [ProductImage]
     func createOrder(_ order: Order) async throws -> Order
     func fetchUserOrders(userId: String) async throws -> [Order]
     func fetchOrderStatus(orderId: UUID) async throws -> Order?
@@ -72,6 +74,20 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .value
                 
                 print("✅ Successfully fetched \(response.count) products from Supabase")
+                
+                // Fetch product images and assign them to products
+                let productIds = response.map { $0.id }
+                let productImages = try await fetchProductImages(for: productIds)
+                
+                // Create a dictionary to group images by product ID
+                let imagesByProductId = Dictionary(grouping: productImages) { $0.productId }
+                
+                // Assign images to their respective products
+                for product in response {
+                    product.images = imagesByProductId[product.id] ?? []
+                }
+                
+                print("✅ Successfully assigned \(productImages.count) images to \(response.count) products")
                 return response
             } catch {
                 print("❌ Error fetching products from Supabase: \(error)")
@@ -94,7 +110,16 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .execute()
                     .value
                 
-                return response.first
+                guard let product = response.first else {
+                    return nil
+                }
+                
+                // Fetch product images for this specific product
+                let productImages = try await fetchProductImages(for: [id])
+                product.images = productImages
+                
+                print("✅ Successfully fetched product \(product.displayName) with \(productImages.count) images")
+                return product
             } catch {
                 print("❌ Error fetching product from Supabase: \(error)")
                 // Fall back to mock data if Supabase fails
@@ -104,6 +129,54 @@ final class SupabaseService: SupabaseServiceProtocol {
         // For now, return nil (will be implemented with Supabase)
         return nil
     }
+    
+    func fetchProductImages() async throws -> [ProductImage] {
+        // Try to use real Supabase client if configured
+        if let supabase = supabase {
+            do {
+                let response: [ProductImage] = try await supabase
+                    .from("product_images")
+                    .select()
+                    .order("created_at", ascending: true)
+                    .execute()
+                    .value
+                
+                print("✅ Successfully fetched \(response.count) product images from Supabase")
+                return response
+            } catch {
+                print("❌ Error fetching product images from Supabase: \(error)")
+                throw SupabaseError.networkError(error)
+            }
+        }
+        
+        // If Supabase client is not configured, throw an error
+        throw SupabaseError.clientNotConfigured
+    }
+    
+    func fetchProductImages(for productIds: [UUID]) async throws -> [ProductImage] {
+        // Try to use real Supabase client if configured
+        if let supabase = supabase {
+            do {
+                let response: [ProductImage] = try await supabase
+                    .from("product_images")
+                    .select()
+                    .in("product_id", values: productIds.map { $0.uuidString })
+                    .order("created_at", ascending: true)
+                    .execute()
+                    .value
+                
+                print("✅ Successfully fetched \(response.count) product images for \(productIds.count) products from Supabase")
+                return response
+            } catch {
+                print("❌ Error fetching product images from Supabase: \(error)")
+                throw SupabaseError.networkError(error)
+            }
+        }
+        
+        // If Supabase client is not configured, throw an error
+        throw SupabaseError.clientNotConfigured
+    }
+    
     // MARK: - Order Operations
     
     // Database models for Supabase operations
@@ -274,6 +347,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                             price: Decimal(productData.price),
                             quantity: productData.quantity,
                             imageURL: productData.imageURL,
+                            images: [], // Images will be populated separately if needed
                             category: category,
                             createdAt: productCreatedAt,
                             updatedAt: productUpdatedAt
@@ -403,6 +477,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                             price: Decimal(productData.price),
                             quantity: productData.quantity,
                             imageURL: productData.imageURL,
+                            images: [], // Images will be populated separately if needed
                             category: category,
                             createdAt: productCreatedAt,
                             updatedAt: productUpdatedAt

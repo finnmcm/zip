@@ -26,9 +26,23 @@ struct FeatureProductCard: View {
                         .fill(AppColors.secondaryBackground)
                         .frame(height: 120)
                     
-                    Image(systemName: "shippingbox")
-                        .font(.system(size: 35))
-                        .foregroundStyle(AppColors.accent.opacity(0.7))
+                    if let imageURL = product.primaryImageURL, !imageURL.isEmpty {
+                        AsyncImage(url: URL(string: imageURL)) { image in
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(height: 120)
+                                .clipped()
+                        } placeholder: {
+                            Image(systemName: "shippingbox")
+                                .font(.system(size: 35))
+                                .foregroundStyle(AppColors.accent.opacity(0.7))
+                        }
+                    } else {
+                        Image(systemName: "shippingbox")
+                            .font(.system(size: 35))
+                            .foregroundStyle(AppColors.accent.opacity(0.7))
+                    }
                 }
                 
                 // Price

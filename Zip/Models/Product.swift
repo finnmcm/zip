@@ -33,7 +33,8 @@ final class Product: Identifiable, Codable {
     var displayName: String
     var price: Decimal
     var quantity: Int
-    var imageURL: String?
+    var imageURL: String? // Deprecated: kept for backward compatibility
+    var images: [ProductImage] = [] // New: array of product images
     var category: ProductCategory
     
     // Database metadata
@@ -44,13 +45,14 @@ final class Product: Identifiable, Codable {
     // Note: This is not included in Codable to avoid circular references
     var cartItems: [CartItem] = []
 
-    init(id: UUID = UUID(), inventoryName: String, displayName: String, price: Decimal, quantity: Int = 0, imageURL: String? = nil, category: ProductCategory, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(id: UUID = UUID(), inventoryName: String, displayName: String, price: Decimal, quantity: Int = 0, imageURL: String? = nil, images: [ProductImage] = [], category: ProductCategory, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.inventoryName = inventoryName
         self.displayName = displayName
         self.price = price
         self.quantity = quantity
         self.imageURL = imageURL
+        self.images = images
         self.category = category
         // Use provided inStock value or calculate based on quantity
         self.createdAt = createdAt
@@ -68,6 +70,8 @@ final class Product: Identifiable, Codable {
         case category
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+        // Note: images array is excluded from Codable to avoid circular references
+        // It will be populated separately via fetchProductImages
     }
     
     required init(from decoder: Decoder) throws {
@@ -96,6 +100,19 @@ final class Product: Identifiable, Codable {
         try container.encode(category, forKey: .category)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
+    }
+    
+    // MARK: - Convenience Methods
+    
+    /// Returns the primary image URL for backward compatibility
+    /// First checks the images array, then falls back to the deprecated imageURL property
+    var primaryImageURL: String? {
+        return images.first?.imageURL ?? imageURL
+    }
+    
+    /// Returns all image URLs from the images array
+    var allImageURLs: [String] {
+        return images.compactMap { $0.imageURL }
     }
 }
 

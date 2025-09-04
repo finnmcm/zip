@@ -19,9 +19,67 @@ struct ProductCard: View {
                     .fill(AppColors.secondaryBackground)
                     .frame(height: 140)
                 
-                Image(systemName: "shippingbox")
-                    .font(.system(size: 40))
-                    .foregroundStyle(AppColors.accent.opacity(0.7))
+                if let imageURL = product.primaryImageURL, !imageURL.isEmpty {
+                    AsyncImage(url: URL(string: imageURL)) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(height: 140)
+                                .clipped()
+                        case .failure(let error):
+                            VStack {
+                                Image(systemName: "exclamationmark.triangle")
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(.red.opacity(0.7))
+                                Text("Error")
+                                    .font(.caption2)
+                                    .foregroundStyle(.red)
+                                Text(imageURL)
+                                    .font(.caption2)
+                                    .foregroundStyle(.gray)
+                                    .lineLimit(1)
+                            }
+                            .onAppear {
+                                print("❌ AsyncImage failed for \(product.displayName): \(error)")
+                                print("   URL: \(imageURL)")
+                            }
+                        case .empty:
+                            VStack {
+                                Image(systemName: "shippingbox")
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(AppColors.accent.opacity(0.7))
+                                Text("Loading...")
+                                    .font(.caption2)
+                                    .foregroundStyle(.gray)
+                            }
+                        @unknown default:
+                            VStack {
+                                Image(systemName: "shippingbox")
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(AppColors.accent.opacity(0.7))
+                                Text("Unknown")
+                                    .font(.caption2)
+                                    .foregroundStyle(.gray)
+                            }
+                        }
+                    }
+                } else {
+                    VStack {
+                        Image(systemName: "shippingbox")
+                            .font(.system(size: 40))
+                            .foregroundStyle(AppColors.accent.opacity(0.7))
+                        Text("No Image")
+                            .font(.caption2)
+                            .foregroundStyle(.gray)
+                    }
+                    .onAppear {
+                        print("🔍 Product \(product.displayName) has no image URL")
+                        print("   - primaryImageURL: \(product.primaryImageURL ?? "nil")")
+                        print("   - images count: \(product.images.count)")
+                    }
+                }
             }
             
             VStack(alignment: .leading, spacing: AppMetrics.spacingSmall) {
