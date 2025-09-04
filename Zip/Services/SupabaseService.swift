@@ -390,6 +390,12 @@ final class SupabaseService: SupabaseServiceProtocol {
                     continue
                 }
                 
+                // Only add orders that are NOT pending to the user's history
+                if status == .pending {
+                    print("⏭️ Skipping pending order: \(orderData.id)")
+                    continue
+                }
+                
                 // Create Order object
                 let order = Order(
                     id: UUID(uuidString: orderData.id) ?? UUID(),

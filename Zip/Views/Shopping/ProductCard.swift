@@ -17,7 +17,7 @@ struct ProductCard: View {
             ZStack {
                 RoundedRectangle(cornerRadius: AppMetrics.cornerRadiusLarge)
                     .fill(AppColors.secondaryBackground)
-                    .frame(height: 140)
+                    .frame(height: AppMetrics.productCardImageHeight)
                 
                 if let imageURL = product.primaryImageURL, !imageURL.isEmpty {
                     AsyncImage(url: URL(string: imageURL)) { phase in
@@ -25,8 +25,8 @@ struct ProductCard: View {
                         case .success(let image):
                             image
                                 .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(height: 140)
+                                .scaledToFit()
+                                .frame(height: AppMetrics.productCardImageHeight)
                                 .clipped()
                         case .failure(let error):
                             VStack {

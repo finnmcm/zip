@@ -24,14 +24,14 @@ struct FeatureProductCard: View {
                 ZStack {
                     RoundedRectangle(cornerRadius: AppMetrics.cornerRadiusLarge)
                         .fill(AppColors.secondaryBackground)
-                        .frame(height: 120)
+                        .frame(height: AppMetrics.featureCardImageHeight)
                     
                     if let imageURL = product.primaryImageURL, !imageURL.isEmpty {
                         AsyncImage(url: URL(string: imageURL)) { image in
                             image
                                 .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(height: 120)
+                                .scaledToFit()
+                                .frame(height: AppMetrics.featureCardImageHeight)
                                 .clipped()
                         } placeholder: {
                             Image(systemName: "shippingbox")

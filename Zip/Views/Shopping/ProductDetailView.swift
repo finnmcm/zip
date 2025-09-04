@@ -15,8 +15,12 @@ struct ProductDetailView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppMetrics.spacingLarge) {
+            VStack(spacing: 0) {
+                // Store closed banner
+                StoreClosedBanner()
+                
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppMetrics.spacingLarge) {
                     // Product Image
                     ZStack {
                         RoundedRectangle(cornerRadius: AppMetrics.cornerRadiusLarge)
@@ -27,7 +31,7 @@ struct ProductDetailView: View {
                             AsyncImage(url: URL(string: imageURL)) { image in
                                 image
                                     .resizable()
-                                    .aspectRatio(contentMode: .fill)
+                                    .aspectRatio(contentMode: .fit)
                                     .frame(height: 300)
                                     .clipped()
                             } placeholder: {
@@ -99,6 +103,7 @@ struct ProductDetailView: View {
                         .buttonStyle(.plain)
                     }
                     .padding(.horizontal, AppMetrics.spacingLarge)
+                    }
                 }
             }
             .navigationTitle("Product Details")

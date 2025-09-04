@@ -49,6 +49,9 @@ struct CartView: View {
                     }
                 } else {
                     VStack(spacing: 0) {
+                        // Store closed banner
+                        StoreClosedBanner()
+                        
                         // Cart Items
                         List {
                             ForEach(cartViewModel.items, id: \.id) { item in
@@ -108,16 +111,17 @@ struct CartView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "creditcard")
-                                    Text("Proceed to Checkout")
+                                    Text(StoreHoursManager.shared.isStoreOpen ? "Proceed to Checkout" : "Store Closed")
                                         .fontWeight(.semibold)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(AppColors.accent)
+                                .background(StoreHoursManager.shared.isStoreOpen ? AppColors.accent : Color.gray)
                                 .foregroundColor(.white)
                                 .cornerRadius(AppMetrics.cornerRadiusLarge)
                             }
                             .buttonStyle(.plain)
+                            .disabled(!StoreHoursManager.shared.isStoreOpen)
                             .padding(.horizontal, AppMetrics.spacingLarge)
                             .padding(.bottom, AppMetrics.spacingLarge)
                         }

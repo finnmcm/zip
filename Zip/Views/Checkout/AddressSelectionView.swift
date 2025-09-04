@@ -3,8 +3,8 @@ import MapKit
 
 // Move delivery location outside the struct to avoid capturing self
 private let deliveryLocation = CLLocationCoordinate2D(
-    latitude: 34.06182,  // Your restaurant's coordinates
-    longitude: -118.44418
+    latitude: 42.05995,  // Your restaurant's coordinates
+    longitude: 87.67616
 )
 
 struct AddressSelectionView: View {

@@ -55,11 +55,13 @@ struct ProfileView: View {
                     
                     // Profile Options
                     VStack(spacing: AppMetrics.spacing) {                       
-                        ProfileOptionRow(
-                            icon: "location",
-                            title: "Delivery Addresses",
-                            subtitle: "Manage your delivery locations"
-                        ) 
+                        NavigationLink(destination: StoreHoursView()) {
+                            ProfileOptionRow(
+                                icon: "calendar",
+                                title: "Store Hours",
+                                subtitle: "Check when we're accepting orders"
+                            )
+                        }
                         
                         ProfileOptionRow(
                             icon: "creditcard",

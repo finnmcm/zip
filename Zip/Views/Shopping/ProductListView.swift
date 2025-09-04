@@ -45,6 +45,9 @@ struct ProductListView: View {
             AppColors.background.ignoresSafeArea()
             
             VStack(spacing: 0) {
+                // Store closed banner
+                StoreClosedBanner()
+                
                 // Search Bar
                 HStack {
                     Image(systemName: "magnifyingglass")

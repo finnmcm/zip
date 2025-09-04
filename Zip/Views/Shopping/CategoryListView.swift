@@ -33,6 +33,9 @@ struct CategoryListView: View {
                         )
                     }
                     
+                    // Store closed banner
+                    StoreClosedBanner()
+                    
                     ScrollView {
                         VStack(spacing: 0) {
                             // Header

@@ -17,6 +17,7 @@ enum AppColors {
     static let error = Color.red
     static let success = Color.green
     static let info = Color.blue
+    static let warning = Color.orange
 }
 
 enum AppMetrics {
@@ -26,6 +27,8 @@ enum AppMetrics {
     static let spacingSmall: CGFloat = 8
     static let spacing: CGFloat = 12
     static let spacingLarge: CGFloat = 20
+    static let productCardImageHeight: CGFloat = 140
+    static let featureCardImageHeight: CGFloat = 120
 }
 
 enum AppImages {
