@@ -7,6 +7,27 @@ import SwiftUI
 
 struct StoreClosedBanner: View {
     @State private var isVisible = false
+    let currentUser: User?
+    
+    init(currentUser: User? = nil) {
+        self.currentUser = currentUser
+    }
+    
+    private var bannerTitle: String {
+        if currentUser?.role == .admin {
+            return "Store Closed (Admin Override Available)"
+        } else {
+            return "Store Closed"
+        }
+    }
+    
+    private var bannerMessage: String {
+        if currentUser?.role == .admin {
+            return "You can still place orders as an admin"
+        } else {
+            return nextOpeningMessage
+        }
+    }
     
     private var nextOpeningMessage: String {
         let storeManager = StoreHoursManager.shared
@@ -32,17 +53,17 @@ struct StoreClosedBanner: View {
     var body: some View {
         if !StoreHoursManager.shared.isStoreOpen {
             HStack(spacing: AppMetrics.spacing) {
-                Image(systemName: "clock.fill")
+                Image(systemName: currentUser?.role == .admin ? "person.crop.circle.fill" : "clock.fill")
                     .foregroundColor(.white)
                     .font(.title2)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Store Closed")
+                    Text(bannerTitle)
                         .font(.body)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
                     
-                    Text(nextOpeningMessage)
+                    Text(bannerMessage)
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.9))
                 }

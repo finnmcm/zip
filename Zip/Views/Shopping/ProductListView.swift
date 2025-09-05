@@ -10,14 +10,16 @@ struct ProductListView: View {
     @ObserveInjection var inject
     @ObservedObject var shoppingViewModel: ShoppingViewModel
     let cartViewModel: CartViewModel
+    let authViewModel: AuthViewModel
     @State private var selectedProduct: Product?
     @State private var searchText = ""
     private let category: ProductCategory?
 
-    init(category: ProductCategory? = nil, cartViewModel: CartViewModel, shoppingViewModel: ShoppingViewModel) {
+    init(category: ProductCategory? = nil, cartViewModel: CartViewModel, shoppingViewModel: ShoppingViewModel, authViewModel: AuthViewModel) {
         self.category = category
         self.cartViewModel = cartViewModel
         self.shoppingViewModel = shoppingViewModel
+        self.authViewModel = authViewModel
     }
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
@@ -46,7 +48,7 @@ struct ProductListView: View {
             
             VStack(spacing: 0) {
                 // Store closed banner
-                StoreClosedBanner()
+                StoreClosedBanner(currentUser: authViewModel.currentUser)
                 
                 // Search Bar
                 HStack {
@@ -117,7 +119,7 @@ struct ProductListView: View {
         }
         .navigationTitle(category?.displayName ?? "Shop")
         .sheet(item: $selectedProduct) { product in
-            ProductDetailView(product: product, cartViewModel: cartViewModel) {
+            ProductDetailView(product: product, cartViewModel: cartViewModel, authViewModel: authViewModel) {
                 cartViewModel.add(product: product)
                 selectedProduct = nil
             }

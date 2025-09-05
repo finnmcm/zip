@@ -10,6 +10,9 @@ class StoreHoursManager {
     
     private init() {}
     
+    // Reference to current user for admin checks
+    private weak var currentUser: User?
+    
     // Store hours for Northwestern University delivery service
     private let storeHours: [StoreHour] = [
         StoreHour(day: "Monday", openTime: "1:00 PM", closeTime: "12:00 AM"),
@@ -47,6 +50,21 @@ class StoreHoursManager {
         } else {
             return currentMinutes >= openTime && currentMinutes < closeTime
         }
+    }
+    
+    /// Sets the current user for admin role checking
+    func setCurrentUser(_ user: User?) {
+        currentUser = user
+    }
+    
+    /// Checks if the current user can place orders (either store is open OR user is admin)
+    var canPlaceOrders: Bool {
+        return isStoreOpen || isCurrentUserAdmin
+    }
+    
+    /// Checks if the current user is an admin
+    var isCurrentUserAdmin: Bool {
+        return currentUser?.role == .admin
     }
     
     var nextOpeningMessage: String {

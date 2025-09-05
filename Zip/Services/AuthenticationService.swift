@@ -7,7 +7,7 @@ import Foundation
 import Supabase
 
 protocol AuthenticationServiceProtocol {
-    func signUp(email: String, password: String, firstName: String, lastName: String, phoneNumber: String) async throws -> User
+    func signUp(email: String, password: String, firstName: String, lastName: String, phoneNumber: String, role: UserRole) async throws -> User
     func signIn(email: String, password: String) async throws -> User
     func signOut() async throws
     func getCurrentUser() async throws -> User?
@@ -52,7 +52,7 @@ final class AuthenticationService: AuthenticationServiceProtocol {
     }
     
     // MARK: - Authentication Methods
-    func signUp(email: String, password: String, firstName: String, lastName: String, phoneNumber: String) async throws -> User {
+    func signUp(email: String, password: String, firstName: String, lastName: String, phoneNumber: String, role: UserRole = .customer) async throws -> User {
         guard let supabase = supabase else {
             throw AuthError.clientNotConfigured
         }
@@ -63,7 +63,7 @@ final class AuthenticationService: AuthenticationServiceProtocol {
             print(">>> Current UID:", userId)
 
         
-        let newUser: User = User(id: userId, email: email, firstName: firstName, lastName: lastName, phoneNumber: phoneNumber, storeCredit: 0.0)
+        let newUser: User = User(id: userId, email: email, firstName: firstName, lastName: lastName, phoneNumber: phoneNumber, storeCredit: 0.0, role: role)
         print(newUser)
             _ = try await supabase
                 .from("users")

@@ -74,16 +74,13 @@ struct ProfileView: View {
                             title: "Help & Support",
                             subtitle: "Get help with your orders"
                         )
-                        
-                        #if DEBUG
-                        NavigationLink(destination: OrderStatusBannerDemo()) {
+                        NavigationLink(destination: ReportBugView()) {
                             ProfileOptionRow(
-                                icon: "banner",
-                                title: "Order Banner Demo",
-                                subtitle: "Test order status banner"
+                                icon: "ladybug",
+                                title: "Report a Bug",
+                                subtitle: "Zip is still in development. Get paid to make it better"
                             )
                         }
-                        #endif 
                         
                     }
                     .padding(.horizontal, AppMetrics.spacingLarge)

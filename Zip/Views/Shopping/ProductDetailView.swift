@@ -10,6 +10,7 @@ struct ProductDetailView: View {
     @ObserveInjection var inject
     let product: Product
     let cartViewModel: CartViewModel
+    let authViewModel: AuthViewModel
     let addToCart: () -> Void
     @Environment(\.dismiss) private var dismiss
     
@@ -17,7 +18,7 @@ struct ProductDetailView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Store closed banner
-                StoreClosedBanner()
+                StoreClosedBanner(currentUser: authViewModel.currentUser)
                 
                 ScrollView {
                     VStack(alignment: .leading, spacing: AppMetrics.spacingLarge) {

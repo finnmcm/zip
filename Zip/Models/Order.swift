@@ -21,6 +21,7 @@ final class Order: Identifiable, Codable {
     var actualDeliveryTime: Date?
     var deliveryInstructions: String?
     var isCampusDelivery: Bool
+    var fulfilledBy: UUID?
     
     // Database metadata
     var updatedAt: Date
@@ -40,7 +41,7 @@ final class Order: Identifiable, Codable {
     // Relationships - will be handled manually since we're not using SwiftData
     var userOrders: [Order] = []
     
-    init(id: UUID = UUID(), user: User, items: [CartItem], status: OrderStatus = .pending, rawAmount: Decimal, tip: Decimal, totalAmount: Decimal, deliveryAddress: String, createdAt: Date = Date(), estimatedDeliveryTime: Date? = nil, actualDeliveryTime: Date? = nil, paymentIntentId: String? = nil, updatedAt: Date = Date(), deliveryInstructions: String? = nil, isCampusDelivery: Bool = false) {
+    init(id: UUID = UUID(), user: User, items: [CartItem], status: OrderStatus = .pending, rawAmount: Decimal, tip: Decimal, totalAmount: Decimal, deliveryAddress: String, createdAt: Date = Date(), estimatedDeliveryTime: Date? = nil, actualDeliveryTime: Date? = nil, paymentIntentId: String? = nil, updatedAt: Date = Date(), deliveryInstructions: String? = nil, isCampusDelivery: Bool = false, fulfilledBy: UUID? = nil) {
         self.id = id
         self.user = user
         self.items = items
@@ -56,6 +57,7 @@ final class Order: Identifiable, Codable {
         self.updatedAt = updatedAt
         self.deliveryInstructions = deliveryInstructions
         self.isCampusDelivery = isCampusDelivery
+        self.fulfilledBy = fulfilledBy
     }
     
     // MARK: - Codable Implementation
@@ -75,6 +77,7 @@ final class Order: Identifiable, Codable {
         case updatedAt = "updated_at"
         case deliveryInstructions = "delivery_instructions"
         case isCampusDelivery = "is_campus_delivery"
+        case fulfilledBy = "fulfilled_by"
     }
     
     required init(from decoder: Decoder) throws {
@@ -97,6 +100,7 @@ final class Order: Identifiable, Codable {
         // Initialize optional properties, decoding if present or using defaults
         deliveryInstructions = try container.decodeIfPresent(String.self, forKey: .deliveryInstructions)
         isCampusDelivery = try container.decodeIfPresent(Bool.self, forKey: .isCampusDelivery) ?? false
+        fulfilledBy = try container.decodeIfPresent(UUID.self, forKey: .fulfilledBy)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -117,6 +121,7 @@ final class Order: Identifiable, Codable {
         try container.encode(updatedAt, forKey: .updatedAt)
         try container.encodeIfPresent(deliveryInstructions, forKey: .deliveryInstructions)
         try container.encode(isCampusDelivery, forKey: .isCampusDelivery)
+        try container.encodeIfPresent(fulfilledBy, forKey: .fulfilledBy)
     }
 }
 

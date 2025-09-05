@@ -12,10 +12,18 @@ struct CategoryListView: View {
     let cartViewModel: CartViewModel
     let shoppingViewModel: ShoppingViewModel
     let orderStatusViewModel: OrderStatusViewModel
+    let authViewModel: AuthViewModel
     
     private let categories = ProductCategory.allCases
     
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    
+    init(cartViewModel: CartViewModel, shoppingViewModel: ShoppingViewModel, orderStatusViewModel: OrderStatusViewModel, authViewModel: AuthViewModel) {
+        self.cartViewModel = cartViewModel
+        self.shoppingViewModel = shoppingViewModel
+        self.orderStatusViewModel = orderStatusViewModel
+        self.authViewModel = authViewModel
+    }
     
     var body: some View {
         NavigationStack {
@@ -34,7 +42,7 @@ struct CategoryListView: View {
                     }
                     
                     // Store closed banner
-                    StoreClosedBanner()
+                    StoreClosedBanner(currentUser: authViewModel.currentUser)
                     
                     ScrollView {
                         VStack(spacing: 0) {
@@ -99,7 +107,7 @@ struct CategoryListView: View {
                                         ScrollView(.horizontal, showsIndicators: false) {
                                             HStack(spacing: AppMetrics.spacing) {
                                                 ForEach(searchResults) { product in
-                                                    FeatureProductCard(product: product, cartViewModel: cartViewModel)
+                                                    FeatureProductCard(product: product, cartViewModel: cartViewModel, authViewModel: authViewModel)
                                                         .frame(width: 160)
                                                 }
                                             }
@@ -166,7 +174,7 @@ struct CategoryListView: View {
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 } else {
                                     ForEach(categories, id: \.self) { category in
-                                            CategoryCard(category: category, productCount: shoppingViewModel.products.filter { $0.category == category }.count, cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel)
+                                            CategoryCard(category: category, productCount: shoppingViewModel.products.filter { $0.category == category }.count, cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel, authViewModel: authViewModel)
                                     }
                                 }
                             }
@@ -206,6 +214,7 @@ struct CategoryCard: View {
     let productCount: Int
     let cartViewModel: CartViewModel
     let shoppingViewModel: ShoppingViewModel
+    let authViewModel: AuthViewModel
     
     // Get featured products for this category (first 3-4 products)
     private var featuredProducts: [Product] {
@@ -215,7 +224,7 @@ struct CategoryCard: View {
     
     var body: some View {
         VStack(spacing: AppMetrics.spacing) {
-        NavigationLink(destination: ProductListView(category: category, cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel)) {
+        NavigationLink(destination: ProductListView(category: category, cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel, authViewModel: authViewModel)) {
             HStack{
                 Image(systemName: category.iconName)
                 .foregroundStyle(AppColors.northwesternPurple)
@@ -242,7 +251,7 @@ struct CategoryCard: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: AppMetrics.spacing) {
                             ForEach(featuredProducts) { product in
-                                FeatureProductCard(product: product, cartViewModel: cartViewModel)
+                                FeatureProductCard(product: product, cartViewModel: cartViewModel, authViewModel: authViewModel)
                                     .frame(width: 160)
                             }
                         }

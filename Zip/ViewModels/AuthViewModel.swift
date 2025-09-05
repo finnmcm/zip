@@ -252,6 +252,7 @@ final class AuthViewModel: ObservableObject {
                 lastName: currentUser.lastName,
                 phoneNumber: currentUser.phoneNumber,
                 storeCredit: currentUser.storeCredit,
+                role: currentUser.role,
                 createdAt: currentUser.createdAt,
                 updatedAt: currentUser.updatedAt
             )

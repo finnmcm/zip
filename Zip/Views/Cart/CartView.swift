@@ -21,6 +21,26 @@ struct CartView: View {
         self.authViewModel = authViewModel
         self.orderStatusViewModel = orderStatusViewModel
     }
+    
+    // MARK: - Computed Properties
+    
+    private var buttonText: String {
+        if StoreHoursManager.shared.isStoreOpen {
+            return "Proceed to Checkout"
+        } else if StoreHoursManager.shared.isCurrentUserAdmin {
+            return "Proceed to Checkout (Admin)"
+        } else {
+            return "Store Closed"
+        }
+    }
+    
+    private var buttonColor: Color {
+        if StoreHoursManager.shared.canPlaceOrders {
+            return AppColors.accent
+        } else {
+            return Color.gray
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -50,7 +70,7 @@ struct CartView: View {
                 } else {
                     VStack(spacing: 0) {
                         // Store closed banner
-                        StoreClosedBanner()
+                        StoreClosedBanner(currentUser: authViewModel.currentUser)
                         
                         // Cart Items
                         List {
@@ -111,17 +131,17 @@ struct CartView: View {
                             }) {
                                 HStack {
                                     Image(systemName: "creditcard")
-                                    Text(StoreHoursManager.shared.isStoreOpen ? "Proceed to Checkout" : "Store Closed")
+                                    Text(buttonText)
                                         .fontWeight(.semibold)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(StoreHoursManager.shared.isStoreOpen ? AppColors.accent : Color.gray)
+                                .background(buttonColor)
                                 .foregroundColor(.white)
                                 .cornerRadius(AppMetrics.cornerRadiusLarge)
                             }
                             .buttonStyle(.plain)
-                            .disabled(!StoreHoursManager.shared.isStoreOpen)
+                            .disabled(!StoreHoursManager.shared.canPlaceOrders)
                             .padding(.horizontal, AppMetrics.spacingLarge)
                             .padding(.bottom, AppMetrics.spacingLarge)
                         }
@@ -132,6 +152,8 @@ struct CartView: View {
             .navigationTitle("Cart")
             .onAppear {
                 print("🛒 CartView: View appeared with \(cartViewModel.items.count) items")
+                // Update StoreHoursManager with current user for admin checks
+                StoreHoursManager.shared.setCurrentUser(authViewModel.currentUser)
             }
             .onChange(of: cartViewModel.items.count) { oldCount, newCount in
                 print("🛒 CartView: Items count changed from \(oldCount) to \(newCount)")

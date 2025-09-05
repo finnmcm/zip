@@ -10,11 +10,13 @@ struct FeatureProductCard: View {
     @ObserveInjection var inject
     let product: Product
     let cartViewModel: CartViewModel
+    let authViewModel: AuthViewModel
     
     var body: some View {
         NavigationLink(destination: ProductDetailView(
             product: product,
             cartViewModel: cartViewModel,
+            authViewModel: authViewModel,
             addToCart: {
                 // This will be handled by the ProductDetailView
             }

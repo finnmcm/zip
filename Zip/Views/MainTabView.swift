@@ -67,7 +67,7 @@ struct MainTabView: View {
     
     var body: some View {
         TabView {
-            CategoryListView(cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel, orderStatusViewModel: orderStatusViewModel)
+            CategoryListView(cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel, orderStatusViewModel: orderStatusViewModel, authViewModel: authViewModel)
                 .tabItem { 
                     Image(systemName: "bag")
                 }
@@ -80,15 +80,28 @@ struct MainTabView: View {
                 .onAppear {
                     print("🛒 MainTabView: Cart tab appeared with \(cartViewModel.items.count) items")
                 }
+                if authViewModel.currentUser?.role == .zipper {
+                ZipperView()
+                    .tabItem { 
+                        Image(systemName: "scooter")
+                    }
+            }
             OrderHistoryView(authViewModel: authViewModel)
                 .tabItem { 
                     Image(systemName: "bag")
                 }
+
             
             ProfileView(authViewModel: authViewModel)
                 .tabItem { 
                     Image(systemName: "person")
                 }
+            if authViewModel.currentUser?.role == .admin {
+                AdminView()
+                    .tabItem { 
+                        Image(systemName: "shield.fill")
+                    }
+            }
         }
         .tint(AppColors.accent)
         .enableInjection()

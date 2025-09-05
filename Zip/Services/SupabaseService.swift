@@ -193,6 +193,7 @@ final class SupabaseService: SupabaseServiceProtocol {
         let is_campus_delivery: Bool
         let updated_at: String
         let payment_intent_id: String?
+        let fulfilled_by: String?
     }
     
     private struct OrderItemData: Codable {
@@ -238,7 +239,8 @@ final class SupabaseService: SupabaseServiceProtocol {
                 delivery_instructions: order.deliveryInstructions,
                 is_campus_delivery: order.isCampusDelivery,
                 updated_at: ISO8601DateFormatter().string(from: order.updatedAt),
-                payment_intent_id: order.paymentIntentId
+                payment_intent_id: order.paymentIntentId,
+                fulfilled_by: order.fulfilledBy?.uuidString
             )
             
             // Insert the order into the orders table
@@ -412,7 +414,8 @@ final class SupabaseService: SupabaseServiceProtocol {
                     paymentIntentId: orderData.payment_intent_id,
                     updatedAt: updatedAt,
                     deliveryInstructions: orderData.delivery_instructions,
-                    isCampusDelivery: orderData.is_campus_delivery
+                    isCampusDelivery: orderData.is_campus_delivery,
+                    fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil
                 )
                 
                 orders.append(order)
@@ -539,7 +542,8 @@ final class SupabaseService: SupabaseServiceProtocol {
                     paymentIntentId: orderData.payment_intent_id,
                     updatedAt: updatedAt,
                     deliveryInstructions: orderData.delivery_instructions,
-                    isCampusDelivery: orderData.is_campus_delivery
+                    isCampusDelivery: orderData.is_campus_delivery,
+                    fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil
                 )
             }
             return nil
