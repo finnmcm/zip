@@ -202,6 +202,19 @@ final class SupabaseService: SupabaseServiceProtocol {
         let fulfilled_by: String?
     }
     
+    // Minimal struct for completeOrder function
+    private struct OrderCompletionData: Codable {
+        let id: String
+        let fulfilled_by: String?
+        let total_amount: Double
+    }
+    
+    // Struct for zipper statistics update
+    private struct ZipperData: Codable {
+        let orders_handled: Int
+        let revenue: Double
+    }
+    
     private struct OrderItemData: Codable {
         let id: String
         let order_id: String
@@ -929,10 +942,10 @@ final class SupabaseService: SupabaseServiceProtocol {
             .select() // Add select to get the updated row back
             .execute()
             
-            print("🔍 Update response count: \(response.count)")
+            print("🔍 Update response count: \(response.count ?? 0)")
             
             // Check if any rows were affected
-            if response.count == nil {
+            if response.count == nil || response.count == 0 {
                 print("❌ No order found with ID \(orderIdString) in queue status")
                 return false
             }
@@ -953,28 +966,39 @@ final class SupabaseService: SupabaseServiceProtocol {
         
         do {
             // First, fetch the order details to get zipper ID and total amount
-            let orderResponse = try await supabase
+            print("🔍 Fetching order details for ID: \(orderId.uuidString.lowercased())")
+            let orderResponse: [OrderCompletionData] = try await supabase
                 .from("orders")
-                .select("fulfilled_by, total_amount")
+                .select("id, fulfilled_by, total_amount")
                 .eq("id", value: orderId.uuidString.lowercased())
                 .eq("status", value: "in_progress")
                 .execute()
+                .value
             
-            guard let orderData = orderResponse.data.first,
-                  let orderDict = orderData as? [String: Any] else {
+            print("🔍 Found \(orderResponse.count) orders matching criteria")
+            
+            guard let orderData = orderResponse.first else {
                 print("❌ No order found with ID \(orderId) in progress status")
+                print("🔍 This could mean:")
+                print("   - Order ID doesn't exist")
+                print("   - Order status is not 'in_progress'")
+                print("   - Order was already completed")
                 return false
             }
+            
+            print("🔍 Found order: ID=\(orderData.id), fulfilled_by=\(orderData.fulfilled_by ?? "nil"), total_amount=\(orderData.total_amount)")
             
             // Extract zipper ID and total amount
-            guard let zipperIdString = orderDict["fulfilled_by"] as? String,
-                  let zipperId = UUID(uuidString: zipperIdString),
-                  let totalAmount = orderDict["total_amount"] as? NSNumber else {
-                print("❌ Missing required order data (fulfilled_by or total_amount)")
+            guard let zipperIdString = orderData.fulfilled_by,
+                  let zipperId = UUID(uuidString: zipperIdString) else {
+                print("❌ Missing required order data (fulfilled_by)")
                 return false
             }
             
+            let totalAmount = orderData.total_amount
+            
             // Update the order status to delivered
+            print("🔍 Updating order \(orderId.uuidString.lowercased()) from in_progress to delivered")
             let orderUpdateResponse = try await supabase
                 .from("orders")
                 .update([
@@ -983,30 +1007,52 @@ final class SupabaseService: SupabaseServiceProtocol {
                 ])
                 .eq("id", value: orderId.uuidString.lowercased())
                 .eq("status", value: "in_progress")
+                .select() // Add select to get the updated row back
                 .execute()
+            
+            print("🔍 Order update response: \(orderUpdateResponse)")
+            print("🔍 Order update response count: \(orderUpdateResponse.count ?? 0)")
             
             // Check if order update was successful
-            if orderUpdateResponse.count == 0 {
-                print("❌ Failed to update order status")
-                return false
-            }
+            // If no exception was thrown, the update was successful
+            print("✅ Successfully updated order status to delivered")
             
             // Update zipper statistics
-            let zipperUpdateResponse = try await supabase
-                .from("zippers")
-                .update([
-                    "orders_handled": "orders_handled + 1",
-                    "revenue": "revenue + \(totalAmount.decimalValue)"
-                ])
-                .eq("id", value: zipperId.uuidString.lowercased())
-                .execute()
-            
-            // Check if zipper update was successful
-            if zipperUpdateResponse.count == 0 {
-                print("⚠️ Order completed but failed to update zipper statistics for zipper \(zipperId)")
+            print("🔍 Updating zipper statistics for zipper \(zipperId)")
+            do {
+                // First, fetch current zipper data to get current values
+                let zipperResponse: [ZipperData] = try await supabase
+                    .from("zippers")
+                    .select("orders_handled, revenue")
+                    .eq("id", value: zipperId.uuidString.lowercased())
+                    .execute()
+                    .value
+                
+                if let zipperData = zipperResponse.first {
+                    let newOrdersHandled = zipperData.orders_handled + 1
+                    let newRevenue = zipperData.revenue + totalAmount
+                    
+                    print("🔍 Current: orders_handled=\(zipperData.orders_handled), revenue=\(zipperData.revenue)")
+                    print("🔍 New: orders_handled=\(newOrdersHandled), revenue=\(newRevenue)")
+                    
+                    let zipperUpdateResponse = try await supabase
+                        .from("zippers")
+                        .update([
+                            "orders_handled": Double(newOrdersHandled),
+                            "revenue": newRevenue
+                        ])
+                        .eq("id", value: zipperId.uuidString.lowercased())
+                        .select()
+                        .execute()
+                    
+                    print("🔍 Zipper update response: \(zipperUpdateResponse)")
+                    print("✅ Successfully updated zipper statistics for zipper \(zipperId)")
+                } else {
+                    print("⚠️ Zipper not found, skipping statistics update")
+                }
+            } catch {
+                print("⚠️ Failed to update zipper statistics: \(error)")
                 // Don't fail the entire operation if zipper stats update fails
-            } else {
-                print("✅ Successfully updated zipper statistics for zipper \(zipperId)")
             }
             
             print("✅ Successfully completed order \(orderId)")
