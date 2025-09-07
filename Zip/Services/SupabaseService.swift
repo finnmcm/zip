@@ -952,21 +952,61 @@ final class SupabaseService: SupabaseServiceProtocol {
         }
         
         do {
+            // First, fetch the order details to get zipper ID and total amount
+            let orderResponse = try await supabase
+                .from("orders")
+                .select("fulfilled_by, total_amount")
+                .eq("id", value: orderId.uuidString.lowercased())
+                .eq("status", value: "in_progress")
+                .execute()
+            
+            guard let orderData = orderResponse.data.first,
+                  let orderDict = orderData as? [String: Any] else {
+                print("❌ No order found with ID \(orderId) in progress status")
+                return false
+            }
+            
+            // Extract zipper ID and total amount
+            guard let zipperIdString = orderDict["fulfilled_by"] as? String,
+                  let zipperId = UUID(uuidString: zipperIdString),
+                  let totalAmount = orderDict["total_amount"] as? NSNumber else {
+                print("❌ Missing required order data (fulfilled_by or total_amount)")
+                return false
+            }
+            
             // Update the order status to delivered
-            let response = try await supabase
+            let orderUpdateResponse = try await supabase
                 .from("orders")
                 .update([
                     "status": "delivered",
                     "updated_at": ISO8601DateFormatter().string(from: Date())
                 ])
                 .eq("id", value: orderId.uuidString.lowercased())
-                .eq("status", value: "in_progress") // Only complete orders that are in progress
+                .eq("status", value: "in_progress")
                 .execute()
             
-            // Check if any rows were affected
-            if response.count == 0 {
-                print("❌ No order found with ID \(orderId) in progress status")
+            // Check if order update was successful
+            if orderUpdateResponse.count == 0 {
+                print("❌ Failed to update order status")
                 return false
+            }
+            
+            // Update zipper statistics
+            let zipperUpdateResponse = try await supabase
+                .from("zippers")
+                .update([
+                    "orders_handled": "orders_handled + 1",
+                    "revenue": "revenue + \(totalAmount.decimalValue)"
+                ])
+                .eq("id", value: zipperId.uuidString.lowercased())
+                .execute()
+            
+            // Check if zipper update was successful
+            if zipperUpdateResponse.count == 0 {
+                print("⚠️ Order completed but failed to update zipper statistics for zipper \(zipperId)")
+                // Don't fail the entire operation if zipper stats update fails
+            } else {
+                print("✅ Successfully updated zipper statistics for zipper \(zipperId)")
             }
             
             print("✅ Successfully completed order \(orderId)")
