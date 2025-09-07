@@ -80,8 +80,8 @@ struct MainTabView: View {
                 .onAppear {
                     print("🛒 MainTabView: Cart tab appeared with \(cartViewModel.items.count) items")
                 }
-                if authViewModel.currentUser?.role == .zipper {
-                ZipperView()
+                if authViewModel.currentUser?.role == .zipper || authViewModel.currentUser?.role == .admin {
+                ZipperView(authViewModel: authViewModel)
                     .tabItem { 
                         Image(systemName: "scooter")
                     }
@@ -97,7 +97,7 @@ struct MainTabView: View {
                     Image(systemName: "person")
                 }
             if authViewModel.currentUser?.role == .admin {
-                AdminView()
+                AdminView(authViewModel: authViewModel)
                     .tabItem { 
                         Image(systemName: "shield.fill")
                     }

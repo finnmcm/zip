@@ -23,6 +23,12 @@ protocol SupabaseServiceProtocol {
     func fetchUser(userId: String) async throws -> User?
     func updateUserStoreCredit(userId: String, newStoreCredit: Decimal) async throws -> User?
     func updateOrderStatusAndInventory(orderId: UUID) async throws -> Bool
+    
+    // MARK: - Zipper Operations
+    func fetchPendingOrders() async throws -> [Order]
+    func fetchActiveOrderForZipper(zipperId: String) async throws -> Order?
+    func acceptOrder(orderId: UUID, zipperId: String) async throws -> Bool
+    func completeOrder(orderId: UUID) async throws -> Bool
 }
 
 final class SupabaseService: SupabaseServiceProtocol {
@@ -441,7 +447,7 @@ final class SupabaseService: SupabaseServiceProtocol {
             let orderData: OrderData? = try await supabase
                 .from("orders")
                 .select()
-                .eq("id", value: orderId.uuidString)
+                .eq("id", value: orderId.uuidString.lowercased())
                 .single()
                 .execute()
                 .value
@@ -613,10 +619,10 @@ final class SupabaseService: SupabaseServiceProtocol {
             // Call the Supabase database function using rpc
             // This function doesn't return a value, so we just execute it
             print("🔍 Calling RPC function update_order_status_and_inventory_by_order_id...")
-            print("🔍 Parameters: p_new_status=in_queue, p_order_id=\(orderId.uuidString), p_payment_intent_id=''")
+            print("🔍 Parameters: p_new_status=in_queue, p_order_id=\(orderId.uuidString.lowercased()), p_payment_intent_id=''")
             
             _ = try await supabase
-                .rpc("update_order_status_and_inventory_by_order_id", params: ["p_new_status": "in_queue", "p_order_id": orderId.uuidString, "p_payment_intent_id": ""])
+                .rpc("update_order_status_and_inventory_by_order_id", params: ["p_new_status": "in_queue", "p_order_id": orderId.uuidString.lowercased(), "p_payment_intent_id": ""])
                 .execute()
             
             print("✅ Successfully called update_order_status_and_inventory_by_order_id for order: \(orderId)")
@@ -648,6 +654,328 @@ final class SupabaseService: SupabaseServiceProtocol {
     func clearUserCart(userId: String) async throws -> Bool {
         // TODO: Implement when Supabase is configured
         throw SupabaseError.notImplemented
+    }
+    
+    // MARK: - Zipper Operations
+    
+    func fetchPendingOrders() async throws -> [Order] {
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            // Fetch orders with status 'in_queue' (pending for zippers)
+            let ordersResponse: [OrderData] = try await supabase
+                .from("orders")
+                .select()
+                .eq("status", value: "in_queue")
+                .order("created_at", ascending: true)
+                .execute()
+                .value
+            
+            var orders: [Order] = []
+            
+            // Process each order and fetch its items
+            for orderData in ordersResponse {
+                print("🔍 Processing order from database: \(orderData.id) with status: \(orderData.status)")
+                
+                // Fetch order items for this order
+                let orderItemsResponse: [OrderItemData] = try await supabase
+                    .from("order_items")
+                    .select()
+                    .eq("order_id", value: orderData.id)
+                    .execute()
+                    .value
+                
+                // Convert order items to CartItems
+                var cartItems: [CartItem] = []
+                for itemData in orderItemsResponse {
+                    // Fetch the product for this item
+                    let productResponse: [ProductData] = try await supabase
+                        .from("products")
+                        .select()
+                        .eq("id", value: itemData.product_id)
+                        .execute()
+                        .value
+                    
+                    if let productData = productResponse.first {
+                        // Parse product category
+                        guard let category = ProductCategory(rawValue: productData.category) else {
+                            print("⚠️ Unknown product category: \(productData.category)")
+                            continue
+                        }
+                        
+                        // Parse dates
+                        let dateFormatter = ISO8601DateFormatter()
+                        let productCreatedAt = dateFormatter.date(from: productData.created_at) ?? Date()
+                        let productUpdatedAt = dateFormatter.date(from: productData.updated_at) ?? Date()
+                        
+                        // Create Product object
+                        let product = Product(
+                            id: UUID(uuidString: productData.id) ?? UUID(),
+                            inventoryName: productData.inventoryName,
+                            displayName: productData.displayName,
+                            price: Decimal(productData.price),
+                            quantity: productData.quantity,
+                            imageURL: productData.imageURL,
+                            images: [],
+                            category: category,
+                            createdAt: productCreatedAt,
+                            updatedAt: productUpdatedAt
+                        )
+                        
+                        // Create CartItem
+                        let cartItem = CartItem(
+                            product: product,
+                            quantity: itemData.quantity,
+                            userId: UUID(uuidString: orderData.user_id) ?? UUID()
+                        )
+                        cartItems.append(cartItem)
+                    }
+                }
+                
+                // Parse dates
+                let dateFormatter = ISO8601DateFormatter()
+                let createdAt = dateFormatter.date(from: orderData.created_at) ?? Date()
+                let updatedAt = dateFormatter.date(from: orderData.updated_at) ?? Date()
+                
+                // Create User object
+                let user = User(
+                    id: orderData.user_id,
+                    email: "",
+                    firstName: "",
+                    lastName: "",
+                    phoneNumber: "",
+                    storeCredit: 0.0,
+                    createdAt: createdAt,
+                    updatedAt: updatedAt
+                )
+                
+                // Create Order object
+                let order = Order(
+                    id: UUID(uuidString: orderData.id) ?? UUID(),
+                    user: user,
+                    items: cartItems,
+                    status: .inQueue,
+                    rawAmount: Decimal(orderData.raw_amount),
+                    tip: Decimal(orderData.tip),
+                    totalAmount: Decimal(orderData.total_amount),
+                    deliveryAddress: orderData.delivery_address,
+                    createdAt: createdAt,
+                    estimatedDeliveryTime: nil,
+                    actualDeliveryTime: nil,
+                    paymentIntentId: orderData.payment_intent_id,
+                    updatedAt: updatedAt,
+                    deliveryInstructions: orderData.delivery_instructions,
+                    isCampusDelivery: orderData.is_campus_delivery,
+                    fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil
+                )
+                
+                print("🔍 Created Order object with ID: \(order.id.uuidString) (original DB ID: \(orderData.id))")
+                orders.append(order)
+            }
+            
+            print("✅ Successfully fetched \(orders.count) pending orders")
+            return orders
+            
+        } catch {
+            print("❌ Error fetching pending orders from Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    func fetchActiveOrderForZipper(zipperId: String) async throws -> Order? {
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            // Fetch orders where fulfilled_by matches zipperId and status is 'in_progress'
+            let ordersResponse: [OrderData] = try await supabase
+                .from("orders")
+                .select()
+                .eq("fulfilled_by", value: zipperId)
+                .eq("status", value: "in_progress")
+                .order("created_at", ascending: false)
+                .limit(1)
+                .execute()
+                .value
+            
+            guard let orderData = ordersResponse.first else {
+                return nil
+            }
+            
+            // Fetch order items for this order
+            let orderItemsResponse: [OrderItemData] = try await supabase
+                .from("order_items")
+                .select()
+                .eq("order_id", value: orderData.id)
+                .execute()
+                .value
+            
+            // Convert order items to CartItems
+            var cartItems: [CartItem] = []
+            for itemData in orderItemsResponse {
+                // Fetch the product for this item
+                let productResponse: [ProductData] = try await supabase
+                    .from("products")
+                    .select()
+                    .eq("id", value: itemData.product_id)
+                    .execute()
+                    .value
+                
+                if let productData = productResponse.first {
+                    // Parse product category
+                    guard let category = ProductCategory(rawValue: productData.category) else {
+                        print("⚠️ Unknown product category: \(productData.category)")
+                        continue
+                    }
+                    
+                    // Parse dates
+                    let dateFormatter = ISO8601DateFormatter()
+                    let productCreatedAt = dateFormatter.date(from: productData.created_at) ?? Date()
+                    let productUpdatedAt = dateFormatter.date(from: productData.updated_at) ?? Date()
+                    
+                    // Create Product object
+                    let product = Product(
+                        id: UUID(uuidString: productData.id) ?? UUID(),
+                        inventoryName: productData.inventoryName,
+                        displayName: productData.displayName,
+                        price: Decimal(productData.price),
+                        quantity: productData.quantity,
+                        imageURL: productData.imageURL,
+                        images: [],
+                        category: category,
+                        createdAt: productCreatedAt,
+                        updatedAt: productUpdatedAt
+                    )
+                    
+                    // Create CartItem
+                    let cartItem = CartItem(
+                        product: product,
+                        quantity: itemData.quantity,
+                        userId: UUID(uuidString: orderData.user_id) ?? UUID()
+                    )
+                    cartItems.append(cartItem)
+                }
+            }
+            
+            // Parse dates
+            let dateFormatter = ISO8601DateFormatter()
+            let createdAt = dateFormatter.date(from: orderData.created_at) ?? Date()
+            let updatedAt = dateFormatter.date(from: orderData.updated_at) ?? Date()
+            
+            // Create User object
+            let user = User(
+                id: orderData.user_id,
+                email: "",
+                firstName: "",
+                lastName: "",
+                phoneNumber: "",
+                storeCredit: 0.0,
+                createdAt: createdAt,
+                updatedAt: updatedAt
+            )
+            
+            // Create Order object
+            let order = Order(
+                id: UUID(uuidString: orderData.id) ?? UUID(),
+                user: user,
+                items: cartItems,
+                status: .inProgress,
+                rawAmount: Decimal(orderData.raw_amount),
+                tip: Decimal(orderData.tip),
+                totalAmount: Decimal(orderData.total_amount),
+                deliveryAddress: orderData.delivery_address,
+                createdAt: createdAt,
+                estimatedDeliveryTime: nil,
+                actualDeliveryTime: nil,
+                paymentIntentId: orderData.payment_intent_id,
+                updatedAt: updatedAt,
+                deliveryInstructions: orderData.delivery_instructions,
+                isCampusDelivery: orderData.is_campus_delivery,
+                fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil
+            )
+            
+            print("✅ Successfully fetched active order for zipper: \(zipperId)")
+            return order
+            
+        } catch {
+            print("❌ Error fetching active order for zipper from Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    func acceptOrder(orderId: UUID, zipperId: String) async throws -> Bool {
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            let orderIdString = orderId.uuidString.lowercased()
+            print("🔍 Attempting to accept order with ID: \(orderIdString)")
+            print("🔍 Zipper ID: \(zipperId)")
+            
+            // Update the order to assign it to the zipper and change status to in_progress
+            let response = try await supabase
+            .from("orders")
+            .update([
+                "fulfilled_by": zipperId,
+                "status": "in_progress",
+                "updated_at": ISO8601DateFormatter().string(from: Date())
+            ])
+            .eq("id", value: orderIdString)
+            .eq("status", value: "in_queue") // Double-check status hasn't changed
+            .select() // Add select to get the updated row back
+            .execute()
+            
+            print("🔍 Update response count: \(response.count)")
+            
+            // Check if any rows were affected
+            if response.count == nil {
+                print("❌ No order found with ID \(orderIdString) in queue status")
+                return false
+            }
+            
+            print("✅ Successfully accepted order \(orderIdString) for zipper \(zipperId)")
+            return true
+            
+        } catch {
+            print("❌ Error accepting order in Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    func completeOrder(orderId: UUID) async throws -> Bool {
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            // Update the order status to delivered
+            let response = try await supabase
+                .from("orders")
+                .update([
+                    "status": "delivered",
+                    "updated_at": ISO8601DateFormatter().string(from: Date())
+                ])
+                .eq("id", value: orderId.uuidString.lowercased())
+                .eq("status", value: "in_progress") // Only complete orders that are in progress
+                .execute()
+            
+            // Check if any rows were affected
+            if response.count == 0 {
+                print("❌ No order found with ID \(orderId) in progress status")
+                return false
+            }
+            
+            print("✅ Successfully completed order \(orderId)")
+            return true
+            
+        } catch {
+            print("❌ Error completing order in Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
     }
 }
 
