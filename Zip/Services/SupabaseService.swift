@@ -6,6 +6,19 @@
 import Foundation
 import Supabase
 
+// MARK: - Zipper Statistics Result
+struct ZipperStatsResult: Codable {
+    let zippers: [ZipperStats]
+    let totalRevenue: Double
+    
+    struct ZipperStats: Codable {
+        let id: String
+        let user: User
+        let ordersHandled: Int
+        let revenue: Double
+    }
+}
+
 
 
 protocol SupabaseServiceProtocol {
@@ -29,10 +42,15 @@ protocol SupabaseServiceProtocol {
     func fetchActiveOrderForZipper(zipperId: String) async throws -> Order?
     func acceptOrder(orderId: UUID, zipperId: String) async throws -> Bool
     func completeOrder(orderId: UUID) async throws -> Bool
+    
+    // MARK: - Statistics Operations
+    func fetchNumUsers() async throws -> Int
+    func fetchZipperStats() async throws -> ZipperStatsResult
 }
 
 final class SupabaseService: SupabaseServiceProtocol {
     // MARK: - Properties
+    static let shared = SupabaseService()
     private var supabase: SupabaseClient?
     private let configuration = Configuration.shared
     
@@ -211,6 +229,7 @@ final class SupabaseService: SupabaseServiceProtocol {
     
     // Struct for zipper statistics update
     private struct ZipperData: Codable {
+        let id: String
         let orders_handled: Int
         let revenue: Double
     }
@@ -610,6 +629,81 @@ final class SupabaseService: SupabaseServiceProtocol {
             return response.first
         } catch {
             print("❌ Error updating user store credit in Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    func fetchNumUsers() async throws -> Int {
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            // Use count() to get the total number of users
+            let response = try await supabase
+                .from("users")
+                .select("id", head: true, count: .exact)
+                .execute()
+            
+            let count = response.count ?? 0
+            print("✅ Successfully fetched user count: \(count)")
+            return count
+        } catch {
+            print("❌ Error fetching user count from Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    func fetchZipperStats() async throws -> ZipperStatsResult {
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            // First, fetch all zippers
+            let zippersResponse: [ZipperData] = try await supabase
+                .from("zippers")
+                .select("id, orders_handled, revenue")
+                .execute()
+                .value
+            
+            var zipperStats: [ZipperStatsResult.ZipperStats] = []
+            var totalRevenue: Double = 0.0
+            
+            // For each zipper, fetch their user information
+            for zipperData in zippersResponse {
+                // Fetch user information for this zipper
+                let userResponse: [User] = try await supabase
+                    .from("users")
+                    .select()
+                    .eq("id", value: zipperData.id)
+                    .execute()
+                    .value
+                
+                if let user = userResponse.first {
+                    // Create ZipperStats object
+                    let zipperStat = ZipperStatsResult.ZipperStats(
+                        id: zipperData.id,
+                        user: user,
+                        ordersHandled: zipperData.orders_handled,
+                        revenue: zipperData.revenue
+                    )
+                    
+                    zipperStats.append(zipperStat)
+                    totalRevenue += zipperData.revenue
+                }
+            }
+            
+            let result = ZipperStatsResult(
+                zippers: zipperStats,
+                totalRevenue: totalRevenue
+            )
+            
+            print("✅ Successfully fetched zipper stats: \(zipperStats.count) zippers, total revenue: $\(String(format: "%.2f", totalRevenue))")
+            return result
+            
+        } catch {
+            print("❌ Error fetching zipper stats from Supabase: \(error)")
             throw SupabaseError.networkError(error)
         }
     }
