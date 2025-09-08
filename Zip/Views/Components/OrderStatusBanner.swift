@@ -29,7 +29,7 @@ struct OrderStatusBanner: View {
         case .inQueue:
             return "clock.fill"
         case .inProgress:
-            return "bicycle"
+            return "scooter"
         default:
             return "clock.fill"
         }

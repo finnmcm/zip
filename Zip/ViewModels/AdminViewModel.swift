@@ -12,6 +12,7 @@ final class AdminViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var numUsers = 0
     @Published var zipperStats: ZipperStatsResult?
+    @Published var lowStockItems: [Product] = []
     @Published var errorMessage: String?
     
     // MARK: - Dependencies
@@ -28,18 +29,20 @@ final class AdminViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            // Fetch both user count and zipper stats concurrently
+            // Fetch user count, zipper stats, and low stock items concurrently
             async let userCountTask = supabaseService.fetchNumUsers()
             async let zipperStatsTask = supabaseService.fetchZipperStats()
+            async let lowStockTask = supabaseService.fetchLowStockItems()
             
-            // Wait for both tasks to complete
-            let (userCount, stats) = try await (userCountTask, zipperStatsTask)
+            // Wait for all tasks to complete
+            let (userCount, stats, lowStock) = try await (userCountTask, zipperStatsTask, lowStockTask)
             
             // Update UI on main thread
             self.numUsers = userCount
             self.zipperStats = stats
+            self.lowStockItems = lowStock
             
-            print("✅ Successfully loaded admin data: \(userCount) users, \(stats.zippers.count) zippers")
+            print("✅ Successfully loaded admin data: \(userCount) users, \(stats.zippers.count) zippers, \(lowStock.count) low stock items")
             
         } catch {
             print("❌ Error loading admin data: \(error)")
@@ -64,5 +67,9 @@ final class AdminViewModel: ObservableObject {
     
     var formattedTotalRevenue: String {
         return String(format: "$%.2f", totalRevenue)
+    }
+    
+    var lowStockCount: Int {
+        return lowStockItems.count
     }
 }

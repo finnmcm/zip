@@ -59,6 +59,7 @@ struct AdminView: View {
                     // Quick Stats Cards
                     LazyVGrid(columns: [
                         GridItem(.flexible()),
+                        GridItem(.flexible()),
                         GridItem(.flexible())
                     ], spacing: 16) {
                         StatCard(
@@ -78,8 +79,15 @@ struct AdminView: View {
                         StatCard(
                             title: "Active Zippers",
                             value: "\(adminViewModel.activeZippers)",
-                            icon: "bicycle",
+                            icon: "scooter",
                             color: .orange
+                        )
+                        
+                        StatCard(
+                            title: "Low Stock",
+                            value: "\(adminViewModel.lowStockCount)",
+                            icon: "exclamationmark.triangle.fill",
+                            color: adminViewModel.lowStockCount > 0 ? .red : .green
                         )
                         
                         StatCard(
@@ -142,10 +150,25 @@ struct AdminView: View {
                         .tag(0)
                         
                         // Low-Stock Items Tab
-                        VStack(spacing: 8) {
-                            Text("Low-Stock Items content will go here")
-                                .foregroundColor(.secondary)
-                                .padding()
+                        ScrollView {
+                            VStack(spacing: 8) {
+                                if adminViewModel.lowStockItems.isEmpty {
+                                    VStack(spacing: 12) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.largeTitle)
+                                            .foregroundColor(.green)
+                                        Text("All items in stock!")
+                                            .font(.headline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding()
+                                } else {
+                                    ForEach(adminViewModel.lowStockItems) { product in
+                                        LowStockItemRow(product: product)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
                         }
                         .tag(1)
                         
@@ -256,5 +279,73 @@ struct TabButton: View {
                 )
         }
         .buttonStyle(PlainButtonStyle())
+    }
+}
+
+// Low Stock Item Row Component
+struct LowStockItemRow: View {
+    let product: Product
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Product Image
+            AsyncImage(url: URL(string: product.imageURL ?? "")) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(.systemGray5))
+                    .overlay(
+                        Image(systemName: "photo")
+                            .foregroundColor(.secondary)
+                    )
+            }
+            .frame(width: 50, height: 50)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            
+            // Product Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(product.displayName)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                
+                Text(product.category.rawValue.capitalized)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            // Quantity Info
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(product.quantity)")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(quantityColor)
+                
+                Text("left")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color(.systemGray6))
+        .cornerRadius(8)
+    }
+    
+    private var quantityColor: Color {
+        switch product.quantity {
+        case 0:
+            return .red
+        case 1:
+            return .orange
+        case 2:
+            return .yellow
+        default:
+            return .primary
+        }
     }
 }

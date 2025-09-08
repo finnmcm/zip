@@ -46,6 +46,9 @@ protocol SupabaseServiceProtocol {
     // MARK: - Statistics Operations
     func fetchNumUsers() async throws -> Int
     func fetchZipperStats() async throws -> ZipperStatsResult
+    
+    // MARK: - Inventory Operations
+    func fetchLowStockItems() async throws -> [Product]
 }
 
 final class SupabaseService: SupabaseServiceProtocol {
@@ -193,6 +196,44 @@ final class SupabaseService: SupabaseServiceProtocol {
                 return response
             } catch {
                 print("❌ Error fetching product images from Supabase: \(error)")
+                throw SupabaseError.networkError(error)
+            }
+        }
+        
+        // If Supabase client is not configured, throw an error
+        throw SupabaseError.clientNotConfigured
+    }
+    
+    func fetchLowStockItems() async throws -> [Product] {
+        // Try to use real Supabase client if configured
+        if let supabase = supabase {
+            do {
+                let response: [Product] = try await supabase
+                    .from("products")
+                    .select()
+                    .lte("quantity", value: 2)
+                    .order("quantity", ascending: true)
+                    .execute()
+                    .value
+                
+                print("✅ Successfully fetched \(response.count) low stock items from Supabase")
+                
+                // Fetch product images and assign them to products
+                let productIds = response.map { $0.id }
+                let productImages = try await fetchProductImages(for: productIds)
+                
+                // Create a dictionary to group images by product ID
+                let imagesByProductId = Dictionary(grouping: productImages) { $0.productId }
+                
+                // Assign images to their respective products
+                for product in response {
+                    product.images = imagesByProductId[product.id] ?? []
+                }
+                
+                print("✅ Successfully assigned \(productImages.count) images to \(response.count) low stock products")
+                return response
+            } catch {
+                print("❌ Error fetching low stock items from Supabase: \(error)")
                 throw SupabaseError.networkError(error)
             }
         }
