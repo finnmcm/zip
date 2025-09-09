@@ -173,15 +173,52 @@ struct AdminView: View {
                         .tag(1)
                         
                         // Zipper Statistics Tab
-                        VStack(spacing: 8) {
-                            Text("Zipper Statistics content will go here")
-                                .foregroundColor(.secondary)
-                                .padding()
+                        VStack(alignment: .leading, spacing: 8) {
+                            // Header
+                            HStack {
+                                Text("Zipper Performance Rankings")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                
+                                Spacer()
+                                
+                                if let zipperStats = adminViewModel.zipperStats {
+                                    Text("\(zipperStats.zippers.count) zippers")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.horizontal)
+                            
+                            ScrollView {
+                                VStack(spacing: 8) {
+                                    if let zipperStats = adminViewModel.zipperStats, !zipperStats.zippers.isEmpty {
+                                        ForEach(Array(zipperStats.zippers.enumerated()), id: \.element.id) { index, zipper in
+                                            ZipperStatsRow(
+                                                zipper: zipper,
+                                                rank: index + 1,
+                                                isTopPerformer: index < 3
+                                            )
+                                        }
+                                    } else {
+                                        VStack(spacing: 12) {
+                                            Image(systemName: "scooter")
+                                                .font(.largeTitle)
+                                                .foregroundColor(.secondary)
+                                            Text("No zipper data available")
+                                                .font(.headline)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        .padding()
+                                    }
+                                }
+                                .padding(.horizontal)
+                            }
                         }
                         .tag(2)
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                    .frame(height: 200)
+                    .frame(height: 300)
                 }
                 .padding(.top)
             }
@@ -346,6 +383,114 @@ struct LowStockItemRow: View {
             return .yellow
         default:
             return .primary
+        }
+    }
+}
+
+// Zipper Statistics Row Component
+struct ZipperStatsRow: View {
+    let zipper: ZipperStatsResult.ZipperStats
+    let rank: Int
+    let isTopPerformer: Bool
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Rank Badge
+            ZStack {
+                Circle()
+                    .fill(rankColor)
+                    .frame(width: 32, height: 32)
+                
+                if rank <= 3 {
+                    Image(systemName: rankIcon)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                } else {
+                    Text("\(rank)")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                }
+            }
+            
+            // Zipper Info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(zipper.user.fullName)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+                
+                Text(zipper.user.email)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+            
+            Spacer()
+            
+            // Statistics
+            VStack(alignment: .trailing, spacing: 2) {
+                HStack(spacing: 16) {
+                    // Orders Handled
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("\(zipper.ordersHandled)")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                        
+                        Text("orders")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    // Revenue Generated
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(String(format: "$%.2f", zipper.revenue))
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .foregroundColor(.green)
+                        
+                        Text("revenue")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(isTopPerformer ? Color(.systemGray6).opacity(0.8) : Color(.systemGray6))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(isTopPerformer ? Color.orange.opacity(0.3) : Color.clear, lineWidth: 1)
+                )
+        )
+    }
+    
+    private var rankColor: Color {
+        switch rank {
+        case 1:
+            return .yellow // Gold
+        case 2:
+            return Color(.systemGray2) // Silver
+        case 3:
+            return Color.orange // Bronze
+        default:
+            return Color(.systemGray4)
+        }
+    }
+    
+    private var rankIcon: String {
+        switch rank {
+        case 1:
+            return "crown.fill"
+        case 2:
+            return "medal.fill"
+        case 3:
+            return "award.fill"
+        default:
+            return "person.fill"
         }
     }
 }

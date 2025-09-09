@@ -39,7 +39,12 @@ final class AdminViewModel: ObservableObject {
             
             // Update UI on main thread
             self.numUsers = userCount
-            self.zipperStats = stats
+            // Sort zippers by orders handled (descending) for ranking
+            let sortedStats = ZipperStatsResult(
+                zippers: stats.zippers.sorted { $0.ordersHandled > $1.ordersHandled },
+                totalRevenue: stats.totalRevenue
+            )
+            self.zipperStats = sortedStats
             self.lowStockItems = lowStock
             
             print("✅ Successfully loaded admin data: \(userCount) users, \(stats.zippers.count) zippers, \(lowStock.count) low stock items")
