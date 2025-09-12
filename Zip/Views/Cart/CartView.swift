@@ -109,7 +109,7 @@ struct CartView: View {
                                     Text("Delivery Fee")
                                         .font(.body)
                                     Spacer()
-                                    Text("$0.99")
+                                    Text("$0.00")
                                         .font(.body)
                                 }
                                 
@@ -119,7 +119,7 @@ struct CartView: View {
                                     Text("Total")
                                         .font(.title3.bold())
                                     Spacer()
-                                    Text("$\(NSDecimalNumber(decimal: cartViewModel.subtotal + Decimal(0.99)).doubleValue, specifier: "%.2f")")
+                                    Text("$\(NSDecimalNumber(decimal: cartViewModel.subtotal).doubleValue, specifier: "%.2f")")
                                         .font(.title3.bold())
                                         .foregroundStyle(AppColors.accent)
                                 }

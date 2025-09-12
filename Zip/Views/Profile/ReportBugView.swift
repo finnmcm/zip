@@ -8,11 +8,16 @@ import Inject
 
 struct ReportBugView: View {
     @ObserveInjection var inject
+    @EnvironmentObject private var authViewModel: AuthViewModel
     @State private var bugTitle = ""
     @State private var bugDescription = ""
     @State private var isSubmitting = false
     @State private var showSuccessAlert = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     @Environment(\.dismiss) private var dismiss
+    
+    private let supabaseService = SupabaseService.shared
     
     var body: some View {
         NavigationStack {
@@ -145,6 +150,11 @@ struct ReportBugView: View {
             } message: {
                 Text("Thank you for helping us improve Zip! We'll review your report and get back to you if needed.")
             }
+            .alert("Error", isPresented: $showErrorAlert) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage)
+            }
         }
         .enableInjection()
     }
@@ -156,17 +166,41 @@ struct ReportBugView: View {
     
     private func submitBugReport() {
         guard canSubmit else { return }
+        guard let currentUser = authViewModel.currentUser else {
+            errorMessage = "You must be logged in to submit a bug report."
+            showErrorAlert = true
+            return
+        }
         
         isSubmitting = true
         
-        // Simulate network request
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            isSubmitting = false
-            showSuccessAlert = true
-            
-            // Clear form after successful submission
-            bugTitle = ""
-            bugDescription = ""
+        Task {
+            do {
+                let success = try await supabaseService.submitBugReport(
+                    userId: currentUser.id,
+                    title: bugTitle.trimmingCharacters(in: .whitespacesAndNewlines),
+                    description: bugDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+                )
+                
+                await MainActor.run {
+                    isSubmitting = false
+                    if success {
+                        showSuccessAlert = true
+                        // Clear form after successful submission
+                        bugTitle = ""
+                        bugDescription = ""
+                    } else {
+                        errorMessage = "Failed to submit bug report. Please try again."
+                        showErrorAlert = true
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    isSubmitting = false
+                    errorMessage = "Error submitting bug report: \(error.localizedDescription)"
+                    showErrorAlert = true
+                }
+            }
         }
     }
 }

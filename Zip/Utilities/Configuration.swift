@@ -43,19 +43,13 @@ final class Configuration {
     
     // MARK: - Supabase Configuration
     var supabaseURL: String {
-        // First try to read from environment variables (Xcode run scheme)
-        if let envURL = ProcessInfo.processInfo.environment["SUPABASE_URL"], !envURL.isEmpty {
-            print("🔧 Configuration: Using SUPABASE_URL from environment: \(envURL)")
-            return envURL
+        // Read from Info.plist
+        if let url = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String, !url.isEmpty {
+            print("🔧 Configuration: Using SUPABASE_URL from Info.plist: \(url)")
+            return url
         }
         
-        // Second try: read from .env file
-        if let envURL = EnvironmentLoader.shared.getValue(for: "SUPABASE_URL"), !envURL.isEmpty {
-            print("🔧 Configuration: Using SUPABASE_URL from .env file: \(envURL)")
-            return envURL
-        }
-        
-        print("⚠️ Configuration: SUPABASE_URL not found in environment or .env file, using fallback")
+        print("⚠️ Configuration: SUPABASE_URL not found in Info.plist, using fallback")
         
         // Fallback to environment-specific configuration
         switch environment {
@@ -69,19 +63,13 @@ final class Configuration {
     }
     
     var supabaseAnonKey: String {
-        // First try to read from environment variables (Xcode run scheme)
-        if let envKey = ProcessInfo.processInfo.environment["SUPABASE_KEY"], !envKey.isEmpty {
-            print("🔧 Configuration: Using SUPABASE_KEY from environment (length: \(envKey.count))")
-            return envKey
+        // Read from Info.plist
+        if let key = Bundle.main.infoDictionary?["SUPABASE_KEY"] as? String, !key.isEmpty {
+            print("🔧 Configuration: Using SUPABASE_KEY from Info.plist (length: \(key.count))")
+            return key
         }
         
-        // Second try: read from .env file
-        if let envKey = EnvironmentLoader.shared.getValue(for: "SUPABASE_KEY"), !envKey.isEmpty {
-            print("🔧 Configuration: Using SUPABASE_KEY from .env file (length: \(envKey.count))")
-            return envKey
-        }
-        
-        print("⚠️ Configuration: SUPABASE_KEY not found in environment or .env file, using fallback")
+        print("⚠️ Configuration: SUPABASE_KEY not found in Info.plist, using fallback")
         
         // Fallback to environment-specific configuration
         switch environment {
@@ -107,13 +95,14 @@ final class Configuration {
     
     // MARK: - Stripe Configuration
     var stripePublishableKey: String {
-        // Prefer environment variable or .env
-        if let key = ProcessInfo.processInfo.environment["STRIPE_PUBLISHABLE_KEY"], !key.isEmpty {
+        // Read from Info.plist
+        if let key = Bundle.main.infoDictionary?["STRIPE_PUBLISHABLE_KEY"] as? String, !key.isEmpty {
+            print("🔧 Configuration: Using STRIPE_PUBLISHABLE_KEY from Info.plist (length: \(key.count))")
             return key
         }
-        if let key = EnvironmentLoader.shared.getValue(for: "STRIPE_PUBLISHABLE_KEY"), !key.isEmpty {
-            return key
-        }
+        
+        print("⚠️ Configuration: STRIPE_PUBLISHABLE_KEY not found in Info.plist, using fallback")
+        
         // Fallbacks
         switch environment {
         case .development:
@@ -172,16 +161,16 @@ final class Configuration {
         
         // Check Supabase configuration
         if supabaseURL == "YOUR_DEV_SUPABASE_URL" || supabaseURL.isEmpty {
-            errors.append("Supabase URL is not configured")
+            errors.append("Supabase URL is not configured in Info.plist")
         }
         
         if supabaseAnonKey == "YOUR_DEV_SUPABASE_ANON_KEY" || supabaseAnonKey.isEmpty {
-            errors.append("Supabase anonymous key is not configured")
+            errors.append("Supabase anonymous key is not configured in Info.plist")
         }
         
         // Check Stripe configuration
         if stripePublishableKey == "YOUR_DEV_STRIPE_PUBLISHABLE_KEY" || stripePublishableKey.isEmpty {
-            errors.append("Stripe publishable key is not configured")
+            errors.append("Stripe publishable key is not configured in Info.plist")
         }
         
         return errors
@@ -203,46 +192,42 @@ final class Configuration {
     
     // MARK: - Debug Information
     func debugConfiguration() -> String {
-        let envURL = ProcessInfo.processInfo.environment["SUPABASE_URL"] ?? "Not set"
-        let envKey = ProcessInfo.processInfo.environment["SUPABASE_KEY"] ?? "Not set"
+        let plistURL = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String ?? "Not set"
+        let plistKey = Bundle.main.infoDictionary?["SUPABASE_KEY"] as? String ?? "Not set"
+        let plistStripeKey = Bundle.main.infoDictionary?["STRIPE_PUBLISHABLE_KEY"] as? String ?? "Not set"
         
         return """
         🔧 Configuration Debug Info:
         Environment: \(environment.displayName)
-        Supabase URL (env): \(envURL)
-        Supabase Key (env): \(envKey.isEmpty ? "Not set" : "Set (length: \(envKey.count))")
+        Supabase URL (Info.plist): \(plistURL)
+        Supabase Key (Info.plist): \(plistKey.isEmpty ? "Not set" : "Set (length: \(plistKey.count))")
+        Stripe Key (Info.plist): \(plistStripeKey.isEmpty ? "Not set" : "Set (length: \(plistStripeKey.count))")
         Final Supabase URL: \(supabaseURL)
         Final Supabase Key: \(supabaseAnonKey.isEmpty ? "Not set" : "Set (length: \(supabaseAnonKey.count))")
+        Final Stripe Key: \(stripePublishableKey.isEmpty ? "Not set" : "Set (length: \(stripePublishableKey.count))")
         Configuration Valid: \(isConfigured)
         """
     }
     
-    // MARK: - Environment Variable Debug
-    func debugEnvironmentVariables() -> String {
-        let allEnvVars = ProcessInfo.processInfo.environment
-        let supabaseVars = allEnvVars.filter { $0.key.contains("SUPABASE") }
+    // MARK: - Info.plist Debug
+    func debugInfoPlistConfiguration() -> String {
+        let infoDict = Bundle.main.infoDictionary ?? [:]
+        let supabaseURL = infoDict["SUPABASE_URL"] as? String ?? "Not set"
+        let supabaseKey = infoDict["SUPABASE_KEY"] as? String ?? "Not set"
+        let stripeKey = infoDict["STRIPE_PUBLISHABLE_KEY"] as? String ?? "Not set"
         
-        var debugInfo = "🔍 Environment Variables Debug:\n"
-        debugInfo += "Total environment variables: \(allEnvVars.count)\n"
-        debugInfo += "Supabase-related variables: \(supabaseVars.count)\n\n"
+        var debugInfo = "🔍 Info.plist Configuration Debug:\n"
+        debugInfo += "Total Info.plist keys: \(infoDict.count)\n\n"
         
-        if supabaseVars.isEmpty {
-            debugInfo += "❌ No Supabase environment variables found!\n"
-            debugInfo += "This usually means:\n"
-            debugInfo += "1. Environment variables are not set in the scheme\n"
-            debugInfo += "2. App is running from build, not from Xcode\n"
-            debugInfo += "3. Scheme configuration is incorrect\n\n"
-        } else {
-            debugInfo += "✅ Found Supabase environment variables:\n"
-            for (key, value) in supabaseVars {
-                let displayValue = key.contains("KEY") ? "Set (length: \(value.count))" : value
-                debugInfo += "  \(key): \(displayValue)\n"
-            }
-        }
+        debugInfo += "✅ Configuration keys found in Info.plist:\n"
+        debugInfo += "  SUPABASE_URL: \(supabaseURL)\n"
+        debugInfo += "  SUPABASE_KEY: \(supabaseKey.isEmpty ? "Not set" : "Set (length: \(supabaseKey.count))")\n"
+        debugInfo += "  STRIPE_PUBLISHABLE_KEY: \(stripeKey.isEmpty ? "Not set" : "Set (length: \(stripeKey.count))")\n\n"
         
-        debugInfo += "\n🔧 Current Configuration Values:\n"
-        debugInfo += "supabaseURL: \(supabaseURL)\n"
-        debugInfo += "supabaseAnonKey: \(supabaseAnonKey.isEmpty ? "Not set" : "Set (length: \(supabaseAnonKey.count))")\n"
+        debugInfo += "🔧 Final Configuration Values:\n"
+        debugInfo += "supabaseURL: \(self.supabaseURL)\n"
+        debugInfo += "supabaseAnonKey: \(self.supabaseAnonKey.isEmpty ? "Not set" : "Set (length: \(self.supabaseAnonKey.count))")\n"
+        debugInfo += "stripePublishableKey: \(self.stripePublishableKey.isEmpty ? "Not set" : "Set (length: \(self.stripePublishableKey.count))")\n"
         
         return debugInfo
     }

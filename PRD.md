@@ -212,7 +212,7 @@ Zip provides an on-demand delivery service that:
 
 ### 7.1 Revenue Model
 - **Commission-based**: 15-20% on each order
-- **Delivery Fees**: $0.99 for campus locations, $1.99+ for off-campus
+- **Delivery Fees**: $0.00 for campus locations, $0.00 for off-campus
 - **Premium Features**: Future consideration for loyalty programs
 
 ### 7.2 Pricing Strategy

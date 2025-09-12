@@ -71,8 +71,8 @@ struct ConfigurationStatusView: View {
                             Text(Configuration.shared.supabaseURL)
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
-                            if let envURL = ProcessInfo.processInfo.environment["SUPABASE_URL"], !envURL.isEmpty {
-                                Text("From Environment")
+                            if let plistURL = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String, !plistURL.isEmpty {
+                                Text("From Info.plist")
                                     .font(.caption2)
                                     .foregroundColor(.green)
                             } else {
@@ -98,8 +98,8 @@ struct ConfigurationStatusView: View {
                                     .foregroundColor(.green)
                             }
                             
-                            if let envKey = ProcessInfo.processInfo.environment["SUPABASE_KEY"], !envKey.isEmpty {
-                                Text("From Environment")
+                            if let plistKey = Bundle.main.infoDictionary?["SUPABASE_KEY"] as? String, !plistKey.isEmpty {
+                                Text("From Info.plist")
                                     .font(.caption2)
                                     .foregroundColor(.green)
                             } else {
@@ -111,13 +111,42 @@ struct ConfigurationStatusView: View {
                     }
                 }
                 
-                Section("Environment Variables") {
+                Section("Stripe Configuration") {
+                    HStack {
+                        Text("Publishable Key")
+                        Spacer()
+                        VStack(alignment: .trailing) {
+                            if Configuration.shared.stripePublishableKey.isEmpty {
+                                Text("Not Set")
+                                    .foregroundColor(.red)
+                            } else if Configuration.shared.stripePublishableKey == "YOUR_DEV_STRIPE_PUBLISHABLE_KEY" {
+                                Text("Default Placeholder")
+                                    .foregroundColor(.orange)
+                            } else {
+                                Text("Set (length: \(Configuration.shared.stripePublishableKey.count))")
+                                    .foregroundColor(.green)
+                            }
+                            
+                            if let plistKey = Bundle.main.infoDictionary?["STRIPE_PUBLISHABLE_KEY"] as? String, !plistKey.isEmpty {
+                                Text("From Info.plist")
+                                    .font(.caption2)
+                                    .foregroundColor(.green)
+                            } else {
+                                Text("From Fallback")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+                }
+                
+                Section("Info.plist Values") {
                     HStack {
                         Text("SUPABASE_URL")
                         Spacer()
-                        if let envURL = ProcessInfo.processInfo.environment["SUPABASE_URL"] {
-                            Text(envURL.isEmpty ? "Empty" : "Set")
-                                .foregroundColor(envURL.isEmpty ? .red : .green)
+                        if let plistURL = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String {
+                            Text(plistURL.isEmpty ? "Empty" : "Set")
+                                .foregroundColor(plistURL.isEmpty ? .red : .green)
                         } else {
                             Text("Not Set")
                                 .foregroundColor(.red)
@@ -127,9 +156,21 @@ struct ConfigurationStatusView: View {
                     HStack {
                         Text("SUPABASE_KEY")
                         Spacer()
-                        if let envKey = ProcessInfo.processInfo.environment["SUPABASE_KEY"] {
-                            Text(envKey.isEmpty ? "Empty" : "Set (\(envKey.count) chars)")
-                                .foregroundColor(envKey.isEmpty ? .red : .green)
+                        if let plistKey = Bundle.main.infoDictionary?["SUPABASE_KEY"] as? String {
+                            Text(plistKey.isEmpty ? "Empty" : "Set (\(plistKey.count) chars)")
+                                .foregroundColor(plistKey.isEmpty ? .red : .green)
+                        } else {
+                            Text("Not Set")
+                                .foregroundColor(.red)
+                        }
+                    }
+                    
+                    HStack {
+                        Text("STRIPE_PUBLISHABLE_KEY")
+                        Spacer()
+                        if let plistStripeKey = Bundle.main.infoDictionary?["STRIPE_PUBLISHABLE_KEY"] as? String {
+                            Text(plistStripeKey.isEmpty ? "Empty" : "Set (\(plistStripeKey.count) chars)")
+                                .foregroundColor(plistStripeKey.isEmpty ? .red : .green)
                         } else {
                             Text("Not Set")
                                 .foregroundColor(.red)
@@ -146,12 +187,8 @@ struct ConfigurationStatusView: View {
                         showDebugInfo()
                     }
                     
-                    Button("Test Environment Variables") {
-                        testEnvironmentVariables()
-                    }
-                    
-                    Button("Test .env File Loading") {
-                        testEnvFileLoading()
+                    Button("Test Info.plist Loading") {
+                        testInfoPlistLoading()
                     }
                     
                     Button("Copy Configuration") {
@@ -181,10 +218,12 @@ struct ConfigurationStatusView: View {
         Environment: \(config.currentEnvironment.displayName)
         Supabase URL: \(config.supabaseURL)
         Anon Key: \(config.supabaseAnonKey.isEmpty ? "Not Set" : "Set (length: \(config.supabaseAnonKey.count))")
+        Stripe Key: \(config.stripePublishableKey.isEmpty ? "Not Set" : "Set (length: \(config.stripePublishableKey.count))")
         
-        Environment Variables:
-        SUPABASE_URL: \(ProcessInfo.processInfo.environment["SUPABASE_URL"] ?? "Not Set")
-        SUPABASE_KEY: \(ProcessInfo.processInfo.environment["SUPABASE_KEY"]?.isEmpty == false ? "Set (\(ProcessInfo.processInfo.environment["SUPABASE_KEY"]?.count ?? 0) chars)" : "Not Set")
+        Info.plist Values:
+        SUPABASE_URL: \(Bundle.main.infoDictionary?["SUPABASE_URL"] as? String ?? "Not Set")
+        SUPABASE_KEY: \((Bundle.main.infoDictionary?["SUPABASE_KEY"] as? String)?.isEmpty == false ? "Set (\((Bundle.main.infoDictionary?["SUPABASE_KEY"] as? String)?.count ?? 0) chars)" : "Not Set")
+        STRIPE_PUBLISHABLE_KEY: \((Bundle.main.infoDictionary?["STRIPE_PUBLISHABLE_KEY"] as? String)?.isEmpty == false ? "Set (\((Bundle.main.infoDictionary?["STRIPE_PUBLISHABLE_KEY"] as? String)?.count ?? 0) chars)" : "Not Set")
         
         App Version: \(config.appVersion)
         Build Number: \(config.buildNumber)
@@ -197,67 +236,36 @@ struct ConfigurationStatusView: View {
     }
     
     private func showDebugInfo() {
-        let debugInfo = Configuration.shared.debugEnvironmentVariables()
+        let debugInfo = Configuration.shared.debugInfoPlistConfiguration()
         print(debugInfo)
         
         // You could also show this in an alert or sheet
         // For now, just print to console
     }
     
-    private func testEnvironmentVariables() {
-        let allEnvVars = ProcessInfo.processInfo.environment
+    private func testInfoPlistLoading() {
+        print("🔍 === INFO.PLIST LOADING TEST ===")
         
-        print("🔍 === ENVIRONMENT VARIABLES TEST ===")
-        print("Total environment variables: \(allEnvVars.count)")
+        let infoDict = Bundle.main.infoDictionary ?? [:]
+        print("Total Info.plist keys: \(infoDict.count)")
         
-        // Check for Supabase variables specifically
-        let supabaseVars = allEnvVars.filter { $0.key.contains("SUPABASE") }
-        print("Supabase-related variables: \(supabaseVars.count)")
+        // Test specific configuration keys
+        let supabaseURL = infoDict["SUPABASE_URL"] as? String
+        let supabaseKey = infoDict["SUPABASE_KEY"] as? String
+        let stripeKey = infoDict["STRIPE_PUBLISHABLE_KEY"] as? String
         
-        if supabaseVars.isEmpty {
-            print("❌ NO SUPABASE ENVIRONMENT VARIABLES FOUND!")
-            print("This means the environment variables are not being passed to the app.")
-            print("Possible causes:")
-            print("1. Environment variables are only set for LaunchAction, not BuildAction")
-            print("2. App is running from a build, not from Xcode")
-            print("3. Scheme configuration is incorrect")
-        } else {
-            print("✅ Found Supabase environment variables:")
-            for (key, value) in supabaseVars {
-                let displayValue = key.contains("KEY") ? "Set (length: \(value.count))" : value
-                print("  \(key): \(displayValue)")
-            }
-        }
-        
-        // Show current configuration values
-        print("\n🔧 Current Configuration Values:")
-        print("supabaseURL: \(Configuration.shared.supabaseURL)")
-        print("supabaseAnonKey: \(Configuration.shared.supabaseAnonKey.isEmpty ? "Not set" : "Set (length: \(Configuration.shared.supabaseAnonKey.count))")")
-        
-        print("=== END TEST ===\n")
-    }
-    
-    private func testEnvFileLoading() {
-        print("🔍 === .ENV FILE LOADING TEST ===")
-        
-        // Test EnvironmentLoader
-        let envLoader = EnvironmentLoader.shared
-        envLoader.debugPrint()
-        
-        // Test specific values
-        let supabaseURL = envLoader.getValue(for: "SUPABASE_URL")
-        let supabaseKey = envLoader.getValue(for: "SUPABASE_KEY")
-        
-        print("\n🔧 .env File Values:")
+        print("\n🔧 Info.plist Values:")
         print("SUPABASE_URL: \(supabaseURL ?? "Not found")")
         print("SUPABASE_KEY: \(supabaseKey?.isEmpty == false ? "Set (length: \(supabaseKey?.count ?? 0))" : "Not found")")
+        print("STRIPE_PUBLISHABLE_KEY: \(stripeKey?.isEmpty == false ? "Set (length: \(stripeKey?.count ?? 0))" : "Not found")")
         
         // Test Configuration integration
         print("\n🔧 Configuration Integration:")
         print("Final supabaseURL: \(Configuration.shared.supabaseURL)")
         print("Final supabaseAnonKey: \(Configuration.shared.supabaseAnonKey.isEmpty ? "Not set" : "Set (length: \(Configuration.shared.supabaseAnonKey.count))")")
+        print("Final stripePublishableKey: \(Configuration.shared.stripePublishableKey.isEmpty ? "Not set" : "Set (length: \(Configuration.shared.stripePublishableKey.count))")")
         
-        print("=== END .ENV TEST ===\n")
+        print("=== END INFO.PLIST TEST ===\n")
     }
 }
 

@@ -15,11 +15,11 @@ class StoreHoursManager {
     
     // Store hours for Northwestern University delivery service
     private let storeHours: [StoreHour] = [
-        StoreHour(day: "Monday", openTime: "1:00 PM", closeTime: "1:00 AM"),
-        StoreHour(day: "Tuesday", openTime: "5:00 PM", closeTime: "1:00 AM"),
-        StoreHour(day: "Wednesday", openTime: "1:00 PM", closeTime: "1:00 AM"),
-        StoreHour(day: "Thursday", openTime: "5:00 PM", closeTime: "1:00 AM"),
-        StoreHour(day: "Friday", openTime: "1:00 PM", closeTime: "1:00 AM"),
+        StoreHour(day: "Monday", openTime: "6:00 PM", closeTime: "1:00 AM"),
+        StoreHour(day: "Tuesday", openTime: "6:00 PM", closeTime: "1:00 AM"),
+        StoreHour(day: "Wednesday", openTime: "6:00 PM", closeTime: "1:00 AM"),
+        StoreHour(day: "Thursday", openTime: "6:00 PM", closeTime: "1:00 AM"),
+        StoreHour(day: "Friday", openTime: "6:00 PM", closeTime: "1:00 AM"),
         StoreHour(day: "Saturday", openTime: "10:00 AM", closeTime: "1:00 AM"),
         StoreHour(day: "Sunday", openTime: "10:00 AM", closeTime: "1:00 AM")
     ]

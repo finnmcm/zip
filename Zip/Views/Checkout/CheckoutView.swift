@@ -5,6 +5,7 @@
 
 import SwiftUI
 import Inject
+import PassKit
 
 struct CheckoutView: View {
     @ObserveInjection var inject
@@ -51,7 +52,7 @@ struct CheckoutView: View {
                                     Text("Delivery Fee")
                                         .font(.body)
                                     Spacer()
-                                    Text("$0.99")
+                                    Text("0.00")
                                         .font(.body)
                                 }
                                 HStack {
@@ -235,7 +236,7 @@ struct CheckoutView: View {
                             }
                         }
                         
-                        // Payment Button
+                        // Payment Buttons
                         VStack(spacing: AppMetrics.spacing) {
                             if let errorMessage = viewModel.errorMessage {
                                 Text(errorMessage)
@@ -245,6 +246,24 @@ struct CheckoutView: View {
                                     .padding(.horizontal, AppMetrics.spacingLarge)
                             }
                             
+                            // Apple Pay Button
+                            if viewModel.isApplePayAvailable {
+                                ApplePayButton(action: {
+                                    Task {
+                                        await viewModel.confirmApplePayPayment()
+                                        // Check for successful payment and order creation
+                                        if viewModel.lastOrder != nil && viewModel.paymentError == nil {
+                                            showConfirmation = true
+                                        }
+                                    }
+                                })
+                                .frame(height: 50)
+                                .cornerRadius(AppMetrics.cornerRadiusLarge)
+                                .disabled(viewModel.isProcessing || viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "")
+                                .padding(.horizontal, AppMetrics.spacingLarge)
+                            }
+                            
+                            // Regular Payment Button
                             Button(action: {
                                 Task {
                                     await viewModel.confirmPayment()

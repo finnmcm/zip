@@ -49,6 +49,9 @@ protocol SupabaseServiceProtocol {
     
     // MARK: - Inventory Operations
     func fetchLowStockItems() async throws -> [Product]
+    
+    // MARK: - Bug Report Operations
+    func submitBugReport(userId: String, title: String, description: String) async throws -> Bool
 }
 
 final class SupabaseService: SupabaseServiceProtocol {
@@ -296,6 +299,14 @@ final class SupabaseService: SupabaseServiceProtocol {
         let category: String
         let created_at: String
         let updated_at: String
+    }
+    
+    private struct BugReportData: Codable {
+        let id: String
+        let user_id: String
+        let title: String
+        let description: String
+        let created_at: String
     }
     
     func createOrder(_ order: Order) async throws -> Order {
@@ -1195,6 +1206,38 @@ final class SupabaseService: SupabaseServiceProtocol {
             
         } catch {
             print("❌ Error completing order in Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    // MARK: - Bug Report Operations
+    
+    func submitBugReport(userId: String, title: String, description: String) async throws -> Bool {
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            // Create bug report data for Supabase
+            let bugReportData = BugReportData(
+                id: UUID().uuidString,
+                user_id: userId,
+                title: title,
+                description: description,
+                created_at: ISO8601DateFormatter().string(from: Date())
+            )
+            
+            // Insert the bug report into the bug_reports table
+            try await supabase
+                .from("bug_reports")
+                .insert(bugReportData)
+                .execute()
+            
+            print("✅ Successfully submitted bug report with ID: \(bugReportData.id)")
+            return true
+            
+        } catch {
+            print("❌ Error submitting bug report to Supabase: \(error)")
             throw SupabaseError.networkError(error)
         }
     }

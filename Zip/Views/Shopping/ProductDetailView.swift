@@ -75,12 +75,6 @@ struct ProductDetailView: View {
                         }
                         .padding(.top, AppMetrics.spacing)
                         
-                        // Description placeholder
-                        Text("Quick delivery to your campus location. Perfect for late-night study sessions or between classes.")
-                            .font(.body)
-                            .foregroundStyle(AppColors.textSecondary)
-                            .padding(.top, AppMetrics.spacing)
-                        
                         Spacer(minLength: AppMetrics.spacingLarge)
                         
                         // Add to Cart Button
