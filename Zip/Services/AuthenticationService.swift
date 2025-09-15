@@ -6,6 +6,11 @@
 import Foundation
 import Supabase
 
+// MARK: - Response Models
+struct VerificationResult: Codable {
+    let verified: Bool
+}
+
 protocol AuthenticationServiceProtocol {
     func signUp(email: String, password: String, firstName: String, lastName: String, phoneNumber: String, role: UserRole) async throws -> User
     func signIn(email: String, password: String) async throws -> User
@@ -13,6 +18,7 @@ protocol AuthenticationServiceProtocol {
     func getCurrentUser() async throws -> User?
     func resetPassword(email: String) async throws
     func updateProfile(_ user: User) async throws -> User
+    func checkVerificationStatus(email: String) async throws -> Bool
 }
 
 final class AuthenticationService: AuthenticationServiceProtocol {
@@ -56,20 +62,42 @@ final class AuthenticationService: AuthenticationServiceProtocol {
         guard let supabase = supabase else {
             throw AuthError.clientNotConfigured
         }
-         let session = try await supabase.auth.signUp(email: email, password: password)
+        
+        do {
+            let session = try await supabase.auth.signUp(
+                email: email,
+                password: password,
+                data: ["first_name": AnyJSON(firstName), "last_name": AnyJSON(lastName), "phone_number": AnyJSON(phoneNumber), "role": AnyJSON(role.rawValue)]
+            )
 
-        let userId = session.user.id.uuidString.lowercased()
-            print("authenticated successfully")
+            let userId = session.user.id.uuidString.lowercased()
+            print("✅ User authenticated successfully")
             print(">>> Current UID:", userId)
 
-        
-        let newUser: User = User(id: userId, email: email, firstName: firstName, lastName: lastName, phoneNumber: phoneNumber, storeCredit: 0.0, role: role)
-        print(newUser)
-            _ = try await supabase
-                .from("users")
-                .insert(newUser)
-                .execute()
-        return newUser
+            // Create user profile in database
+            let newUser = User(
+                id: userId, 
+                email: email, 
+                firstName: firstName, 
+                lastName: lastName, 
+                phoneNumber: phoneNumber, 
+                storeCredit: 0.0, 
+                role: role,
+                verified: false
+            )
+            print("Creating user profile:", newUser)
+                
+            return newUser
+            
+        } catch let error as AuthError {
+            // Re-throw our custom auth errors
+            print("❌ Authentication error: \(error.localizedDescription)")
+            throw error
+        } catch {
+            // Handle other authentication errors
+            print("❌ Signup failed: \(error)")
+            throw AuthError.signUpFailed
+        }
     }
     
     func signIn(email: String, password: String) async throws -> User {
@@ -104,8 +132,33 @@ final class AuthenticationService: AuthenticationServiceProtocol {
     }
     
     func getCurrentUser() async throws -> User? {
-        //TODO: Implement this
-        return nil
+        guard let supabase = supabase else {
+            throw AuthError.clientNotConfigured
+        }
+        
+        do {
+            // Get the current session
+            let session = try await supabase.auth.session
+            
+            let user = session.user
+            let userID = user.id.uuidString.lowercased()
+            
+            // Fetch user profile from database
+            let profileResponse: User = try await supabase
+                .from("users")
+                .select()
+                .eq("id", value: userID)
+                .single()
+                .execute()
+                .value
+            
+            print("✅ AuthenticationService: Current user found: \(profileResponse.email)")
+            return profileResponse
+            
+        } catch {
+            print("❌ AuthenticationService: Error getting current user: \(error)")
+            return nil
+        }
     }
     
     func resetPassword(email: String) async throws {
@@ -146,6 +199,40 @@ final class AuthenticationService: AuthenticationServiceProtocol {
         } catch {
             print("❌ Profile update error: \(error)")
             throw AuthError.profileUpdateFailed
+        }
+    }
+    
+    func checkVerificationStatus(email: String) async throws -> Bool {
+        guard let supabase = supabase else {
+            throw AuthError.clientNotConfigured
+        }
+        
+        do {
+            // Call the database function with lowercase email to ensure case consistency
+            let lowercaseEmail = email.lowercased()
+            print("🔍 Checking verification for email: \(email) (normalized to: \(lowercaseEmail))")
+            let response: [VerificationResult] = try await supabase
+                .rpc("check_email_verification", params: ["user_email": lowercaseEmail])
+                .execute()
+                .value
+            
+            // The function returns a table with verified boolean
+            // Return the first result's verified status, or false if no results
+            print("RPC response: \(response)")
+            print("Response count: \(response.count)")
+            if let firstResult = response.first {
+                print("✅ Found user with verified status: \(firstResult.verified)")
+                return firstResult.verified
+            } else {
+                print("⚠️ No results returned - user may not exist in database or case mismatch")
+                print("💡 Try updating your SQL function to use: WHERE LOWER(u.email) = LOWER(user_email)")
+                return false
+            }
+            
+        } catch {
+            // Handle any errors (network, database, etc.)
+            print("Error checking email verification: \(error)")
+            throw error
         }
     }
 }

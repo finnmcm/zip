@@ -96,6 +96,7 @@ final class SupabaseService: SupabaseServiceProtocol {
         // Try to use real Supabase client if configured
         if let supabase = supabase {
             do {
+                print("🔍 SupabaseService: Fetching products from database...")
                 let response: [Product] = try await supabase
                     .from("products")
                     .select()
@@ -104,6 +105,9 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .value
                 
                 print("✅ Successfully fetched \(response.count) products from Supabase")
+                if response.isEmpty {
+                    print("⚠️ No products found in database - this might be expected if no products are added yet")
+                }
                 
                 // Fetch product images and assign them to products
                 let productIds = response.map { $0.id }
@@ -471,7 +475,8 @@ final class SupabaseService: SupabaseServiceProtocol {
                     firstName: "", // Will be populated when we fetch user details
                     lastName: "", // Will be populated when we fetch user details
                     phoneNumber: "", // Will be populated when we fetch user details
-                    storeCredit: 0.0, // Will be populated when we fetch user details
+                    storeCredit: 0.0,
+                    verified: false, // Will be populated when we fetch user details
                     createdAt: createdAt,
                     updatedAt: updatedAt
                 )
@@ -605,7 +610,8 @@ final class SupabaseService: SupabaseServiceProtocol {
                     firstName: "", // Will be populated when we fetch user details
                     lastName: "", // Will be populated when we fetch user details
                     phoneNumber: "", // Will be populated when we fetch user details
-                    storeCredit: 0.0, // Will be populated when we fetch user details
+                    storeCredit: 0.0,
+                    verified: false, // Will be populated when we fetch user details
                     createdAt: createdAt,
                     updatedAt: updatedAt
                 )
@@ -906,6 +912,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     lastName: "",
                     phoneNumber: "",
                     storeCredit: 0.0,
+                    verified: false,
                     createdAt: createdAt,
                     updatedAt: updatedAt
                 )
@@ -1032,6 +1039,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 lastName: "",
                 phoneNumber: "",
                 storeCredit: 0.0,
+                verified: false,
                 createdAt: createdAt,
                 updatedAt: updatedAt
             )

@@ -44,6 +44,9 @@ struct CategoryListView: View {
                     // Store closed banner
                     StoreClosedBanner(currentUser: authViewModel.currentUser)
                     
+                    // Email verification banner
+                    EmailVerificationBanner(currentUser: authViewModel.currentUser)
+                    
                     ScrollView {
                         VStack(spacing: 0) {
                             // Header

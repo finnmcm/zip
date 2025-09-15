@@ -54,6 +54,12 @@ final class CheckoutViewModel: ObservableObject {
             return
         }
         
+        // Check if user is verified
+        guard currentUser.verified else {
+            errorMessage = "Please verify your email address before placing an order. Check your email for a verification link."
+            return
+        }
+        
         isProcessing = true
         defer { isProcessing = false }
 
@@ -206,6 +212,12 @@ final class CheckoutViewModel: ObservableObject {
         guard cart.subtotal > 0 else { return }
         guard let currentUser = authViewModel.currentUser else {
             errorMessage = "Please log in to complete your order."
+            return
+        }
+        
+        // Check if user is verified
+        guard currentUser.verified else {
+            errorMessage = "Please verify your email address before placing an order. Check your email for a verification link."
             return
         }
         

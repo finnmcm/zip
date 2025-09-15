@@ -168,7 +168,7 @@ struct OrderStatusBannerContainer: View {
             // Preview for in-queue order
             OrderStatusBanner(
                 order: Order(
-                    user: User(id: "test-user-id", email: "test@u.northwestern.edu", firstName: "John", lastName: "Doe", phoneNumber: "123-456-7890", storeCredit: 0.0),
+                    user: User(id: "test-user-id", email: "test@u.northwestern.edu", firstName: "John", lastName: "Doe", phoneNumber: "123-456-7890", storeCredit: 0.0, verified: true),
                     items: [],
                     status: .inQueue,
                     rawAmount: 15.99,
@@ -194,7 +194,7 @@ struct OrderStatusBannerContainer: View {
             // Preview for in-progress order
             OrderStatusBanner(
                 order: Order(
-                    user: User(id: "test-user-id", email: "test@u.northwestern.edu", firstName: "John", lastName: "Doe", phoneNumber: "123-456-7890", storeCredit: 0.0),
+                    user: User(id: "test-user-id", email: "test@u.northwestern.edu", firstName: "John", lastName: "Doe", phoneNumber: "123-456-7890", storeCredit: 0.0, verified: true),
                     items: [],
                     status: .inProgress,
                     rawAmount: 15.99,

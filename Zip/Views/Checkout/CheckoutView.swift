@@ -259,7 +259,7 @@ struct CheckoutView: View {
                                 })
                                 .frame(height: 50)
                                 .cornerRadius(AppMetrics.cornerRadiusLarge)
-                                .disabled(viewModel.isProcessing || viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "")
+                                .disabled(viewModel.isProcessing || viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "" || !(viewModel.authViewModel.currentUser?.verified ?? false))
                                 .padding(.horizontal, AppMetrics.spacingLarge)
                             }
                             
@@ -290,7 +290,7 @@ struct CheckoutView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(AppMetrics.cornerRadiusLarge)
                             }
-                            .disabled(viewModel.isProcessing || viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "")
+                            .disabled(viewModel.isProcessing || viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "" || !(viewModel.authViewModel.currentUser?.verified ?? false))
                             .buttonStyle(.plain)
                             .padding(.horizontal, AppMetrics.spacingLarge)
                             .padding(.bottom, AppMetrics.spacingLarge)

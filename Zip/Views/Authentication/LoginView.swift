@@ -231,9 +231,30 @@ private struct SignInForm: View {
                 isSecure: true
             )
             
-            // Forgot Password Button
+            // Remember Me and Forgot Password Row
             HStack {
+                // Remember Me Checkbox
+                HStack(spacing: AppMetrics.spacingSmall) {
+                    Button(action: {
+                        viewModel.toggleRememberMe()
+                    }) {
+                        Image(systemName: viewModel.rememberMe ? "checkmark.square.fill" : "square")
+                            .font(.title3)
+                            .foregroundStyle(viewModel.rememberMe ? AppColors.accent : AppColors.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Text("Remember Me")
+                        .font(.footnote)
+                        .foregroundStyle(AppColors.textPrimary)
+                        .onTapGesture {
+                            viewModel.toggleRememberMe()
+                        }
+                }
+                
                 Spacer()
+                
+                // Forgot Password Button
                 Button("Forgot Password?") {
                     Task {
                         await viewModel.resetPassword()

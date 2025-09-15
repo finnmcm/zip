@@ -20,6 +20,7 @@ final class User: Identifiable, Codable, Equatable {
     var phoneNumber: String
     var storeCredit: Decimal
     var role: UserRole
+    var verified: Bool
     var createdAt: Date
     var updatedAt: Date
     
@@ -31,7 +32,7 @@ final class User: Identifiable, Codable, Equatable {
     // Relationships - will be handled manually since we're not using SwiftData
     var orders: [Order] = []
     
-    init(id: String, email: String, firstName: String, lastName: String, phoneNumber: String, storeCredit: Decimal = 0.0, role: UserRole = .customer, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(id: String, email: String, firstName: String, lastName: String, phoneNumber: String, storeCredit: Decimal = 0.0, role: UserRole = .customer, verified: Bool = false, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.email = email
         self.firstName = firstName
@@ -39,6 +40,7 @@ final class User: Identifiable, Codable, Equatable {
         self.phoneNumber = phoneNumber
         self.storeCredit = storeCredit
         self.role = role
+        self.verified = verified
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -52,6 +54,7 @@ final class User: Identifiable, Codable, Equatable {
         case phoneNumber = "phone_number"
         case storeCredit = "store_credit"
         case role
+        case verified
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -66,6 +69,7 @@ final class User: Identifiable, Codable, Equatable {
         phoneNumber = try container.decode(String.self, forKey: .phoneNumber)
         storeCredit = try container.decode(Decimal.self, forKey: .storeCredit)
         role = try container.decode(UserRole.self, forKey: .role)
+        verified = try container.decode(Bool.self, forKey: .verified)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
@@ -80,6 +84,7 @@ final class User: Identifiable, Codable, Equatable {
         try container.encode(phoneNumber, forKey: .phoneNumber)
         try container.encode(storeCredit, forKey: .storeCredit)
         try container.encode(role, forKey: .role)
+        try container.encode(verified, forKey: .verified)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
     }
@@ -99,6 +104,7 @@ struct AuthUser: Codable {
     let phoneNumber: String
     let storeCredit: Decimal
     let role: UserRole
+    let verified: Bool
     let createdAt: Date
     let updatedAt: Date
     
@@ -110,6 +116,7 @@ struct AuthUser: Codable {
         case phoneNumber = "phone_number"
         case storeCredit = "store_credit"
         case role
+        case verified
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -123,6 +130,7 @@ struct AuthUser: Codable {
             phoneNumber: phoneNumber,
             storeCredit: storeCredit,
             role: role,
+            verified: verified,
             createdAt: createdAt,
             updatedAt: updatedAt
         )

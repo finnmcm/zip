@@ -254,7 +254,7 @@ struct OrderTrackingView: View {
     NavigationStack {
         OrderTrackingView(
             order: Order(
-                user: User(id: "test-user-id", email: "test@u.northwestern.edu", firstName: "John", lastName: "Doe", phoneNumber: "123-456-7890", storeCredit: 0.0),
+                user: User(id: "test-user-id", email: "test@u.northwestern.edu", firstName: "John", lastName: "Doe", phoneNumber: "123-456-7890", storeCredit: 0.0, verified: true),
                 items: [
                     CartItem(
                         product: Product(

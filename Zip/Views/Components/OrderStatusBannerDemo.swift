@@ -89,7 +89,8 @@ struct OrderStatusBannerDemo: View {
             firstName: "Demo",
             lastName: "User",
             phoneNumber: "123-456-7890",
-            storeCredit: 0.0
+            storeCredit: 0.0,
+            verified: true
         )
         
         let mockOrder = Order(
