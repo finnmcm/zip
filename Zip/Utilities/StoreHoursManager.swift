@@ -71,8 +71,21 @@ class StoreHoursManager {
         let now = Date()
         let calendar = Calendar.current
         let currentWeekday = calendar.component(.weekday, from: now)
+        let currentTime = calendar.dateComponents([.hour, .minute], from: now)
         let dayIndex = (currentWeekday + 5) % 7
         let days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        let today = days[dayIndex]
+        
+        // First check if there's an opening later today
+        if let todayHours = storeHours.first(where: { $0.day == today }) {
+            let openTime = parseTime(todayHours.openTime)
+            let currentMinutes = (currentTime.hour ?? 0) * 60 + (currentTime.minute ?? 0)
+            
+            // If current time is before opening time today, next opening is today
+            if currentMinutes < openTime {
+                return "Opens at \(todayHours.openTime) today"
+            }
+        }
         
         // Check next few days for opening
         for i in 1...7 {

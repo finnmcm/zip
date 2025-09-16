@@ -1084,7 +1084,7 @@ final class SupabaseService: SupabaseServiceProtocol {
             print("🔍 Zipper ID: \(zipperId)")
             
             // Update the order to assign it to the zipper and change status to in_progress
-            let response = try await supabase
+            let response: [OrderData] = try await supabase
             .from("orders")
             .update([
                 "fulfilled_by": zipperId,
@@ -1095,11 +1095,12 @@ final class SupabaseService: SupabaseServiceProtocol {
             .eq("status", value: "in_queue") // Double-check status hasn't changed
             .select() // Add select to get the updated row back
             .execute()
+            .value
             
-            print("🔍 Update response count: \(response.count ?? 0)")
+            print("🔍 Update response count: \(response.count)")
             
             // Check if any rows were affected
-            if response.count == nil || response.count == 0 {
+            if response.isEmpty {
                 print("❌ No order found with ID \(orderIdString) in queue status")
                 return false
             }
@@ -1153,7 +1154,7 @@ final class SupabaseService: SupabaseServiceProtocol {
             
             // Update the order status to delivered
             print("🔍 Updating order \(orderId.uuidString.lowercased()) from in_progress to delivered")
-            let orderUpdateResponse = try await supabase
+            let orderUpdateResponse: [OrderData] = try await supabase
                 .from("orders")
                 .update([
                     "status": "delivered",
@@ -1163,12 +1164,16 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .eq("status", value: "in_progress")
                 .select() // Add select to get the updated row back
                 .execute()
+                .value
             
-            print("🔍 Order update response: \(orderUpdateResponse)")
-            print("🔍 Order update response count: \(orderUpdateResponse.count ?? 0)")
+            print("🔍 Order update response count: \(orderUpdateResponse.count)")
             
             // Check if order update was successful
-            // If no exception was thrown, the update was successful
+            if orderUpdateResponse.isEmpty {
+                print("❌ No order found with ID \(orderId.uuidString.lowercased()) in progress status")
+                return false
+            }
+            
             print("✅ Successfully updated order status to delivered")
             
             // Update zipper statistics
