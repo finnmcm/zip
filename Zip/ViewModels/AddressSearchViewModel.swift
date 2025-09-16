@@ -184,11 +184,8 @@ class AddressSearchViewModel: NSObject, ObservableObject {
 extension AddressSearchViewModel: MKLocalSearchCompleterDelegate {
     func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
         DispatchQueue.main.async {
-            // Sort results by relevance score since MKLocalSearchCompletion doesn't have coordinates
-            // The search completer already provides results in a reasonable order
-            // We'll let the user's location bias the search region instead
-            self.searchResults = completer.results
-            self.isSearching = false
+            // Filter results to only show Evanston addresses
+            self.filterEvanstonAddresses(completer.results)
         }
     }
     
@@ -197,6 +194,17 @@ extension AddressSearchViewModel: MKLocalSearchCompleterDelegate {
         DispatchQueue.main.async {
             self.isSearching = false
         }
+    }
+    
+    private func filterEvanstonAddresses(_ results: [MKLocalSearchCompletion]) {
+        // Filter results to only include addresses in Evanston, IL
+        let evanstonResults = results.filter { result in
+            let fullAddress = "\(result.title), \(result.subtitle)"
+            return fullAddress.localizedCaseInsensitiveContains("Evanston")
+        }
+        
+        self.searchResults = evanstonResults
+        self.isSearching = false
     }
 }
 

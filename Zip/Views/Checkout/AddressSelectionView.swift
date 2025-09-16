@@ -3,8 +3,8 @@ import MapKit
 
 // Move delivery location outside the struct to avoid capturing self
 private let deliveryLocation = CLLocationCoordinate2D(
-    latitude: 42.05995,  // Your restaurant's coordinates
-    longitude: 87.67616
+    latitude: 42.0569,   // Northwestern University coordinates
+    longitude: -87.6754  // Note: negative longitude for western hemisphere
 )
 
 struct AddressSelectionView: View {
@@ -118,45 +118,6 @@ struct AddressSelectionView: View {
             }
             
             Spacer()
-            
-        HStack{
-            Button {
-                leaveAtDoor = true
-                checkoutViewModel.deliveryInstructions = "Leave at door"
-            } label: {
-                RoundedRectangle(cornerRadius: 10.0)
-                .stroke(leaveAtDoor ? AppColors.accent : AppColors.textSecondary, lineWidth: 2)
-                .frame(maxWidth: .infinity)
-                .frame(width: 180, height: 50)
-                .overlay(
-                    Label("Leave at Door", systemImage: "door.left.hand.open")
-                    .foregroundStyle(leaveAtDoor ? AppColors.accent : AppColors.textSecondary)
-                        .font(.headline)
-                        .foregroundStyle(AppColors.accent)
-                )
-            }
-            Button {
-                leaveAtDoor = false
-                checkoutViewModel.deliveryInstructions = "Meet at door"
-            } label: {
-                RoundedRectangle(cornerRadius: 10.0)
-                .stroke(!leaveAtDoor ? AppColors.accent : AppColors.textSecondary, lineWidth: 2)
-                .frame(maxWidth: .infinity)
-                .frame(width: 180, height: 50)
-                .overlay(
-                    Label("Meet at Door", systemImage: "person.2")
-                    .foregroundStyle(!leaveAtDoor ? AppColors.accent : AppColors.textSecondary)
-                        .font(.headline)
-                        .foregroundStyle(AppColors.accent)
-                )
-            }
-        }
-        .padding(.top, AppMetrics.spacingLarge)
-        }
-        .alert("Out of Delivery Range", isPresented: $showingOutOfRangeAlert) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text("Sorry, we only deliver within 1 mile of our location.")
         }
     }
     

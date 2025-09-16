@@ -248,7 +248,7 @@ struct CategoryCard: View {
         }
         .buttonStyle(.plain)
             // Featured Products Section
-            if !featuredProducts.isEmpty {
+          /*  if !featuredProducts.isEmpty {
                 VStack(alignment: .leading, spacing: AppMetrics.spacingSmall) {
                     
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -260,7 +260,7 @@ struct CategoryCard: View {
                         }
                     }
                 }
-            }
+            }*/
             
             /*
             RoundedRectangle(cornerRadius: 20.0)
