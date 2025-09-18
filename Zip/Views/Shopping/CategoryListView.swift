@@ -34,7 +34,7 @@ struct CategoryListView: View {
                     // Order status banner at the top
                     if let activeOrder = orderStatusViewModel.activeOrder {
                         OrderStatusBannerContainer(
-                            activeOrder: orderStatusViewModel.activeOrder,
+                            activeOrder: activeOrder,
                             onBannerDismiss: {
                                 orderStatusViewModel.dismissBanner()
                             }
@@ -225,14 +225,29 @@ struct CategoryCard: View {
         return Array(categoryProducts.prefix(4))
     }
     
+    // Helper to determine if we should use a system image or asset image
+    private var isAssetImage: Bool {
+        return category == .foodsnacks || category == .chipscandy
+    }
+    
     var body: some View {
         VStack(spacing: AppMetrics.spacing) {
         NavigationLink(destination: ProductListView(category: category, cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel, authViewModel: authViewModel)) {
             HStack{
-                Image(systemName: category.iconName)
-                .foregroundStyle(AppColors.northwesternPurple)
-                .font(.title)
-                .padding(.top, 10)
+                if isAssetImage {
+                    Image(category.iconName)
+                        .resizable()
+                        .renderingMode(.template)
+                        .foregroundColor(AppColors.northwesternPurple)
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: category == .foodsnacks ? 34 : 44, height: category == .foodsnacks ? 34 : 44)
+                        .padding(.top, 10)
+                } else {
+                    Image(systemName: category.iconName)
+                        .foregroundStyle(AppColors.northwesternPurple)
+                        .font(.title)
+                        .padding(.top, 10)
+                }
             Text(category.displayName)
                 .font(.title)
                 .foregroundStyle(AppColors.textPrimary)
@@ -269,10 +284,20 @@ struct CategoryCard: View {
             .foregroundStyle(.white)
             .overlay {
                 HStack{
-                    Image(systemName: category.iconName)
-                    .foregroundStyle(AppColors.northwesternPurple)
-                    .padding(.leading, 20)
-                    .font(.title)
+                    if isAssetImage {
+                        Image(category.iconName)
+                            .resizable()
+                            .renderingMode(.template)
+                            .foregroundColor(AppColors.northwesternPurple)
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 24, height: 24)
+                            .padding(.leading, 20)
+                    } else {
+                        Image(systemName: category.iconName)
+                            .foregroundStyle(AppColors.northwesternPurple)
+                            .padding(.leading, 20)
+                            .font(.title)
+                    }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(category.displayName)

@@ -1,11 +1,13 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 struct ZipperView: View {
     @ObservedObject var authViewModel: AuthViewModel
     @StateObject private var viewModel: ZipperViewModel
     @State private var showingOrderDetail = false
     @State private var selectedOrder: Order?
+    @State private var showCamera = false
     
     init(authViewModel: AuthViewModel) {
         self.authViewModel = authViewModel
@@ -51,12 +53,21 @@ struct ZipperView: View {
             ActiveOrderView(
                 order: viewModel.activeOrder!,
                 onCompleteOrder: {
-                    Task {
-                        await viewModel.completeOrder()
-                    }
+                    showCamera = true
                 }
             )
             .interactiveDismissDisabled(true)
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPickerInlineView(
+                    onImagePicked: { image in
+                        showCamera = false
+                        Task { await viewModel.completeOrder(with: image) }
+                    },
+                    onCancel: {
+                        showCamera = false
+                    }
+                )
+            }
         } else {
             // Show pending orders list
             PendingOrdersView(
@@ -364,6 +375,33 @@ struct PendingOrderRow: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter
+    }
+}
+
+// MARK: - Inline Camera Picker
+struct CameraPickerInlineView: UIViewControllerRepresentable {
+    var onImagePicked: (UIImage) -> Void
+    var onCancel: () -> Void
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.allowsEditing = false
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    
+    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        let parent: CameraPickerInlineView
+        init(_ parent: CameraPickerInlineView) { self.parent = parent }
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { parent.onCancel() }
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage { parent.onImagePicked(image) } else { parent.onCancel() }
+        }
     }
 }
 

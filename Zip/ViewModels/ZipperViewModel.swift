@@ -5,6 +5,7 @@
 
 import Foundation
 import SwiftUI
+import UIKit
 
 @MainActor
 final class ZipperViewModel: ObservableObject {
@@ -135,6 +136,36 @@ final class ZipperViewModel: ObservableObject {
                 print("✅ Successfully completed order: \(activeOrder.id)")
                 
                 // Load pending orders after completing current order
+                await loadPendingOrders()
+            } else {
+                errorMessage = "Failed to complete order. Please try again."
+            }
+        } catch {
+            print("❌ Error completing order: \(error)")
+            errorMessage = "Failed to complete order. Please try again."
+        }
+        
+        isLoading = false
+    }
+
+    func completeOrder(with photo: UIImage) async {
+        guard let activeOrder = activeOrder else {
+            errorMessage = "No active order to complete."
+            return
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        successMessage = nil
+        
+        do {
+            // For now, just complete the order without uploading the photo
+            // The photo is captured and can be used for future implementation
+            let success = try await supabaseService.completeOrder(orderId: activeOrder.id)
+            if success {
+                self.activeOrder = nil
+                successMessage = "Order completed successfully! Photo captured."
+                print("✅ Successfully completed order with photo: \(activeOrder.id)")
                 await loadPendingOrders()
             } else {
                 errorMessage = "Failed to complete order. Please try again."

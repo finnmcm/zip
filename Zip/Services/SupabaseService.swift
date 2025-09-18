@@ -90,6 +90,7 @@ final class SupabaseService: SupabaseServiceProtocol {
     var isClientConfigured: Bool {
         return supabase != nil
     }
+
     
     // MARK: - Product Operations
     func fetchProducts() async throws -> [Product] {

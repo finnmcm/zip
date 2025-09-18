@@ -18,11 +18,11 @@ enum ProductCategory: String, CaseIterable, Codable {
     
     var iconName: String {
         switch self {
-        case .drinks: return "waterbottle.fill"
-        case .foodsnacks: return "birthday.cake"
-        case .chipscandy: return "birthday.cake"
-        case .misc: return "book.fill"
-        case .medical: return "heart.fill"
+        case .drinks: return "waterbottle"
+        case .foodsnacks: return "foodsnacks"
+        case .chipscandy: return "chipscandy"
+        case .misc: return "book"
+        case .medical: return "heart"
         }
     }
 }
