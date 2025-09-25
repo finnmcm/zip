@@ -43,6 +43,7 @@ final class FCMService: NSObject, ObservableObject {
     // MARK: - Initialization
     override init() {
         super.init()
+        print("🔍 DEBUG: FCMService init - logging is working!")
         setupFCM()
         loadStoredData()
         setupPeriodicTokenRefresh()
@@ -63,6 +64,11 @@ final class FCMService: NSObject, ObservableObject {
         // Configure FCM
         Messaging.messaging().isAutoInitEnabled = true
         print("✅ FCM: FCM auto-init enabled")
+        
+        // Check FCM configuration
+        print("🔍 FCM: Checking FCM configuration...")
+        print("🔍 FCM: FCM app: \(Messaging.messaging().app)")
+        print("🔍 FCM: FCM isAutoInitEnabled: \(Messaging.messaging().isAutoInitEnabled)")
         
         print("🎯 FCM: FCM setup completed successfully")
     }
@@ -177,6 +183,7 @@ final class FCMService: NSObject, ObservableObject {
                 self.fcmToken = token
             }
             print("✅ FCM: Successfully retrieved FCM token")
+            print("🔍 FCM: Full FCM token for testing: \(token)")
             return token
         } catch {
             print("❌ FCM: Failed to get FCM token: \(error)")
@@ -271,9 +278,12 @@ final class FCMService: NSObject, ObservableObject {
     
     // MARK: - Notification Handling
     func handleNotification(_ userInfo: [AnyHashable: Any]) {
-        print("📨 FCM: Handling notification with userInfo: \(userInfo)")
+        print("📨 FCM: ===== NOTIFICATION RECEIVED =====")
+        print("📨 FCM: Full userInfo: \(userInfo)")
+        print("📨 FCM: App state: \(UIApplication.shared.applicationState.rawValue)")
         guard let aps = userInfo["aps"] as? [String: Any] else {
             print("⚠️ FCM: No APS data in notification")
+            print("⚠️ FCM: Available keys: \(userInfo.keys)")
             return
         }
         print("📨 FCM: APS data found: \(aps)")
@@ -533,6 +543,18 @@ extension FCMService: MessagingDelegate {
             }
         }
     }
+    
+    // Add this method to debug FCM message reception
+    nonisolated func messaging(_ messaging: Messaging, didReceive remoteMessage: MessagingRemoteMessage) {
+        print("📨 FCM: ===== FCM MESSAGE RECEIVED =====")
+        print("📨 FCM: Remote message: \(remoteMessage)")
+        print("📨 FCM: Message ID: \(remoteMessage.messageID ?? "nil")")
+        print("📨 FCM: Data: \(remoteMessage.appData)")
+        
+        Task { @MainActor in
+            handleNotification(remoteMessage.appData)
+        }
+    }
 }
 
 // MARK: - UNUserNotificationCenterDelegate
@@ -542,6 +564,10 @@ extension FCMService: UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        print("📨 FCM: ===== FOREGROUND NOTIFICATION =====")
+        print("📨 FCM: Notification received while app is in foreground")
+        print("📨 FCM: Notification content: \(notification.request.content)")
+        
         // Handle notification when app is in foreground
         let userInfo = notification.request.content.userInfo
         Task { @MainActor in
@@ -549,6 +575,7 @@ extension FCMService: UNUserNotificationCenterDelegate {
         }
         
         // Show notification even when app is in foreground
+        print("📨 FCM: Showing notification with banner, badge, and sound")
         completionHandler([.banner, .badge, .sound])
     }
     
@@ -557,6 +584,10 @@ extension FCMService: UNUserNotificationCenterDelegate {
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
+        print("📨 FCM: ===== NOTIFICATION TAPPED =====")
+        print("📨 FCM: User tapped on notification")
+        print("📨 FCM: Response action: \(response.actionIdentifier)")
+        
         // Handle notification tap
         let userInfo = response.notification.request.content.userInfo
         Task { @MainActor in
@@ -587,5 +618,36 @@ extension FCMService {
     /// Check if notifications are enabled for a specific type
     func isEnabled(for type: NotificationType) -> Bool {
         return notificationSettings.isEnabled(for: type)
+    }
+    
+    /// Test local notification to verify notification system works
+    func testLocalNotification() async {
+        print("🔔 FCM: Testing local notification...")
+        
+        // Check current notification settings
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        print("🔔 FCM: Current notification settings:")
+        print("  - Authorization: \(settings.authorizationStatus.rawValue)")
+        print("  - Alert: \(settings.alertSetting.rawValue)")
+        print("  - Badge: \(settings.badgeSetting.rawValue)")
+        print("  - Sound: \(settings.soundSetting.rawValue)")
+        print("  - App state: \(UIApplication.shared.applicationState.rawValue)")
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Test Local Notification"
+        content.body = "This is a test to verify notification system works"
+        content.sound = .default
+        content.badge = 1
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+        let request = UNNotificationRequest(identifier: "test-notification", content: content, trigger: trigger)
+        
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            print("✅ FCM: Local notification scheduled successfully")
+            print("🔔 FCM: Notification will appear in 1 second...")
+        } catch {
+            print("❌ FCM: Failed to schedule local notification: \(error)")
+        }
     }
 }

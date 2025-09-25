@@ -9,6 +9,7 @@ import Inject
 struct ProfileView: View {
     @ObserveInjection var inject
     @ObservedObject var authViewModel: AuthViewModel
+    @StateObject private var fcmService = FCMService.shared
     
     var body: some View {
         NavigationStack {
@@ -95,6 +96,19 @@ struct ProfileView: View {
                                 icon: "ladybug",
                                 title: "Report a Bug",
                                 subtitle: "Zip is still in development. Get paid to make it better"
+                            )
+                        }
+                        
+                        // Debug: Test notification button
+                        Button(action: {
+                            Task {
+                                await fcmService.testLocalNotification()
+                            }
+                        }) {
+                            ProfileOptionRow(
+                                icon: "bell.badge",
+                                title: "Test Notification",
+                                subtitle: "Test local notification system"
                             )
                         }
                         
