@@ -63,6 +63,22 @@ struct ProfileView: View {
                             )
                         }
                         
+                        NavigationLink(destination: NotificationCenterView()) {
+                            ProfileOptionRow(
+                                icon: "bell",
+                                title: "Notifications",
+                                subtitle: "View your notifications"
+                            )
+                        }
+                        
+                        NavigationLink(destination: NotificationSettingsView()) {
+                            ProfileOptionRow(
+                                icon: "bell.badge",
+                                title: "Notification Settings",
+                                subtitle: "Manage your notification preferences"
+                            )
+                        }
+                        
                         ProfileOptionRow(
                             icon: "creditcard",
                             title: "Payment Methods",
@@ -81,6 +97,7 @@ struct ProfileView: View {
                                 subtitle: "Zip is still in development. Get paid to make it better"
                             )
                         }
+                        
                         
                     }
                     .padding(.horizontal, AppMetrics.spacingLarge)

@@ -30,14 +30,14 @@ final class ShoppingViewModel: ObservableObject {
             print("✅ Successfully loaded \(products.count) products from Supabase")
             
             // Debug: Print image information for each product
-            for product in products {
+           /* for product in products {
                 print("🔍 Product: \(product.displayName)")
                 print("   - Primary Image URL: \(product.primaryImageURL ?? "nil")")
                 print("   - Images count: \(product.images.count)")
                 for (index, image) in product.images.enumerated() {
                     print("   - Image \(index): \(image.imageURL)")
                 }
-            }
+            }*/
         } catch {
             print("❌ Error loading products from Supabase: \(error)")
             errorMessage = "Failed to load products. Please try again."

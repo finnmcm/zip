@@ -21,6 +21,7 @@ final class User: Identifiable, Codable, Equatable {
     var storeCredit: Decimal
     var role: UserRole
     var verified: Bool
+    var fcmToken: String?
     var createdAt: Date
     var updatedAt: Date
     
@@ -32,7 +33,7 @@ final class User: Identifiable, Codable, Equatable {
     // Relationships - will be handled manually since we're not using SwiftData
     var orders: [Order] = []
     
-    init(id: String, email: String, firstName: String, lastName: String, phoneNumber: String, storeCredit: Decimal = 0.0, role: UserRole = .customer, verified: Bool = false, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(id: String, email: String, firstName: String, lastName: String, phoneNumber: String, storeCredit: Decimal = 0.0, role: UserRole = .customer, verified: Bool = false, fcmToken: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.email = email
         self.firstName = firstName
@@ -41,6 +42,7 @@ final class User: Identifiable, Codable, Equatable {
         self.storeCredit = storeCredit
         self.role = role
         self.verified = verified
+        self.fcmToken = fcmToken
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -55,6 +57,7 @@ final class User: Identifiable, Codable, Equatable {
         case storeCredit = "store_credit"
         case role
         case verified
+        case fcmToken = "fcm_token"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -70,6 +73,7 @@ final class User: Identifiable, Codable, Equatable {
         storeCredit = try container.decode(Decimal.self, forKey: .storeCredit)
         role = try container.decode(UserRole.self, forKey: .role)
         verified = try container.decode(Bool.self, forKey: .verified)
+        fcmToken = try container.decodeIfPresent(String.self, forKey: .fcmToken)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
@@ -85,6 +89,7 @@ final class User: Identifiable, Codable, Equatable {
         try container.encode(storeCredit, forKey: .storeCredit)
         try container.encode(role, forKey: .role)
         try container.encode(verified, forKey: .verified)
+        try container.encodeIfPresent(fcmToken, forKey: .fcmToken)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
     }
@@ -105,6 +110,7 @@ struct AuthUser: Codable {
     let storeCredit: Decimal
     let role: UserRole
     let verified: Bool
+    let fcmToken: String?
     let createdAt: Date
     let updatedAt: Date
     
@@ -117,6 +123,7 @@ struct AuthUser: Codable {
         case storeCredit = "store_credit"
         case role
         case verified
+        case fcmToken = "fcm_token"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -131,6 +138,7 @@ struct AuthUser: Codable {
             storeCredit: storeCredit,
             role: role,
             verified: verified,
+            fcmToken: fcmToken,
             createdAt: createdAt,
             updatedAt: updatedAt
         )

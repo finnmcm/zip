@@ -10,5 +10,13 @@
 	<string>https://wsctzrofxhluocxeekor.supabase.co</string>
 	<key>NSCameraUsageDescription</key>
 	<string>We need camera access so delivery drivers can take delivery proof photos.</string>
+	<key>FIREBASE_API_KEY</key>
+	<string>AIzaSyChShN-YsZUwBClrI0Q39VVRNYDx2Gr5qk</string>
+	<key>FIREBASE_SENDER_ID</key>
+	<string>568558202837</string>
+	<key>FIREBASE_PROJECT_ID</key>
+	<string>zip-push</string>
+	<key>FIREBASE_GOOGLE_APP_ID</key>
+	<string>1:568558202837:ios:d182f62b33f074be8cd75c</string>
 </dict>
 </plist>

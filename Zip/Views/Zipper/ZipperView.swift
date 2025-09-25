@@ -52,8 +52,16 @@ struct ZipperView: View {
             // Show active order with unclosable sheet
             ActiveOrderView(
                 order: viewModel.activeOrder!,
+                capturedImage: viewModel.capturedImage,
                 onCompleteOrder: {
-                    showCamera = true
+                    if viewModel.capturedImage == nil {
+                        showCamera = true
+                    } else {
+                        Task { await viewModel.completeOrder() }
+                    }
+                },
+                onClearImage: {
+                    viewModel.clearCapturedImage()
                 }
             )
             .interactiveDismissDisabled(true)
@@ -61,7 +69,7 @@ struct ZipperView: View {
                 CameraPickerInlineView(
                     onImagePicked: { image in
                         showCamera = false
-                        Task { await viewModel.completeOrder(with: image) }
+                        viewModel.capturePhoto(image)
                     },
                     onCancel: {
                         showCamera = false
@@ -91,7 +99,9 @@ struct ZipperView: View {
 // MARK: - Active Order View
 struct ActiveOrderView: View {
     let order: Order
+    let capturedImage: UIImage?
     let onCompleteOrder: () -> Void
+    let onClearImage: () -> Void
     
     var body: some View {
         VStack(spacing: AppMetrics.spacingLarge) {
@@ -207,11 +217,47 @@ struct ActiveOrderView: View {
             
             Spacer()
             
+            // Captured Image Section
+            if let capturedImage = capturedImage {
+                VStack(spacing: AppMetrics.spacing) {
+                    Text("Delivery Photo")
+                        .font(.headline)
+                        .foregroundColor(AppColors.textPrimary)
+                    
+                    Image(uiImage: capturedImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxHeight: 200)
+                        .cornerRadius(AppMetrics.cornerRadius)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppMetrics.cornerRadius)
+                                .stroke(AppColors.accent, lineWidth: 2)
+                        )
+                    
+                    Button(action: onClearImage) {
+                        HStack {
+                            Image(systemName: "trash")
+                            Text("Remove Photo")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.horizontal, AppMetrics.spacing)
+                        .padding(.vertical, 8)
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(AppMetrics.cornerRadius)
+                    }
+                }
+                .padding(AppMetrics.spacing)
+                .background(AppColors.secondaryBackground)
+                .cornerRadius(AppMetrics.cornerRadius)
+                .padding(.horizontal, AppMetrics.spacing)
+            }
+            
             // Complete Order Button
             Button(action: onCompleteOrder) {
                 HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                    Text("Complete Order")
+                    Image(systemName: capturedImage != nil ? "checkmark.circle.fill" : "camera.fill")
+                    Text(capturedImage != nil ? "Complete Order" : "Take Photo")
                 }
                 .font(.headline)
                 .foregroundColor(.white)

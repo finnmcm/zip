@@ -154,7 +154,8 @@ extension OrderTrackingViewModel {
             lastName: "Doe",
             phoneNumber: "123-456-7890",
             storeCredit: 0.0,
-            verified: true
+            verified: true,
+            fcmToken: nil
         )
         
         let mockOrder = Order(

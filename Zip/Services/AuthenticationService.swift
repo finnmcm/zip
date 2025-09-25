@@ -22,12 +22,16 @@ protocol AuthenticationServiceProtocol {
 }
 
 final class AuthenticationService: AuthenticationServiceProtocol {
+    // MARK: - Singleton
+    static let shared = AuthenticationService()
+    
     // MARK: - Properties
     private var supabase: SupabaseClient?
     private let configuration = Configuration.shared
+    private lazy var supabaseService = SupabaseService.shared
     
     // MARK: - Initialization
-    init() {
+    private init() {
         setupSupabaseClient()
     }
     
@@ -83,9 +87,13 @@ final class AuthenticationService: AuthenticationServiceProtocol {
                 phoneNumber: phoneNumber, 
                 storeCredit: 0.0, 
                 role: role,
-                verified: false
+                verified: false,
+                fcmToken: nil
             )
             print("Creating user profile:", newUser)
+            
+            // Register FCM token for new user after profile creation
+            await FCMService.shared.onUserLogin()
                 
             return newUser
             
@@ -143,6 +151,37 @@ final class AuthenticationService: AuthenticationServiceProtocol {
             let user = session.user
             let userID = user.id.uuidString.lowercased()
             
+            print("🔍 AuthenticationService: Session user ID: \(userID)")
+            print("🔍 AuthenticationService: Session user email: \(user.email ?? "nil")")
+            
+            // First, let's check if the user exists in the users table
+            let userExistsResponse = try await supabase
+                .from("users")
+                .select("id, email")
+                .eq("id", value: userID)
+                .execute()
+            
+            print("🔍 AuthenticationService: User exists query result: \(userExistsResponse)")
+            
+            // If no user found, wait a bit and try again (for timing issues)
+            if userExistsResponse.data.isEmpty {
+                print("⚠️ AuthenticationService: No user found, waiting 2 seconds and retrying...")
+                try await Task.sleep(nanoseconds: 2_000_000_000) // 2 seconds
+                
+                let retryResponse = try await supabase
+                    .from("users")
+                    .select("id, email")
+                    .eq("id", value: userID)
+                    .execute()
+                
+                print("🔍 AuthenticationService: Retry query result: \(retryResponse)")
+                
+                if retryResponse.data.isEmpty {
+                    print("❌ AuthenticationService: User still not found after retry")
+                    throw AuthError.userNotFound
+                }
+            }
+            
             // Fetch user profile from database
             let profileResponse: User = try await supabase
                 .from("users")
@@ -157,6 +196,11 @@ final class AuthenticationService: AuthenticationServiceProtocol {
             
         } catch {
             print("❌ AuthenticationService: Error getting current user: \(error)")
+            print("❌ AuthenticationService: Error type: \(type(of: error))")
+            if let postgrestError = error as? PostgrestError {
+                print("❌ AuthenticationService: PostgrestError code: \(postgrestError.code ?? "nil")")
+                print("❌ AuthenticationService: PostgrestError message: \(postgrestError.message)")
+            }
             return nil
         }
     }

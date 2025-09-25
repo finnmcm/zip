@@ -96,7 +96,8 @@ struct EmailVerificationBanner: View {
                 firstName: "Test",
                 lastName: "User",
                 phoneNumber: "1234567890",
-                verified: false
+                verified: false,
+                fcmToken: nil
             ))
             Spacer()
         }

@@ -12,6 +12,7 @@ struct MainTabView: View {
     @ObservedObject var authViewModel: AuthViewModel
     @ObservedObject var shoppingViewModel: ShoppingViewModel
     @StateObject private var orderStatusViewModel = OrderStatusViewModel()
+    @StateObject private var fcmService = FCMService.shared
 
     
     init(cartViewModel: CartViewModel, authViewModel: AuthViewModel, shoppingViewModel: ShoppingViewModel) {
@@ -96,6 +97,7 @@ struct MainTabView: View {
                 .tabItem { 
                     Image(systemName: "person")
                 }
+                .badge(fcmService.unreadCount > 0 ? fcmService.unreadCount : 0)
             if authViewModel.currentUser?.role == .admin {
                 AdminView(authViewModel: authViewModel)
                     .tabItem { 

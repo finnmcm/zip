@@ -5,6 +5,7 @@
 
 import Foundation
 import Supabase
+import UIKit
 
 // MARK: - Zipper Statistics Result
 struct ZipperStatsResult: Codable {
@@ -41,17 +42,22 @@ protocol SupabaseServiceProtocol {
     func fetchPendingOrders() async throws -> [Order]
     func fetchActiveOrderForZipper(zipperId: String) async throws -> Order?
     func acceptOrder(orderId: UUID, zipperId: String) async throws -> Bool
-    func completeOrder(orderId: UUID) async throws -> Bool
+    func completeOrder(orderId: UUID, photo: UIImage?) async throws -> Bool
+    func uploadOrderCompletionPhoto(orderId: UUID, photo: UIImage) async throws -> String?
     
     // MARK: - Statistics Operations
     func fetchNumUsers() async throws -> Int
     func fetchZipperStats() async throws -> ZipperStatsResult
+    
     
     // MARK: - Inventory Operations
     func fetchLowStockItems() async throws -> [Product]
     
     // MARK: - Bug Report Operations
     func submitBugReport(userId: String, title: String, description: String) async throws -> Bool
+    
+    // MARK: - FCM Token Operations
+    func registerFCMToken(token: String, deviceId: String, platform: String, appVersion: String) async throws -> Bool
 }
 
 final class SupabaseService: SupabaseServiceProtocol {
@@ -104,6 +110,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .order("created_at", ascending: false)
                     .execute()
                     .value
+                    
                 
                 print("✅ Successfully fetched \(response.count) products from Supabase")
                 if response.isEmpty {
@@ -144,6 +151,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .eq("id", value: id)
                     .execute()
                     .value
+                    
                 
                 guard let product = response.first else {
                     return nil
@@ -199,6 +207,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .order("created_at", ascending: true)
                     .execute()
                     .value
+                    
                 
                 print("✅ Successfully fetched \(response.count) product images for \(productIds.count) products from Supabase")
                 return response
@@ -223,6 +232,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .order("quantity", ascending: true)
                     .execute()
                     .value
+                    
                 
                 print("✅ Successfully fetched \(response.count) low stock items from Supabase")
                 
@@ -394,6 +404,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .order("created_at", ascending: false)
                 .execute()
                 .value
+                
             
             var orders: [Order] = []
             
@@ -412,6 +423,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .eq("order_id", value: orderData.id)
                     .execute()
                     .value
+                    
                 
                 // Convert order items to CartItems
                 var cartItems: [CartItem] = []
@@ -423,6 +435,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                         .eq("id", value: itemData.product_id)
                         .execute()
                         .value
+                        
                     
                     if let productData = productResponse.first {
                         // Parse product category
@@ -478,6 +491,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     phoneNumber: "", // Will be populated when we fetch user details
                     storeCredit: 0.0,
                     verified: false, // Will be populated when we fetch user details
+                    fcmToken: nil,
                     createdAt: createdAt,
                     updatedAt: updatedAt
                 )
@@ -541,6 +555,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .single()
                 .execute()
                 .value
+                
             
             if let orderData = orderData {
                 // Fetch order items for this order
@@ -550,6 +565,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .eq("order_id", value: orderData.id)
                     .execute()
                     .value
+                    
                 
                 // Convert order items to CartItems
                 var cartItems: [CartItem] = []
@@ -561,6 +577,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                         .eq("id", value: itemData.product_id)
                         .execute()
                         .value
+                        
                     
                     if let productData = productResponse.first {
                         // Parse product category
@@ -613,6 +630,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     phoneNumber: "", // Will be populated when we fetch user details
                     storeCredit: 0.0,
                     verified: false, // Will be populated when we fetch user details
+                    fcmToken: nil,
                     createdAt: createdAt,
                     updatedAt: updatedAt
                 )
@@ -663,6 +681,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .eq("id", value: userId)
                 .execute()
                 .value
+                
             
             return response.first
         } catch {
@@ -684,6 +703,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .select()
                 .execute()
                 .value
+                
             
             return response.first
         } catch {
@@ -725,6 +745,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .select("id, orders_handled, revenue")
                 .execute()
                 .value
+                
             
             var zipperStats: [ZipperStatsResult.ZipperStats] = []
             var totalRevenue: Double = 0.0
@@ -766,6 +787,7 @@ final class SupabaseService: SupabaseServiceProtocol {
             throw SupabaseError.networkError(error)
         }
     }
+    
     
     /// Manually calls the Supabase database function 'update_order_status_and_inventory_by_order_id'
     /// This function is called when a user completes their order fully through store credit
@@ -838,6 +860,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .order("created_at", ascending: true)
                 .execute()
                 .value
+                
             
             var orders: [Order] = []
             
@@ -852,6 +875,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .eq("order_id", value: orderData.id)
                     .execute()
                     .value
+                    
                 
                 // Convert order items to CartItems
                 var cartItems: [CartItem] = []
@@ -863,6 +887,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                         .eq("id", value: itemData.product_id)
                         .execute()
                         .value
+                        
                     
                     if let productData = productResponse.first {
                         // Parse product category
@@ -914,6 +939,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     phoneNumber: "",
                     storeCredit: 0.0,
                     verified: false,
+                    fcmToken: nil,
                     createdAt: createdAt,
                     updatedAt: updatedAt
                 )
@@ -967,6 +993,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .limit(1)
                 .execute()
                 .value
+                
             
             guard let orderData = ordersResponse.first else {
                 return nil
@@ -979,6 +1006,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .eq("order_id", value: orderData.id)
                 .execute()
                 .value
+                
             
             // Convert order items to CartItems
             var cartItems: [CartItem] = []
@@ -990,6 +1018,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .eq("id", value: itemData.product_id)
                     .execute()
                     .value
+                    
                 
                 if let productData = productResponse.first {
                     // Parse product category
@@ -1098,6 +1127,7 @@ final class SupabaseService: SupabaseServiceProtocol {
             .execute()
             .value
             
+            
             print("🔍 Update response count: \(response.count)")
             
             // Check if any rows were affected
@@ -1115,7 +1145,7 @@ final class SupabaseService: SupabaseServiceProtocol {
         }
     }
     
-    func completeOrder(orderId: UUID) async throws -> Bool {
+    func completeOrder(orderId: UUID, photo: UIImage? = nil) async throws -> Bool {
         guard let supabase = supabase else {
             throw SupabaseError.clientNotConfigured
         }
@@ -1123,13 +1153,14 @@ final class SupabaseService: SupabaseServiceProtocol {
         do {
             // First, fetch the order details to get zipper ID and total amount
             print("🔍 Fetching order details for ID: \(orderId.uuidString.lowercased())")
-            let orderResponse: [OrderCompletionData] = try await supabase
+            let orderResponse: [OrderData] = try await supabase
                 .from("orders")
-                .select("id, fulfilled_by, total_amount")
+                .select()
                 .eq("id", value: orderId.uuidString.lowercased())
                 .eq("status", value: "in_progress")
                 .execute()
                 .value
+                
             
             print("🔍 Found \(orderResponse.count) orders matching criteria")
             
@@ -1166,6 +1197,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .select() // Add select to get the updated row back
                 .execute()
                 .value
+                
             
             print("🔍 Order update response count: \(orderUpdateResponse.count)")
             
@@ -1187,6 +1219,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .eq("id", value: zipperId.uuidString.lowercased())
                     .execute()
                     .value
+                    
                 
                 if let zipperData = zipperResponse.first {
                     let newOrdersHandled = zipperData.orders_handled + 1
@@ -1213,6 +1246,18 @@ final class SupabaseService: SupabaseServiceProtocol {
             } catch {
                 print("⚠️ Failed to update zipper statistics: \(error)")
                 // Don't fail the entire operation if zipper stats update fails
+            }
+            
+            // Upload photo if provided
+            if let photo = photo {
+                print("🔍 Uploading completion photo for order \(orderId)")
+                do {
+                    let photoURL = try await uploadOrderCompletionPhoto(orderId: orderId, photo: photo)
+                    print("✅ Successfully uploaded completion photo: \(photoURL ?? "unknown")")
+                } catch {
+                    print("⚠️ Failed to upload completion photo: \(error)")
+                    // Don't fail the entire operation if photo upload fails
+                }
             }
             
             print("✅ Successfully completed order \(orderId)")
@@ -1255,6 +1300,87 @@ final class SupabaseService: SupabaseServiceProtocol {
             throw SupabaseError.networkError(error)
         }
     }
+    
+    // MARK: - Image Upload Operations
+    
+    func uploadOrderCompletionPhoto(orderId: UUID, photo: UIImage) async throws -> String? {
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            // Convert UIImage to Data (JPEG format)
+            guard let imageData = photo.jpegData(compressionQuality: 0.8) else {
+                print("❌ Failed to convert UIImage to JPEG data")
+                throw SupabaseError.invalidResponse
+            }
+            
+            // Create a unique filename for the photo
+            let fileName = "\(orderId.uuidString)_\(Date().timeIntervalSince1970).jpg"
+            try await supabase.storage.from("deliveries").upload(fileName, data: imageData)
+
+            return orderId.uuidString
+            
+        } catch {
+            print("❌ Error uploading photo to Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    // MARK: - FCM Token Operations
+    
+    func registerFCMToken(token: String, deviceId: String, platform: String, appVersion: String) async throws -> Bool {
+        guard let supabase = supabase else {
+            print("❌ FCM: Supabase client not configured")
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        print("🔄 FCM: Calling upsert_user_fcm_token with params:")
+        print("  - p_token: \(token.prefix(20))...")
+        print("  - p_device_id: \(deviceId)")
+        print("  - p_platform: \(platform)")
+        print("  - p_app_version: \(appVersion)")
+        
+        do {
+            // Call the Supabase function to register the FCM token
+            let response = try await supabase
+                .rpc("upsert_user_fcm_token", params: [
+                    "p_token": token,
+                    "p_device_id": deviceId,
+                    "p_platform": platform,
+                    "p_app_version": appVersion
+                ])
+                .execute()
+            
+            print("📄 FCM: Raw response: \(response)")
+            
+            // Parse the response to check if it was successful
+            let data = response.data
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let success = json["success"] as? Bool {
+                if success {
+                    print("✅ FCM: Token registered successfully with Supabase")
+                    print("📄 FCM: Response details: \(json)")
+                    return true
+                } else {
+                    print("❌ FCM: Database function returned success: false")
+                    print("📄 FCM: Error from database: \(json["error"] ?? "Unknown error")")
+                    return false
+                }
+            } else {
+                print("⚠️ FCM: Could not parse response, assuming success")
+                print("📄 FCM: Raw response data: \(String(data: data, encoding: .utf8) ?? "No data")")
+                return true
+            }
+        
+        } catch {
+            print("❌ FCM: Failed to register token with Supabase: \(error)")
+            print("❌ FCM: Error type: \(type(of: error))")
+            print("❌ FCM: Error details: \(error.localizedDescription)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
 }
 
 // MARK: - Supabase Errors

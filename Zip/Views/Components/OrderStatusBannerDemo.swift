@@ -90,7 +90,9 @@ struct OrderStatusBannerDemo: View {
             lastName: "User",
             phoneNumber: "123-456-7890",
             storeCredit: 0.0,
-            verified: true
+            role: .customer,
+            verified: true,
+            fcmToken: nil
         )
         
         let mockOrder = Order(

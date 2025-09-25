@@ -27,8 +27,9 @@ final class AuthViewModel: ObservableObject {
     var onEmailVerificationSuccess: (() -> Void)?
 
     // MARK: - Services
-    private let authService = AuthenticationService()
+    private let authService = AuthenticationService.shared
     private let keychainService = KeychainService.shared
+    private let fcmService = FCMService.shared
     
     // MARK: - Verification Status Checking
     private var verificationCheckTimer: Timer?
@@ -97,6 +98,9 @@ final class AuthViewModel: ObservableObject {
             
             print("✅ User signed up successfully: \(user.email)")
             
+            // Initialize FCM for the authenticated user
+            await fcmService.onUserLogin()
+            
             // Start periodic verification checking for unverified users
             if !user.verified {
                 startVerificationStatusChecking()
@@ -149,6 +153,9 @@ final class AuthViewModel: ObservableObject {
             
             print("✅ User signed in successfully: \(user.email)")
             
+            // Initialize FCM for the authenticated user
+            await fcmService.onUserLogin()
+            
             // Start periodic verification checking for unverified users
             if !user.verified {
                 startVerificationStatusChecking()
@@ -178,6 +185,9 @@ final class AuthViewModel: ObservableObject {
             
             // Stop verification checking
             stopVerificationStatusChecking()
+            
+            // Clean up FCM for the logged out user
+            fcmService.onUserLogout()
             
             print("✅ User signed out successfully")
         } catch {
@@ -294,6 +304,9 @@ final class AuthViewModel: ObservableObject {
                 isAuthenticated = true
                 print("✅ Current user found: \(user.email)")
                 
+                // Initialize FCM for the authenticated user (keychain login)
+                await fcmService.onUserLogin()
+                
                 // Start periodic verification checking for unverified users
                 if !user.verified {
                     startVerificationStatusChecking()
@@ -332,6 +345,7 @@ final class AuthViewModel: ObservableObject {
                 storeCredit: currentUser.storeCredit,
                 role: currentUser.role,
                 verified: currentUser.verified,
+                fcmToken: currentUser.fcmToken,
                 createdAt: currentUser.createdAt,
                 updatedAt: currentUser.updatedAt
             )
@@ -397,6 +411,7 @@ final class AuthViewModel: ObservableObject {
                     storeCredit: currentUser.storeCredit,
                     role: currentUser.role,
                     verified: true,
+                    fcmToken: currentUser.fcmToken,
                     createdAt: currentUser.createdAt,
                     updatedAt: Date()
                 )
@@ -423,5 +438,61 @@ final class AuthViewModel: ObservableObject {
         }
     }
 }
-
-
+/*
+🔄 FCM: onUserLogin called
+🔔 FCM: Notification permission granted: true
+❌ FCM: No APNS token available. Requesting notification permission first...
+✅ APNS: Device token received
+✅ FCM: APNS token received: 8040c467fa8df8af22d52812fc1df9d1ab7a9a66a7f64b1db9aff546071dc24967a003634aa1fa3b10fe542c5cb06389eb6342e37ead43c763176b36a2931e975906dbc14a700db18dc2a46963630478
+✅ FCM: APNS token set for Firebase Messaging
+❌ FCM: Failed to get FCM token
+✅ User signed up successfully: Finnmcm@u.northwestern.edu
+🔄 FCM: onUserLogin called
+🔧 Configuration: Using SUPABASE_URL from Info.plist: https://wsctzrofxhluocxeekor.supabase.co
+🔧 Configuration: Using SUPABASE_KEY from Info.plist (length: 208)
+🔧 Configuration: Using SUPABASE_KEY from Info.plist (length: 208)
+🔧 Configuration: Using SUPABASE_KEY from Info.plist (length: 208)
+✅ Supabase client initialized successfully
+⏰ OrderStatusViewModel: Starting refresh timer with 30.0 second interval
+🚀 MainTabView: onAppear triggered
+🔗 MainTabView: Setting up OrderStatusViewModel callback...
+✅ MainTabView: OrderStatusViewModel callback set up successfully
+👤 MainTabView: User authenticated, refreshing orders for: Finnmcm@u.northwestern.edu
+🔍 EmailVerificationBanner: currentUser = Optional(Zip.User)
+🔍 EmailVerificationBanner: shouldShowBanner = true
+🔍 EmailVerificationBanner: Showing banner for user.verified = false
+🔍 EmailVerificationBanner: currentUser = Optional(Zip.User)
+🔍 EmailVerificationBanner: shouldShowBanner = true
+🔍 EmailVerificationBanner: Showing banner for user.verified = false
+🔄 MainTabView: Starting to refresh user orders for userId: 7ec6fdc6-25f8-4b21-8906-c4f7b9930dd2
+🔧 Configuration: Using SUPABASE_URL from Info.plist: https://wsctzrofxhluocxeekor.supabase.co
+🔧 Configuration: Using SUPABASE_KEY from Info.plist (length: 208)
+🔧 Configuration: Using SUPABASE_KEY from Info.plist (length: 208)
+🔧 Configuration: Using SUPABASE_KEY from Info.plist (length: 208)
+✅ Supabase client initialized successfully
+🔗 MainTabView: Supabase client configured: true
+📡 MainTabView: Fetching orders from Supabase...
+🔍 SupabaseService: Fetching products from database...
+🔔 FCM: Notification permission granted: true
+✅ APNS: Device token received
+✅ FCM: APNS token received: 8040c467fa8df8af22d52812fc1df9d1ab7a9a66a7f64b1db9aff546071dc24967a003634aa1fa3b10fe542c5cb06389eb6342e37ead43c763176b36a2931e975906dbc14a700db18dc2a46963630478
+✅ FCM: APNS token set for Firebase Messaging
+✅ Successfully fetched 0 orders for user: 7ec6fdc6-25f8-4b21-8906-c4f7b9930dd2
+✅ MainTabView: Successfully fetched 0 orders from Supabase
+👤 MainTabView: Updating user orders in AuthViewModel...
+👤 AuthViewModel: updateUserOrders called with 0 orders
+👤 AuthViewModel: Updating orders for user: Finnmcm@u.northwestern.edu
+✅ AuthViewModel: Updated user orders: 0 orders
+✅ MainTabView: User orders updated in AuthViewModel
+🎯 MainTabView: Loading active order from pre-fetched orders...
+🎯 OrderStatusViewModel: Loading active order from 0 pre-fetched orders
+ℹ️ OrderStatusViewModel: No active orders found in pre-fetched orders
+✅ MainTabView: Active order loaded from pre-fetched orders
+✅ Successfully fetched 143 products from Supabase
+✅ FCM: Successfully retrieved FCM token
+🎯 FCM: Got token, registering with Supabase: cN1sEJuZVEbHqlW_ic77...
+✅ Successfully fetched 143 product images for 143 products from Supabase
+✅ Successfully assigned 143 images to 143 products
+✅ Successfully loaded 143 products from Supabase
+❌ AuthenticationService: Error getting current user: PostgrestError(detail: nil, hint: nil, code: Optional("PGRST116"), message: "Cannot coerce the result to a single JSON object")
+*/

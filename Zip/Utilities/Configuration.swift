@@ -114,6 +114,87 @@ final class Configuration {
         }
     }
     
+    // MARK: - Firebase Configuration
+    var firebaseAPIKey: String {
+        // Read from Info.plist
+        if let key = Bundle.main.infoDictionary?["FIREBASE_API_KEY"] as? String, !key.isEmpty {
+            print("🔧 Configuration: Using FIREBASE_API_KEY from Info.plist (length: \(key.count))")
+            return key
+        }
+        
+        print("⚠️ Configuration: FIREBASE_API_KEY not found in Info.plist, using fallback")
+        
+        // Fallbacks
+        switch environment {
+        case .development:
+            return "YOUR_DEV_FIREBASE_API_KEY"
+        case .production:
+            return "YOUR_PROD_FIREBASE_API_KEY"
+        case .testing:
+            return "YOUR_TEST_FIREBASE_API_KEY"
+        }
+    }
+    
+    var firebaseSenderID: String {
+        // Read from Info.plist
+        if let senderID = Bundle.main.infoDictionary?["FIREBASE_SENDER_ID"] as? String, !senderID.isEmpty {
+            print("🔧 Configuration: Using FIREBASE_SENDER_ID from Info.plist: \(senderID)")
+            return senderID
+        }
+        
+        print("⚠️ Configuration: FIREBASE_SENDER_ID not found in Info.plist, using fallback")
+        
+        // Fallbacks
+        switch environment {
+        case .development:
+            return "YOUR_DEV_FIREBASE_SENDER_ID"
+        case .production:
+            return "YOUR_PROD_FIREBASE_SENDER_ID"
+        case .testing:
+            return "YOUR_TEST_FIREBASE_SENDER_ID"
+        }
+    }
+    
+    var firebaseProjectID: String {
+        // Read from Info.plist
+        if let projectID = Bundle.main.infoDictionary?["FIREBASE_PROJECT_ID"] as? String, !projectID.isEmpty {
+            print("🔧 Configuration: Using FIREBASE_PROJECT_ID from Info.plist: \(projectID)")
+            return projectID
+        }
+        
+        print("⚠️ Configuration: FIREBASE_PROJECT_ID not found in Info.plist, using fallback")
+        
+        // Fallbacks
+        switch environment {
+        case .development:
+            return "YOUR_DEV_FIREBASE_PROJECT_ID"
+        case .production:
+            return "YOUR_PROD_FIREBASE_PROJECT_ID"
+        case .testing:
+            return "YOUR_TEST_FIREBASE_PROJECT_ID"
+        }
+    }
+    
+    var firebaseGoogleAppID: String {
+        // Read from Info.plist
+        if let appID = Bundle.main.infoDictionary?["FIREBASE_GOOGLE_APP_ID"] as? String, !appID.isEmpty {
+            print("🔧 Configuration: Using FIREBASE_GOOGLE_APP_ID from Info.plist (length: \(appID.count))")
+            return appID
+        }
+        
+        print("⚠️ Configuration: FIREBASE_GOOGLE_APP_ID not found in Info.plist, using fallback")
+        
+        // Fallbacks
+        switch environment {
+        case .development:
+            return "YOUR_DEV_FIREBASE_GOOGLE_APP_ID"
+        case .production:
+            return "YOUR_PROD_FIREBASE_GOOGLE_APP_ID"
+        case .testing:
+            return "YOUR_TEST_FIREBASE_GOOGLE_APP_ID"
+        }
+    }
+    
     var stripeSecretKey: String {
         switch environment {
         case .development:
@@ -171,6 +252,23 @@ final class Configuration {
         // Check Stripe configuration
         if stripePublishableKey == "YOUR_DEV_STRIPE_PUBLISHABLE_KEY" || stripePublishableKey.isEmpty {
             errors.append("Stripe publishable key is not configured in Info.plist")
+        }
+        
+        // Check Firebase configuration
+        if firebaseAPIKey == "YOUR_DEV_FIREBASE_API_KEY" || firebaseAPIKey.isEmpty {
+            errors.append("Firebase API key is not configured in Info.plist")
+        }
+        
+        if firebaseSenderID == "YOUR_DEV_FIREBASE_SENDER_ID" || firebaseSenderID.isEmpty {
+            errors.append("Firebase sender ID is not configured in Info.plist")
+        }
+        
+        if firebaseProjectID == "YOUR_DEV_FIREBASE_PROJECT_ID" || firebaseProjectID.isEmpty {
+            errors.append("Firebase project ID is not configured in Info.plist")
+        }
+        
+        if firebaseGoogleAppID == "YOUR_DEV_FIREBASE_GOOGLE_APP_ID" || firebaseGoogleAppID.isEmpty {
+            errors.append("Firebase Google App ID is not configured in Info.plist")
         }
         
         return errors

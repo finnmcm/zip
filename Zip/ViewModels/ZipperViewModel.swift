@@ -14,6 +14,7 @@ final class ZipperViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var successMessage: String?
+    @Published var capturedImage: UIImage?
     
     // MARK: - Services
     private let supabaseService = SupabaseService()
@@ -75,6 +76,8 @@ final class ZipperViewModel: ObservableObject {
                 print("✅ Successfully loaded active order for zipper")
                 // Clear pending orders when we have an active order
                 pendingOrders = []
+                // Clear any captured image when loading a new order
+                capturedImage = nil
             } else {
                 print("ℹ️ No active order found for zipper")
                 // Load pending orders when we don't have an active order
@@ -103,6 +106,8 @@ final class ZipperViewModel: ObservableObject {
                 // Update local state
                 activeOrder = order
                 pendingOrders.removeAll { $0.id == order.id }
+                // Clear any captured image when accepting a new order
+                capturedImage = nil
                 successMessage = "Order accepted successfully!"
                 print("✅ Successfully accepted order: \(order.id)")
             } else {
@@ -116,6 +121,12 @@ final class ZipperViewModel: ObservableObject {
         isLoading = false
     }
     
+    func capturePhoto(_ photo: UIImage) {
+        // Store the captured image for display without uploading
+        capturedImage = photo
+        print("📸 Photo captured for order, ready for completion")
+    }
+    
     func completeOrder() async {
         guard let activeOrder = activeOrder else {
             errorMessage = "No active order to complete."
@@ -127,15 +138,17 @@ final class ZipperViewModel: ObservableObject {
         successMessage = nil
         
         do {
-            let success = try await supabaseService.completeOrder(orderId: activeOrder.id)
+            let success: Bool
+            
+            // Complete order with or without photo
+            success = try await supabaseService.completeOrder(orderId: activeOrder.id, photo: capturedImage)
+            print("✅ Successfully completed order\(capturedImage != nil ? " with photo" : ""): \(activeOrder.id)")
             
             if success {
-                // Clear active order and reload pending orders
+                let hadPhoto = capturedImage != nil
                 self.activeOrder = nil
-                successMessage = "Order completed successfully!"
-                print("✅ Successfully completed order: \(activeOrder.id)")
-                
-                // Load pending orders after completing current order
+                self.capturedImage = nil
+                successMessage = hadPhoto ? "Order completed successfully! Photo uploaded." : "Order completed successfully!"
                 await loadPendingOrders()
             } else {
                 errorMessage = "Failed to complete order. Please try again."
@@ -147,35 +160,9 @@ final class ZipperViewModel: ObservableObject {
         
         isLoading = false
     }
-
-    func completeOrder(with photo: UIImage) async {
-        guard let activeOrder = activeOrder else {
-            errorMessage = "No active order to complete."
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        successMessage = nil
-        
-        do {
-            // For now, just complete the order without uploading the photo
-            // The photo is captured and can be used for future implementation
-            let success = try await supabaseService.completeOrder(orderId: activeOrder.id)
-            if success {
-                self.activeOrder = nil
-                successMessage = "Order completed successfully! Photo captured."
-                print("✅ Successfully completed order with photo: \(activeOrder.id)")
-                await loadPendingOrders()
-            } else {
-                errorMessage = "Failed to complete order. Please try again."
-            }
-        } catch {
-            print("❌ Error completing order: \(error)")
-            errorMessage = "Failed to complete order. Please try again."
-        }
-        
-        isLoading = false
+    
+    func clearCapturedImage() {
+        capturedImage = nil
     }
     
     func refreshData() async {
