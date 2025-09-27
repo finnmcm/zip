@@ -58,6 +58,7 @@ protocol SupabaseServiceProtocol {
     
     // MARK: - FCM Token Operations
     func registerFCMToken(token: String, deviceId: String, platform: String, appVersion: String) async throws -> Bool
+    func sendPushNotification(fcmTokens: [String], title: String, body: String, data: [String: String]?, priority: String?, sound: String?, badge: Int?) async throws -> Bool
 }
 
 final class SupabaseService: SupabaseServiceProtocol {
@@ -1376,6 +1377,152 @@ final class SupabaseService: SupabaseServiceProtocol {
         } catch {
             print("❌ FCM: Failed to register token with Supabase: \(error)")
             print("❌ FCM: Error type: \(type(of: error))")
+            print("❌ FCM: Error details: \(error.localizedDescription)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    
+    
+    func sendPushNotification(fcmTokens: [String], title: String, body: String, data: [String: String]?, priority: String?, sound: String?, badge: Int?) async throws -> Bool {
+        guard let supabase = supabase else {
+            print("❌ FCM: Supabase client not configured")
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        print("📤 FCM: Sending push notification via zip-push edge function")
+        print("  - Title: \(title)")
+        print("  - Body: \(body)")
+        print("  - Tokens: \(fcmTokens.count) device(s)")
+        print("  - Priority: \(priority ?? "high")")
+        print("  - Sound: \(sound ?? "default")")
+        print("  - Badge: \(badge ?? 1)")
+        
+        do {
+            // Prepare the payload for the zip-push edge function
+            var payload: [String: Any] = [
+                "fcm_tokens": fcmTokens,
+                "title": title,
+                "body": body
+            ]
+            
+            // Add optional parameters if provided
+            if let data = data {
+                payload["data"] = data
+            }
+            if let priority = priority {
+                payload["priority"] = priority
+            }
+            if let sound = sound {
+                payload["sound"] = sound
+            }
+            if let badge = badge {
+                payload["badge"] = badge
+            }
+            
+            print("📤 FCM: Calling zip-push edge function with payload: \(payload)")
+            
+            // Create a struct that conforms to Encodable for the payload
+            struct PushNotificationPayload: Encodable {
+                let fcm_tokens: [String]
+                let title: String
+                let body: String
+                let data: [String: String]?
+                let priority: String?
+                let sound: String?
+                let badge: Int?
+                
+                init(fcmTokens: [String], title: String, body: String, data: [String: String]?, priority: String?, sound: String?, badge: Int?) {
+                    self.fcm_tokens = fcmTokens
+                    self.title = title
+                    self.body = body
+                    self.data = data
+                    self.priority = priority
+                    self.sound = sound
+                    self.badge = badge
+                }
+            }
+            
+            let pushPayload = PushNotificationPayload(
+                fcmTokens: fcmTokens,
+                title: title,
+                body: body,
+                data: data,
+                priority: priority,
+                sound: sound,
+                badge: badge
+            )
+            
+            // Call the zip-push edge function
+            let response: Any = try await supabase.functions
+                .invoke("push", options: FunctionInvokeOptions(body: pushPayload))
+            
+            print("📄 FCM: Edge function response: \(response)")
+            
+            // Parse the response
+            if let json = response as? [String: Any] {
+                print("📄 FCM: Response is a dictionary with keys: \(json.keys)")
+                
+                // Check for success field
+                if let success = json["success"] as? Bool {
+                    if success {
+                        print("✅ FCM: Push notification sent successfully")
+                        if let message = json["message"] as? String {
+                            print("📄 FCM: Message: \(message)")
+                        }
+                        if let summary = json["summary"] as? [String: Any] {
+                            print("📄 FCM: Summary: \(summary)")
+                            if let successful = summary["successful"] as? Int,
+                               let failed = summary["failed"] as? Int {
+                                print("📄 FCM: Results: \(successful) successful, \(failed) failed")
+                            }
+                        }
+                        if let results = json["results"] as? [[String: Any]] {
+                            print("📄 FCM: Detailed results for \(results.count) device(s)")
+                            for (index, result) in results.enumerated() {
+                                if let token = result["token"] as? String,
+                                   let success = result["success"] as? Bool {
+                                    print("📄 FCM: Device \(index + 1): \(token) - \(success ? "✅" : "❌")")
+                                }
+                            }
+                        }
+                        return true
+                    } else {
+                        print("❌ FCM: Edge function returned success: false")
+                        if let error = json["error"] as? String {
+                            print("📄 FCM: Error: \(error)")
+                        }
+                        return false
+                    }
+                } else {
+                    // If no success field, check if it's a successful response based on other indicators
+                    print("⚠️ FCM: No 'success' field found in response")
+                    print("📄 FCM: Available fields: \(json.keys)")
+                    
+                    // If we get a 200 response without a success field, assume it was successful
+                    if json.isEmpty {
+                        print("⚠️ FCM: Empty response - assuming success")
+                        return true
+                    } else {
+                        print("✅ FCM: Got response data - assuming success")
+                        return true
+                    }
+                }
+            } else if let stringResponse = response as? String {
+                print("📄 FCM: Response is a string: \(stringResponse)")
+                // If we get a string response and a 200 status, assume success
+                return true
+            } else {
+                print("⚠️ FCM: Could not parse edge function response")
+                print("📄 FCM: Raw response: \(response)")
+                
+                // If we got a 200 status but can't parse the response, assume success
+                print("✅ FCM: Got 200 status - assuming success despite parsing issues")
+                return true
+            }
+            
+        } catch {
+            print("❌ FCM: Failed to send push notification: \(error)")
             print("❌ FCM: Error details: \(error.localizedDescription)")
             throw SupabaseError.networkError(error)
         }

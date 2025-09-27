@@ -254,11 +254,6 @@ struct ConfigurationStatusView: View {
         let supabaseKey = infoDict["SUPABASE_KEY"] as? String
         let stripeKey = infoDict["STRIPE_PUBLISHABLE_KEY"] as? String
         
-        print("\n🔧 Info.plist Values:")
-        print("SUPABASE_URL: \(supabaseURL ?? "Not found")")
-        print("SUPABASE_KEY: \(supabaseKey?.isEmpty == false ? "Set (length: \(supabaseKey?.count ?? 0))" : "Not found")")
-        print("STRIPE_PUBLISHABLE_KEY: \(stripeKey?.isEmpty == false ? "Set (length: \(stripeKey?.count ?? 0))" : "Not found")")
-        
         // Test Configuration integration
         print("\n🔧 Configuration Integration:")
         print("Final supabaseURL: \(Configuration.shared.supabaseURL)")

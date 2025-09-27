@@ -115,6 +115,10 @@ struct AdminView: View {
                         TabButton(title: "Zippers", isSelected: selectedTab == 2) {
                             selectedTab = 2
                         }
+                        
+                        TabButton(title: "FCM Test", isSelected: selectedTab == 3) {
+                            selectedTab = 3
+                        }
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 4)
@@ -216,6 +220,10 @@ struct AdminView: View {
                             }
                         }
                         .tag(2)
+                        
+                        // FCM Testing Tab
+                        FCMTestView()
+                            .tag(3)
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                     .frame(height: 300)

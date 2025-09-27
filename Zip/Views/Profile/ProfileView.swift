@@ -10,6 +10,7 @@ struct ProfileView: View {
     @ObserveInjection var inject
     @ObservedObject var authViewModel: AuthViewModel
     @StateObject private var fcmService = FCMService.shared
+    private let supabaseService = SupabaseService.shared
     
     var body: some View {
         NavigationStack {
@@ -102,13 +103,32 @@ struct ProfileView: View {
                         // Debug: Test notification button
                         Button(action: {
                             Task {
-                                await fcmService.testLocalNotification()
+                                do {
+                                    // Get the current FCM token
+                                    guard let fcmToken = fcmService.fcmToken else {
+                                        print("❌ ProfileView: No FCM token available")
+                                        return
+                                    }
+                                    
+                                    let success = try await supabaseService.sendPushNotification(
+                                        fcmTokens: [fcmToken],
+                                        title: "🧪 Test Notification",
+                                        body: "This is a test notification sent via zip-push edge function",
+                                        data: ["type": "test", "source": "profile_view"],
+                                        priority: "high",
+                                        sound: "default",
+                                        badge: 1
+                                    )
+                                    print("📤 ProfileView: Test notification result: \(success)")
+                                } catch {
+                                    print("❌ ProfileView: Failed to send test notification: \(error)")
+                                }
                             }
                         }) {
                             ProfileOptionRow(
                                 icon: "bell.badge",
                                 title: "Test Notification",
-                                subtitle: "Test local notification system"
+                                subtitle: "Test zip-push edge function notification"
                             )
                         }
                         

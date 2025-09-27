@@ -15,3 +15,9 @@ enabled = true
 verify_jwt = false
 # Uses default import map
 entrypoint = "./functions/create-payment-intent/index.ts"
+
+[functions.send-test-notification]
+enabled = true
+verify_jwt = false
+import_map = "./functions/send-test-notification/deno.json"
+entrypoint = "./functions/send-test-notification/index.ts"

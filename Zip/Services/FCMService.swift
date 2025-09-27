@@ -67,7 +67,6 @@ final class FCMService: NSObject, ObservableObject {
         
         // Check FCM configuration
         print("🔍 FCM: Checking FCM configuration...")
-        print("🔍 FCM: FCM app: \(Messaging.messaging().app)")
         print("🔍 FCM: FCM isAutoInitEnabled: \(Messaging.messaging().isAutoInitEnabled)")
         
         print("🎯 FCM: FCM setup completed successfully")
@@ -281,22 +280,29 @@ final class FCMService: NSObject, ObservableObject {
         print("📨 FCM: ===== NOTIFICATION RECEIVED =====")
         print("📨 FCM: Full userInfo: \(userInfo)")
         print("📨 FCM: App state: \(UIApplication.shared.applicationState.rawValue)")
-        guard let aps = userInfo["aps"] as? [String: Any] else {
-            print("⚠️ FCM: No APS data in notification")
-            print("⚠️ FCM: Available keys: \(userInfo.keys)")
-            return
-        }
-        print("📨 FCM: APS data found: \(aps)")
         
         let title: String
         let body: String
         
-        // Extract title and body from APS alert
-        if let alert = aps["alert"] as? [String: Any] {
-            title = alert["title"] as? String ?? "Zip"
-            body = alert["body"] as? String ?? ""
-            print("📨 FCM: Extracted from APS alert - title: \(title), body: \(body)")
+        // Check if this is a remote notification with APS data
+        if let aps = userInfo["aps"] as? [String: Any] {
+            print("📨 FCM: APS data found: \(aps)")
+            
+            // Extract title and body from APS alert
+            if let alert = aps["alert"] as? [String: Any] {
+                title = alert["title"] as? String ?? "Zip"
+                body = alert["body"] as? String ?? ""
+                print("📨 FCM: Extracted from APS alert - title: \(title), body: \(body)")
+            } else {
+                title = userInfo["title"] as? String ?? "Zip"
+                body = userInfo["body"] as? String ?? ""
+                print("📨 FCM: Extracted from userInfo - title: \(title), body: \(body)")
+            }
         } else {
+            print("📨 FCM: No APS data - treating as local notification")
+            print("📨 FCM: Available keys: \(userInfo.keys)")
+            
+            // For local notifications, extract directly from userInfo
             title = userInfo["title"] as? String ?? "Zip"
             body = userInfo["body"] as? String ?? ""
             print("📨 FCM: Extracted from userInfo - title: \(title), body: \(body)")
@@ -544,17 +550,6 @@ extension FCMService: MessagingDelegate {
         }
     }
     
-    // Add this method to debug FCM message reception
-    nonisolated func messaging(_ messaging: Messaging, didReceive remoteMessage: MessagingRemoteMessage) {
-        print("📨 FCM: ===== FCM MESSAGE RECEIVED =====")
-        print("📨 FCM: Remote message: \(remoteMessage)")
-        print("📨 FCM: Message ID: \(remoteMessage.messageID ?? "nil")")
-        print("📨 FCM: Data: \(remoteMessage.appData)")
-        
-        Task { @MainActor in
-            handleNotification(remoteMessage.appData)
-        }
-    }
 }
 
 // MARK: - UNUserNotificationCenterDelegate
@@ -576,7 +571,18 @@ extension FCMService: UNUserNotificationCenterDelegate {
         
         // Show notification even when app is in foreground
         print("📨 FCM: Showing notification with banner, badge, and sound")
-        completionHandler([.banner, .badge, .sound])
+        print("📨 FCM: Notification title: \(notification.request.content.title)")
+        print("📨 FCM: Notification body: \(notification.request.content.body)")
+        print("📨 FCM: Notification badge: \(notification.request.content.badge?.intValue ?? 0)")
+        print("📨 FCM: Notification sound: \(notification.request.content.sound?.description ?? "none")")
+        
+        // Use the most permissive presentation options
+        // Note: In iOS 14+, we need to use the new presentation options
+        if #available(iOS 14.0, *) {
+            completionHandler([.banner, .badge, .sound, .list])
+        } else {
+            completionHandler([.alert, .badge, .sound])
+        }
     }
     
     nonisolated func userNotificationCenter(
@@ -620,6 +626,35 @@ extension FCMService {
         return notificationSettings.isEnabled(for: type)
     }
     
+    /// Check notification settings and provide detailed feedback
+    func checkNotificationSettings() async {
+        print("🔍 FCM: Checking notification settings...")
+        
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        print("🔍 FCM: Current notification settings:")
+        print("  - Authorization: \(settings.authorizationStatus.rawValue)")
+        print("  - Alert: \(settings.alertSetting.rawValue)")
+        print("  - Badge: \(settings.badgeSetting.rawValue)")
+        print("  - Sound: \(settings.soundSetting.rawValue)")
+        print("  - Lock Screen: \(settings.lockScreenSetting.rawValue)")
+        print("  - Notification Center: \(settings.notificationCenterSetting.rawValue)")
+        print("  - Car Play: \(settings.carPlaySetting.rawValue)")
+        print("  - Critical Alert: \(settings.criticalAlertSetting.rawValue)")
+        print("  - Announcement: \(settings.announcementSetting.rawValue)")
+        print("  - App state: \(UIApplication.shared.applicationState.rawValue)")
+        
+        // Check if notifications will work
+        if settings.authorizationStatus == .denied {
+            print("❌ FCM: Notifications are denied by user")
+        } else if settings.authorizationStatus == .notDetermined {
+            print("⚠️ FCM: Notification permission not determined")
+        } else if settings.alertSetting == .disabled {
+            print("⚠️ FCM: Alert notifications are disabled")
+        } else {
+            print("✅ FCM: Notifications should work properly")
+        }
+    }
+    
     /// Test local notification to verify notification system works
     func testLocalNotification() async {
         print("🔔 FCM: Testing local notification...")
@@ -633,11 +668,40 @@ extension FCMService {
         print("  - Sound: \(settings.soundSetting.rawValue)")
         print("  - App state: \(UIApplication.shared.applicationState.rawValue)")
         
+        // Check if notifications are properly configured
+        if settings.authorizationStatus != .authorized && settings.authorizationStatus != .provisional {
+            print("⚠️ FCM: Notifications not authorized. Status: \(settings.authorizationStatus.rawValue)")
+            return
+        }
+        
+        if settings.alertSetting == .disabled {
+            print("⚠️ FCM: Alert notifications are disabled")
+        }
+        
+        if settings.badgeSetting == .disabled {
+            print("⚠️ FCM: Badge notifications are disabled")
+        }
+        
         let content = UNMutableNotificationContent()
         content.title = "Test Local Notification"
         content.body = "This is a test to verify notification system works"
         content.sound = .default
         content.badge = 1
+        
+        // Add userInfo data to simulate a real notification
+        content.userInfo = [
+            "title": "Test Local Notification",
+            "body": "This is a test to verify notification system works",
+            "type": "test",
+            "aps": [
+                "alert": [
+                    "title": "Test Local Notification",
+                    "body": "This is a test to verify notification system works"
+                ],
+                "badge": 1,
+                "sound": "default"
+            ]
+        ]
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         let request = UNNotificationRequest(identifier: "test-notification", content: content, trigger: trigger)
@@ -646,8 +710,102 @@ extension FCMService {
             try await UNUserNotificationCenter.current().add(request)
             print("✅ FCM: Local notification scheduled successfully")
             print("🔔 FCM: Notification will appear in 1 second...")
+            
+            // Check if the notification was actually scheduled
+            let pendingRequests = await UNUserNotificationCenter.current().pendingNotificationRequests()
+            print("📋 FCM: Pending notifications: \(pendingRequests.count)")
+            for request in pendingRequests {
+                print("📋 FCM: Pending - ID: \(request.identifier), Title: \(request.content.title)")
+            }
+            
         } catch {
             print("❌ FCM: Failed to schedule local notification: \(error)")
+        }
+    }
+    
+    /// Test immediate notification (no delay) to see if it appears
+    func testImmediateNotification() async {
+        print("🔔 FCM: Testing immediate notification...")
+        
+        await checkNotificationSettings()
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Immediate Test"
+        content.body = "This should appear immediately"
+        content.sound = .default
+        content.badge = 1
+        
+        // Add userInfo data
+        content.userInfo = [
+            "title": "Immediate Test",
+            "body": "This should appear immediately",
+            "type": "test",
+            "aps": [
+                "alert": [
+                    "title": "Immediate Test",
+                    "body": "This should appear immediately"
+                ],
+                "badge": 1,
+                "sound": "default"
+            ]
+        ]
+        
+        // Create immediate trigger
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+        let request = UNNotificationRequest(identifier: "immediate-test-\(Date().timeIntervalSince1970)", content: content, trigger: trigger)
+        
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            print("✅ FCM: Immediate notification scheduled successfully")
+            print("🔔 FCM: Notification should appear in 0.1 seconds...")
+        } catch {
+            print("❌ FCM: Failed to schedule immediate notification: \(error)")
+        }
+    }
+    
+    /// Test notification with different presentation styles
+    func testNotificationStyles() async {
+        print("🔔 FCM: Testing different notification styles...")
+        
+        // Test 1: Basic notification
+        let content1 = UNMutableNotificationContent()
+        content1.title = "Style Test 1"
+        content1.body = "Basic notification"
+        content1.sound = .default
+        content1.badge = 1
+        
+        let trigger1 = UNTimeIntervalNotificationTrigger(timeInterval: 0.5, repeats: false)
+        let request1 = UNNotificationRequest(identifier: "style-test-1", content: content1, trigger: trigger1)
+        
+        // Test 2: Notification with subtitle
+        let content2 = UNMutableNotificationContent()
+        content2.title = "Style Test 2"
+        content2.subtitle = "With Subtitle"
+        content2.body = "This notification has a subtitle"
+        content2.sound = .default
+        content2.badge = 2
+        
+        let trigger2 = UNTimeIntervalNotificationTrigger(timeInterval: 1.0, repeats: false)
+        let request2 = UNNotificationRequest(identifier: "style-test-2", content: content2, trigger: trigger2)
+        
+        // Test 3: Notification with custom sound
+        let content3 = UNMutableNotificationContent()
+        content3.title = "Style Test 3"
+        content3.body = "With custom sound"
+        content3.sound = .default
+        content3.badge = 3
+        
+        let trigger3 = UNTimeIntervalNotificationTrigger(timeInterval: 1.5, repeats: false)
+        let request3 = UNNotificationRequest(identifier: "style-test-3", content: content3, trigger: trigger3)
+        
+        do {
+            try await UNUserNotificationCenter.current().add(request1)
+            try await UNUserNotificationCenter.current().add(request2)
+            try await UNUserNotificationCenter.current().add(request3)
+            print("✅ FCM: All style test notifications scheduled successfully")
+            print("🔔 FCM: Notifications will appear at 0.5s, 1.0s, and 1.5s...")
+        } catch {
+            print("❌ FCM: Failed to schedule style test notifications: \(error)")
         }
     }
 }
