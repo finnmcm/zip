@@ -22,6 +22,7 @@ final class Order: Identifiable, Codable {
     var deliveryInstructions: String?
     var isCampusDelivery: Bool
     var fulfilledBy: UUID?
+    var deliveryImageURL: String?
     
     // Database metadata
     var updatedAt: Date
@@ -41,7 +42,7 @@ final class Order: Identifiable, Codable {
     // Relationships - will be handled manually since we're not using SwiftData
     var userOrders: [Order] = []
     
-    init(id: UUID = UUID(), user: User, items: [CartItem], status: OrderStatus = .pending, rawAmount: Decimal, tip: Decimal, totalAmount: Decimal, deliveryAddress: String, createdAt: Date = Date(), estimatedDeliveryTime: Date? = nil, actualDeliveryTime: Date? = nil, paymentIntentId: String? = nil, updatedAt: Date = Date(), deliveryInstructions: String? = nil, isCampusDelivery: Bool = false, fulfilledBy: UUID? = nil) {
+    init(id: UUID = UUID(), user: User, items: [CartItem], status: OrderStatus = .pending, rawAmount: Decimal, tip: Decimal, totalAmount: Decimal, deliveryAddress: String, createdAt: Date = Date(), estimatedDeliveryTime: Date? = nil, actualDeliveryTime: Date? = nil, paymentIntentId: String? = nil, updatedAt: Date = Date(), deliveryInstructions: String? = nil, isCampusDelivery: Bool = false, fulfilledBy: UUID? = nil, deliveryImageURL: String? = nil) {
         self.id = id
         self.user = user
         self.items = items
@@ -58,6 +59,7 @@ final class Order: Identifiable, Codable {
         self.deliveryInstructions = deliveryInstructions
         self.isCampusDelivery = isCampusDelivery
         self.fulfilledBy = fulfilledBy
+        self.deliveryImageURL = deliveryImageURL
     }
     
     // MARK: - Codable Implementation
@@ -78,6 +80,7 @@ final class Order: Identifiable, Codable {
         case deliveryInstructions = "delivery_instructions"
         case isCampusDelivery = "is_campus_delivery"
         case fulfilledBy = "fulfilled_by"
+        case deliveryImageURL = "delivery_image_url"
     }
     
     required init(from decoder: Decoder) throws {
@@ -101,6 +104,7 @@ final class Order: Identifiable, Codable {
         deliveryInstructions = try container.decodeIfPresent(String.self, forKey: .deliveryInstructions)
         isCampusDelivery = try container.decodeIfPresent(Bool.self, forKey: .isCampusDelivery) ?? false
         fulfilledBy = try container.decodeIfPresent(UUID.self, forKey: .fulfilledBy)
+        deliveryImageURL = try container.decodeIfPresent(String.self, forKey: .deliveryImageURL)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -122,6 +126,7 @@ final class Order: Identifiable, Codable {
         try container.encodeIfPresent(deliveryInstructions, forKey: .deliveryInstructions)
         try container.encode(isCampusDelivery, forKey: .isCampusDelivery)
         try container.encodeIfPresent(fulfilledBy, forKey: .fulfilledBy)
+        try container.encodeIfPresent(deliveryImageURL, forKey: .deliveryImageURL)
     }
 }
 

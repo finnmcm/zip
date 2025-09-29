@@ -77,6 +77,10 @@ protocol SupabaseServiceProtocol {
     // MARK: - Bug Report Operations
     func submitBugReport(userId: String, title: String, description: String) async throws -> Bool
     
+    // MARK: - Delivery Image Operations
+    func fetchDeliveryImageURL(for orderId: UUID) async throws -> String?
+    func fetchDeliveryImageURLs(for orderIds: [UUID]) async throws -> [UUID: String]
+    
     // MARK: - FCM Token Operations
     func registerFCMToken(token: String, deviceId: String, platform: String, appVersion: String) async throws -> Bool
     func sendPushNotification(fcmTokens: [String], title: String, body: String, data: [String: String]?, priority: String?, sound: String?, badge: Int?) async throws -> Bool
@@ -1476,6 +1480,72 @@ final class SupabaseService: SupabaseServiceProtocol {
             print("❌ Error uploading photo to Supabase: \(error)")
             throw SupabaseError.networkError(error)
         }
+    }
+    
+    // MARK: - Delivery Image Operations
+    
+    func fetchDeliveryImageURL(for orderId: UUID) async throws -> String? {
+        guard let supabase = supabase else {
+            print("⚠️ Supabase client not configured")
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            // First, list files in the deliveries bucket to find the image with this order ID
+            let orderIdString = orderId.uuidString
+            let files = try await supabase.storage.from("deliveries").list()
+            
+            // Find a file that starts with the order ID (since the actual filename includes timestamp)
+            if let matchingFile = files.first(where: { $0.name.hasPrefix(orderIdString) }) {
+                // Use Supabase SDK's createSignedURL method for proper authentication
+                let signedURL = try await supabase.storage.from("deliveries").createSignedURL(path: matchingFile.name, expiresIn: 3600)
+                let urlString = signedURL.absoluteString
+                
+                print("✅ Successfully constructed delivery image URL for order \(orderId): \(matchingFile.name)")
+                print("🔍 URL: \(urlString)")
+                return urlString
+            } else {
+                print("⚠️ No delivery image found for order \(orderId)")
+                return nil
+            }
+            
+        } catch {
+            print("⚠️ Error fetching delivery image for order \(orderId): \(error)")
+            // Return nil instead of throwing - not all orders have delivery images
+            return nil
+        }
+    }
+    
+    func fetchDeliveryImageURLs(for orderIds: [UUID]) async throws -> [UUID: String] {
+        guard let supabase = supabase else {
+            print("⚠️ Supabase client not configured")
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        var imageURLs: [UUID: String] = [:]
+        
+        do {
+            // List all files in the deliveries bucket once
+            let files = try await supabase.storage.from("deliveries").list()
+            
+            // Match each order ID to its corresponding file
+            for orderId in orderIds {
+                let orderIdString = orderId.uuidString
+                if let matchingFile = files.first(where: { $0.name.hasPrefix(orderIdString) }) {
+                    // Use Supabase SDK's createSignedURL method for proper authentication
+                    let signedURL = try await supabase.storage.from("deliveries").createSignedURL(path: matchingFile.name, expiresIn: 3600)
+                    let urlString = signedURL.absoluteString
+                    imageURLs[orderId] = urlString
+                } else {
+                    print("⚠️ No delivery image found for order \(orderId)")
+                }
+            }
+        } catch {
+            print("⚠️ Error listing delivery images: \(error)")
+        }
+        
+        print("✅ Successfully fetched \(imageURLs.count) delivery image URLs out of \(orderIds.count) orders")
+        return imageURLs
     }
     
     // MARK: - FCM Token Operations

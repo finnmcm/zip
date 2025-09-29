@@ -347,6 +347,8 @@ struct StatusBadge: View {
 struct OrderDetailView: View {
     let order: Order
     @Environment(\.dismiss) private var dismiss
+    @State private var deliveryImageURL: String?
+    @State private var isLoadingDeliveryImage = false
     
     var body: some View {
         NavigationStack {
@@ -361,6 +363,11 @@ struct OrderDetailView: View {
                     // Delivery Details
                     deliverySection
                     
+                    // Delivery Image (if available)
+                    if order.status == .delivered {
+                        deliveryImageSection
+                    }
+                    
                     // Payment Details
                     paymentSection
                 }
@@ -374,6 +381,9 @@ struct OrderDetailView: View {
                         dismiss()
                     }
                 }
+            }
+            .onAppear {
+                loadDeliveryImage()
             }
         }
     }
@@ -505,6 +515,65 @@ struct OrderDetailView: View {
         }
     }
     
+    private var deliveryImageSection: some View {
+        VStack(alignment: .leading, spacing: AppMetrics.spacing) {
+            Text("Delivery Photo")
+                .font(.headline)
+                .foregroundColor(AppColors.textPrimary)
+            
+            VStack(spacing: AppMetrics.spacingSmall) {
+                if isLoadingDeliveryImage {
+                    HStack {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text("Loading delivery photo...")
+                            .font(.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppMetrics.spacingLarge)
+                } else if let imageURL = deliveryImageURL {
+                    AsyncImage(url: URL(string: imageURL)) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 200)
+                            .clipped()
+                            .cornerRadius(AppMetrics.cornerRadiusLarge)
+                    } placeholder: {
+                        RoundedRectangle(cornerRadius: AppMetrics.cornerRadiusLarge)
+                            .fill(AppColors.secondaryBackground)
+                            .frame(height: 200)
+                            .overlay(
+                                VStack(spacing: AppMetrics.spacingSmall) {
+                                    ProgressView()
+                                        .scaleEffect(1.2)
+                                    Text("Loading image...")
+                                        .font(.caption)
+                                        .foregroundColor(AppColors.textSecondary)
+                                }
+                            )
+                    }
+                } else {
+                    VStack(spacing: AppMetrics.spacingSmall) {
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(AppColors.textSecondary)
+                        
+                        Text("No delivery photo available")
+                            .font(.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppMetrics.spacingLarge)
+                }
+            }
+            .padding()
+            .background(AppColors.secondaryBackground)
+            .cornerRadius(AppMetrics.cornerRadiusLarge)
+        }
+    }
+    
     private var paymentSection: some View {
         VStack(alignment: .leading, spacing: AppMetrics.spacing) {
             Text("Payment Details")
@@ -544,6 +613,44 @@ struct OrderDetailView: View {
             .padding()
             .background(AppColors.secondaryBackground)
             .cornerRadius(AppMetrics.cornerRadiusLarge)
+        }
+    }
+    
+    // MARK: - Data Loading Methods
+    
+    private func loadDeliveryImage() {
+        // Only load if we don't already have the image URL
+        guard deliveryImageURL == nil && !isLoadingDeliveryImage else {
+            print("🔍 Skipping delivery image load - already loaded or loading")
+            return
+        }
+        
+        // Check if order already has the image URL
+        if let existingURL = order.deliveryImageURL {
+            print("🔍 Using existing delivery image URL: \(existingURL)")
+            deliveryImageURL = existingURL
+            return
+        }
+        
+        print("🔍 Loading delivery image for order: \(order.id)")
+        isLoadingDeliveryImage = true
+        
+        Task {
+            do {
+                let supabaseService = SupabaseService()
+                let imageURL = try await supabaseService.fetchDeliveryImageURL(for: order.id)
+                
+                await MainActor.run {
+                    print("🔍 Delivery image URL result: \(imageURL ?? "nil")")
+                    deliveryImageURL = imageURL
+                    isLoadingDeliveryImage = false
+                }
+            } catch {
+                await MainActor.run {
+                    print("⚠️ Failed to load delivery image: \(error)")
+                    isLoadingDeliveryImage = false
+                }
+            }
         }
     }
 }
