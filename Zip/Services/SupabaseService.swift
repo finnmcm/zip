@@ -80,6 +80,8 @@ protocol SupabaseServiceProtocol {
     // MARK: - FCM Token Operations
     func registerFCMToken(token: String, deviceId: String, platform: String, appVersion: String) async throws -> Bool
     func sendPushNotification(fcmTokens: [String], title: String, body: String, data: [String: String]?, priority: String?, sound: String?, badge: Int?) async throws -> Bool
+    func fetchZipperFCMTokens() async throws -> [String]
+    func notifyZippersOfNewOrder(_ order: Order) async throws -> Bool
 }
 
 final class SupabaseService: SupabaseServiceProtocol {
@@ -310,6 +312,11 @@ final class SupabaseService: SupabaseServiceProtocol {
         let revenue: Double
     }
     
+    // Simple struct for just zipper ID
+    private struct ZipperIdData: Codable {
+        let id: String
+    }
+    
     private struct OrderItemData: Codable {
         let id: String
         let order_id: String
@@ -342,10 +349,13 @@ final class SupabaseService: SupabaseServiceProtocol {
     }
     
     func createOrder(_ order: Order) async throws -> Order {
+        print("🔔 DEBUG: createOrder function called with order ID: \(order.id)")
         // Check if Supabase client is configured
         guard let supabase = supabase else {
+            print("❌ DEBUG: Supabase client not configured in createOrder")
             throw SupabaseError.clientNotConfigured
         }
+        print("🔔 DEBUG: Supabase client is configured, proceeding with order creation")
         
         do {
             // Create order data for Supabase
@@ -1665,6 +1675,96 @@ final class SupabaseService: SupabaseServiceProtocol {
             print("❌ FCM: Failed to send push notification: \(error)")
             print("❌ FCM: Error details: \(error.localizedDescription)")
             throw SupabaseError.networkError(error)
+        }
+    }
+    
+    func fetchZipperFCMTokens() async throws -> [String] {
+        guard let supabase = supabase else {
+            print("❌ FCM: Supabase client not configured")
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        print("🔍 FCM: Fetching FCM tokens for all zippers...")
+        print("🔍 DEBUG: fetchZipperFCMTokens function called")
+        
+        do {
+            // First, get all zipper IDs from the zippers table
+            let zippersResponse: [ZipperIdData] = try await supabase
+                .from("zippers")
+                .select("id")
+                .execute()
+                .value
+            
+            print("🔍 FCM: Found \(zippersResponse.count) zippers")
+            
+            if zippersResponse.isEmpty {
+                print("⚠️ FCM: No zippers found in zippers table")
+                return []
+            }
+            
+            // Extract zipper IDs
+            let zipperIds = zippersResponse.map { $0.id }
+            print("🔍 FCM: Zipper IDs: \(zipperIds)")
+            
+            // Get FCM tokens for all zippers
+            let tokensResponse: [FCMTokenData] = try await supabase
+                .from("fcm_tokens")
+                .select("token")
+                .in("user_id", values: zipperIds)
+                .gte("updated_at", value: ISO8601DateFormatter().string(from: Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()))
+                .execute()
+                .value
+            
+            let fcmTokens = tokensResponse.map { $0.token }
+            print("✅ FCM: Found \(fcmTokens.count) active FCM tokens for zippers")
+            
+            return fcmTokens
+            
+        } catch {
+            print("❌ FCM: Failed to fetch zipper FCM tokens: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    func notifyZippersOfNewOrder(_ order: Order) async throws -> Bool {
+        print("🔔 NOTIFY: Starting to send new order notification to zippers for order: \(order.id)")
+        
+        do {
+            let zipperTokens = try await fetchZipperFCMTokens()
+            if !zipperTokens.isEmpty {
+                let orderNumber = String(order.id.uuidString.prefix(8))
+                let totalAmount = NSDecimalNumber(decimal: order.totalAmount).doubleValue
+                
+                let title = "📦 New Order Available"
+                let body = "New Zip order #\(orderNumber) is currently waiting for pickup. Grab it if you can!"
+                
+                let data = [
+                    "order_id": order.id.uuidString,
+                    "type": "new_order",
+                    "order_total": String(totalAmount),
+                    "delivery_address": order.deliveryAddress,
+                    "timestamp": ISO8601DateFormatter().string(from: Date())
+                ]
+                
+                try await sendPushNotification(
+                    fcmTokens: zipperTokens,
+                    title: title,
+                    body: body,
+                    data: data,
+                    priority: "high",
+                    sound: "default",
+                    badge: 1
+                )
+                
+                print("✅ NOTIFY: Successfully sent new order notification to \(zipperTokens.count) zippers")
+                return true
+            } else {
+                print("⚠️ NOTIFY: No active zipper FCM tokens found, skipping notification")
+                return false
+            }
+        } catch {
+            print("❌ NOTIFY: Failed to send new order notification to zippers: \(error)")
+            throw error
         }
     }
     

@@ -295,6 +295,14 @@ final class CheckoutViewModel: ObservableObject {
                 await updateOrderStatusAndInventory(orderId: createdOrder.id)
                 print("💳 Finished calling updateOrderStatusAndInventory")
                 
+                // Notify zippers of the new order
+                do {
+                    try await supabase.notifyZippersOfNewOrder(createdOrder)
+                } catch {
+                    print("⚠️ Failed to notify zippers of new order: \(error)")
+                    // Don't fail the order if notification fails
+                }
+                
                 // Provide haptic feedback for successful order
                 let impactFeedback = UINotificationFeedbackGenerator()
                 impactFeedback.notificationOccurred(.success)
@@ -324,6 +332,14 @@ final class CheckoutViewModel: ObservableObject {
                 
                 // Update the OrderStatusViewModel with the new active order
                 orderStatusViewModel.activeOrder = createdOrder
+                
+                // Notify zippers of the new order
+                do {
+                    try await supabase.notifyZippersOfNewOrder(createdOrder)
+                } catch {
+                    print("⚠️ Failed to notify zippers of new order: \(error)")
+                    // Don't fail the order if notification fails
+                }
                 
                 // Provide haptic feedback for successful payment
                 let impactFeedback = UINotificationFeedbackGenerator()
