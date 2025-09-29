@@ -5,6 +5,27 @@
 
 import Foundation
 import Supabase
+
+// Helper structs for database queries
+struct OrderData: Codable {
+    let id: String
+    let user_id: String
+    let status: String
+    let raw_amount: Double
+    let tip: Double
+    let total_amount: Double
+    let created_at: String
+    let updated_at: String
+    let delivery_address: String
+    let delivery_instructions: String?
+    let is_campus_delivery: Bool
+    let payment_intent_id: String?
+    let fulfilled_by: String?
+}
+
+struct FCMTokenData: Codable {
+    let token: String
+}
 import UIKit
 
 // MARK: - Zipper Statistics Result
@@ -264,26 +285,21 @@ final class SupabaseService: SupabaseServiceProtocol {
     // MARK: - Order Operations
     
     // Database models for Supabase operations
-    private struct OrderData: Codable {
-        let id: String
-        let user_id: String
-        let status: String
-        let raw_amount: Double
-        let tip: Double
-        let total_amount: Double
-        let created_at: String
-        let delivery_address: String
-        let delivery_instructions: String?
-        let is_campus_delivery: Bool
-        let updated_at: String
-        let payment_intent_id: String?
-        let fulfilled_by: String?
-    }
-    
     // Minimal struct for completeOrder function
     private struct OrderCompletionData: Codable {
         let id: String
         let fulfilled_by: String?
+        let total_amount: Double
+    }
+    
+    // Minimal struct for acceptOrder function
+    private struct OrderAcceptData: Codable {
+        let id: String
+    }
+    
+    // Minimal struct for notification function
+    private struct OrderNotificationData: Codable {
+        let user_id: String
         let total_amount: Double
     }
     
@@ -341,10 +357,9 @@ final class SupabaseService: SupabaseServiceProtocol {
                 tip: NSDecimalNumber(decimal: order.tip).doubleValue,
                 total_amount: NSDecimalNumber(decimal: order.totalAmount).doubleValue,
                 created_at: ISO8601DateFormatter().string(from: order.createdAt),
-                delivery_address: order.deliveryAddress,
+                updated_at: ISO8601DateFormatter().string(from: order.updatedAt), delivery_address: order.deliveryAddress,
                 delivery_instructions: order.deliveryInstructions,
                 is_campus_delivery: order.isCampusDelivery,
-                updated_at: ISO8601DateFormatter().string(from: order.updatedAt),
                 payment_intent_id: order.paymentIntentId,
                 fulfilled_by: order.fulfilledBy?.uuidString
             )
@@ -815,12 +830,107 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .execute()
             
             print("✅ Successfully called update_order_status_and_inventory_by_order_id for order: \(orderId)")
+            
+            // Note: Notifications for order status changes are handled in acceptOrder/completeOrder functions
+            // This function is only called when orders are created via store credit payment
+            
             return true
             
         } catch {
             print("❌ Error calling update_order_status_and_inventory_by_order_id: \(error)")
             print("❌ Error details: \(error.localizedDescription)")
             throw SupabaseError.networkError(error)
+        }
+    }
+    
+    // New function to send order status notifications
+    func sendOrderStatusNotification(orderId: UUID, status: String) async throws {
+        print("🔔 Sending order status notification for order \(orderId) with status \(status)")
+        
+        // Get FCM tokens for the order's user
+        guard let supabase = supabase else {
+            print("❌ Supabase client not configured")
+            return
+        }
+        
+        // Get order details to find user
+        let orderResponse: [OrderNotificationData] = try await supabase
+            .from("orders")
+            .select("user_id, total_amount")
+            .eq("id", value: orderId.uuidString.lowercased())
+            .execute()
+            .value
+        
+        guard let orderData = orderResponse.first else {
+            print("❌ Order not found: \(orderId)")
+            return
+        }
+        
+        guard let userId = UUID(uuidString: orderData.user_id) else {
+            print("❌ Invalid user ID format: \(orderData.user_id)")
+            return
+        }
+        
+        let totalAmount = orderData.total_amount
+        
+        // Get FCM tokens for the user
+        let tokensResponse: [FCMTokenData] = try await supabase
+            .from("fcm_tokens")
+            .select("token")
+            .eq("user_id", value: userId.uuidString.lowercased())
+            .execute()
+            .value
+        
+        let fcmTokens = tokensResponse.map { $0.token }
+        
+        if fcmTokens.isEmpty {
+            print("⚠️ No FCM tokens found for user \(userId)")
+            return
+        }
+        
+        // Prepare notification content
+        let (title, body) = getOrderNotificationContent(orderId: orderId, status: status)
+        
+        // Prepare data payload
+        let data = [
+            "order_id": orderId.uuidString,
+            "status": status,
+            "type": "order_status_update",
+            "timestamp": ISO8601DateFormatter().string(from: Date()),
+            "order_total": String(describing: totalAmount)
+        ]
+        
+        // Send the notification
+        try await sendPushNotification(
+            fcmTokens: fcmTokens,
+            title: title,
+            body: body,
+            data: data,
+            priority: "high",
+            sound: "default",
+            badge: 1
+        )
+    }
+    
+    private func getOrderNotificationContent(orderId: UUID, status: String) -> (title: String, body: String) {
+        let orderNumber = String(orderId.uuidString.prefix(8))
+        
+        switch status {
+        case "in_queue", "in_progress":
+            return (
+                title: "🍕 Your Order is Being Prepared",
+                body: "Your Zip order #\(orderNumber) is now being prepared! We'll notify you when it's ready for pickup."
+            )
+        case "delivered":
+            return (
+                title: "✅ Order Delivered!",
+                body: "Your Zip order #\(orderNumber) has been delivered! Enjoy your order and thank you for choosing Zip!"
+            )
+        default:
+            return (
+                title: "📦 Order Update",
+                body: "Your Zip order #\(orderNumber) status has been updated to \(status)."
+            )
         }
     }
     
@@ -1115,7 +1225,7 @@ final class SupabaseService: SupabaseServiceProtocol {
             print("🔍 Zipper ID: \(zipperId)")
             
             // Update the order to assign it to the zipper and change status to in_progress
-            let response: [OrderData] = try await supabase
+            let response = try await supabase
             .from("orders")
             .update([
                 "fulfilled_by": zipperId,
@@ -1124,20 +1234,40 @@ final class SupabaseService: SupabaseServiceProtocol {
             ])
             .eq("id", value: orderIdString)
             .eq("status", value: "in_queue") // Double-check status hasn't changed
-            .select() // Add select to get the updated row back
             .execute()
-            .value
             
+            print("🔍 Update response status: \(response.response.statusCode)")
             
-            print("🔍 Update response count: \(response.count)")
+            // Check if the update was successful (status code 200 or 204)
+            guard response.response.statusCode >= 200 && response.response.statusCode < 300 else {
+                print("❌ Update failed with status code: \(response.response.statusCode)")
+                return false
+            }
             
-            // Check if any rows were affected
-            if response.isEmpty {
-                print("❌ No order found with ID \(orderIdString) in queue status")
+            // Verify the order was actually updated by doing a simple count query
+            let countResponse = try await supabase
+                .from("orders")
+                .select("id", head: true, count: .exact)
+                .eq("id", value: orderIdString)
+                .eq("status", value: "in_progress")
+                .execute()
+            
+            guard let count = countResponse.count, count > 0 else {
+                print("❌ Order was not successfully updated to in_progress status")
                 return false
             }
             
             print("✅ Successfully accepted order \(orderIdString) for zipper \(zipperId)")
+            
+            // Send notification to customer about order being prepared
+            do {
+                try await sendOrderStatusNotification(orderId: orderId, status: "in_progress")
+                print("✅ Notification sent successfully for order acceptance")
+            } catch {
+                print("⚠️ Failed to send notification for order acceptance: \(error)")
+                // Don't fail the order acceptance if notification fails
+            }
+            
             return true
             
         } catch {
@@ -1154,9 +1284,9 @@ final class SupabaseService: SupabaseServiceProtocol {
         do {
             // First, fetch the order details to get zipper ID and total amount
             print("🔍 Fetching order details for ID: \(orderId.uuidString.lowercased())")
-            let orderResponse: [OrderData] = try await supabase
+            let orderResponse: [OrderCompletionData] = try await supabase
                 .from("orders")
-                .select()
+                .select("id, fulfilled_by, total_amount")
                 .eq("id", value: orderId.uuidString.lowercased())
                 .eq("status", value: "in_progress")
                 .execute()
@@ -1187,7 +1317,7 @@ final class SupabaseService: SupabaseServiceProtocol {
             
             // Update the order status to delivered
             print("🔍 Updating order \(orderId.uuidString.lowercased()) from in_progress to delivered")
-            let orderUpdateResponse: [OrderData] = try await supabase
+            let orderUpdateResponse: [OrderCompletionData] = try await supabase
                 .from("orders")
                 .update([
                     "status": "delivered",
@@ -1195,7 +1325,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 ])
                 .eq("id", value: orderId.uuidString.lowercased())
                 .eq("status", value: "in_progress")
-                .select() // Add select to get the updated row back
+                .select("id, fulfilled_by, total_amount") // Add select to get the updated row back
                 .execute()
                 .value
                 
@@ -1262,6 +1392,16 @@ final class SupabaseService: SupabaseServiceProtocol {
             }
             
             print("✅ Successfully completed order \(orderId)")
+            
+            // Send notification to customer about order being delivered
+            do {
+                try await sendOrderStatusNotification(orderId: orderId, status: "delivered")
+                print("✅ Notification sent successfully for order completion")
+            } catch {
+                print("⚠️ Failed to send notification for order completion: \(error)")
+                // Don't fail the order completion if notification fails
+            }
+            
             return true
             
         } catch {
