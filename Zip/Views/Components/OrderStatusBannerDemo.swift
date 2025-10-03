@@ -74,7 +74,8 @@ struct OrderStatusBannerDemo: View {
                     activeOrder: orderStatusViewModel.activeOrder,
                     onBannerDismiss: {
                         orderStatusViewModel.dismissBanner()
-                    }
+                    },
+                    onOrderCancelled: nil
                 )
                 
                 Spacer()

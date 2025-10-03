@@ -74,6 +74,12 @@ final class OrderStatusViewModel: ObservableObject {
     /// Callback for when orders need to be refreshed
     var onOrdersRefresh: ((String) async -> Void)?
     
+    /// Clears the active order (called when an order is cancelled)
+    func clearActiveOrder() {
+        activeOrder = nil
+        print("✅ Active order cleared")
+    }
+    
     /// Refreshes orders using the callback (if provided)
     /// - Parameter userId: The ID of the current user
     func refreshOrders(userId: String) async {

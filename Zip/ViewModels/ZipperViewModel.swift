@@ -89,6 +89,12 @@ final class ZipperViewModel: ObservableObject {
         }
     }
     
+    /// Clears the active order (called when an order is cancelled)
+    func clearActiveOrder() {
+        activeOrder = nil
+        print("✅ Zipper active order cleared")
+    }
+    
     func acceptOrder(_ order: Order) async {
         guard let zipperId = zipperId else {
             errorMessage = "Unable to identify zipper. Please log in again."

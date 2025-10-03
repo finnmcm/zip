@@ -17,6 +17,9 @@ final class OrderTrackingViewModel: ObservableObject {
     // MARK: - Services
     private let supabaseService = SupabaseService()
     
+    // MARK: - Callbacks
+    var onOrderCancelled: ((Order) -> Void)?
+    
     // MARK: - Properties
     private var refreshTimer: Timer?
     private let refreshInterval: TimeInterval = 30 // Refresh every 30 seconds
@@ -111,6 +114,48 @@ final class OrderTrackingViewModel: ObservableObject {
     func manualRefresh(orderId: UUID) async {
         print("🔄 Manual refresh requested for order: \(orderId)")
         await refreshOrderStatus(orderId: orderId)
+    }
+    
+    /// Cancels the current order
+    func cancelOrder() async {
+        guard let currentOrder = currentOrder else {
+            print("⚠️ No current order to cancel")
+            return
+        }
+        
+        guard currentOrder.canBeCancelled else {
+            print("⚠️ Order cannot be cancelled - status: \(currentOrder.status.rawValue)")
+            errorMessage = "This order cannot be cancelled at this time."
+            return
+        }
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            let success = try await supabaseService.cancelOrder(orderId: currentOrder.id)
+            
+            if success {
+                // Update the local order status
+                currentOrder.status = .cancelled
+                currentOrder.updatedAt = Date()
+                updatedOrder = currentOrder
+                
+                // Stop the refresh timer since the order is now cancelled
+                stopRefreshTimer()
+                
+                // Notify other view models that the order was cancelled
+                onOrderCancelled?(currentOrder)
+                
+                print("✅ Order cancelled successfully: \(currentOrder.id)")
+            } else {
+                errorMessage = "Failed to cancel order. Please try again."
+            }
+            
+        } catch {
+            print("❌ Error cancelling order: \(error)")
+            errorMessage = "Failed to cancel order: \(error.localizedDescription)"
+        }
     }
     
     // MARK: - Private Methods

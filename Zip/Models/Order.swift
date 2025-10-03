@@ -36,7 +36,7 @@ final class Order: Identifiable, Codable {
     }
     
     var canBeCancelled: Bool {
-        return [.pending, .inQueue, .inProgress].contains(status)
+        return status == .inQueue
     }
     
     // Relationships - will be handled manually since we're not using SwiftData

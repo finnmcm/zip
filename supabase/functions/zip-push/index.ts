@@ -139,6 +139,17 @@ serve(async (req) => {
         continue
       }
 
+      // Validate FCM token format
+      if (!isValidFCMToken(token)) {
+        console.warn(`⚠️ Invalid FCM token format at index ${i}: ${token.substring(0, 20)}...`)
+        results.push({
+          token: token.substring(0, 20) + '...',
+          success: false,
+          error: 'Invalid FCM token format'
+        })
+        continue
+      }
+
       try {
         const fcmUrl = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`
         
@@ -171,7 +182,9 @@ serve(async (req) => {
                   },
                   badge,
                   sound,
-                  'content-available': 1
+                  'content-available': 1,
+                  'interruption-level': 'active',
+                  'relevance-score': 1.0
                 },
               },
             },
@@ -200,6 +213,20 @@ serve(async (req) => {
           })
         } else {
           console.error(`❌ FCM error for token ${i + 1}:`, responseData)
+          
+          // Check if this is an invalid token error
+          if (responseData.error?.code === 400 && 
+              responseData.error?.message?.includes('registration token is not a valid FCM registration token')) {
+            console.log(`🗑️ Token ${i + 1} is invalid, marking for cleanup: ${token.substring(0, 20)}...`)
+            
+            // Mark this token for cleanup in the database
+            try {
+              await cleanupInvalidToken(token, supabase)
+            } catch (cleanupError) {
+              console.warn(`⚠️ Failed to cleanup invalid token: ${cleanupError.message}`)
+            }
+          }
+          
           results.push({
             token: token.substring(0, 20) + '...',
             success: false,
@@ -379,5 +406,56 @@ function convertPKCS1ToPKCS8(pkcs1Key: string): string {
   } catch (error) {
     console.error('❌ Error converting PKCS#1 to PKCS#8:', error)
     throw new Error('Failed to convert private key format')
+  }
+}
+
+// Validate FCM token format
+function isValidFCMToken(token: string): boolean {
+  if (!token || typeof token !== 'string') {
+    return false
+  }
+  
+  // FCM tokens should be long strings (typically 140+ characters)
+  // and contain only alphanumeric characters and some special chars
+  if (token.length < 100 || token.length > 200) {
+    console.log(`🔍 Token length validation failed: ${token.length} characters`)
+    return false
+  }
+  
+  // Check for valid characters (alphanumeric, hyphens, underscores, colons)
+  const validTokenPattern = /^[a-zA-Z0-9:_-]+$/
+  if (!validTokenPattern.test(token)) {
+    console.log(`🔍 Token character validation failed for: ${token.substring(0, 20)}...`)
+    return false
+  }
+  
+  // Additional checks for common invalid patterns
+  if (token.includes('null') || token.includes('undefined') || token === 'test_token') {
+    console.log(`🔍 Token contains invalid patterns: ${token.substring(0, 20)}...`)
+    return false
+  }
+  
+  return true
+}
+
+// Clean up invalid token from database
+async function cleanupInvalidToken(token: string, supabase: any): Promise<void> {
+  try {
+    console.log(`🗑️ Cleaning up invalid token: ${token.substring(0, 20)}...`)
+    
+    const { error } = await supabase
+      .from('fcm_tokens')
+      .delete()
+      .eq('token', token)
+    
+    if (error) {
+      console.error(`❌ Failed to delete invalid token from database: ${error.message}`)
+      throw error
+    }
+    
+    console.log(`✅ Successfully removed invalid token from database`)
+  } catch (error) {
+    console.error(`❌ Error cleaning up invalid token: ${error.message}`)
+    throw error
   }
 }

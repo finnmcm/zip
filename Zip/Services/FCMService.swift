@@ -96,7 +96,7 @@ final class FCMService: NSObject, ObservableObject {
         print("🔔 FCM: Requesting notification permission...")
         do {
             let granted = try await UNUserNotificationCenter.current().requestAuthorization(
-                options: [.alert, .badge, .sound, .provisional]
+                options: [.alert, .badge, .sound, .provisional, .criticalAlert]
             )
             
             print("🔔 FCM: Permission request result: \(granted)")
@@ -491,6 +491,9 @@ final class FCMService: NSObject, ObservableObject {
         let hasPermission = await requestNotificationPermission()
         print("🔔 FCM: Notification permission granted: \(hasPermission)")
         
+        // Check notification settings to ensure proper banner presentation
+        await checkNotificationSettings()
+        
         // Get FCM token and register with Supabase
         if let token = await getFCMToken() {
             print("🎯 FCM: Got token, registering with Supabase: \(token.prefix(20))...")
@@ -576,11 +579,15 @@ extension FCMService: UNUserNotificationCenterDelegate {
         print("📨 FCM: Notification badge: \(notification.request.content.badge?.intValue ?? 0)")
         print("📨 FCM: Notification sound: \(notification.request.content.sound?.description ?? "none")")
         
-        // Use the most permissive presentation options
+        // Use the most permissive presentation options to ensure banners appear
         // Note: In iOS 14+, we need to use the new presentation options
         if #available(iOS 14.0, *) {
+            // For iOS 14+, use banner presentation to show notifications as banners
+            print("📨 FCM: Using iOS 14+ presentation options: banner, badge, sound, list")
             completionHandler([.banner, .badge, .sound, .list])
         } else {
+            // For older iOS versions, use alert presentation
+            print("📨 FCM: Using legacy presentation options: alert, badge, sound")
             completionHandler([.alert, .badge, .sound])
         }
     }
@@ -652,6 +659,50 @@ extension FCMService {
             print("⚠️ FCM: Alert notifications are disabled")
         } else {
             print("✅ FCM: Notifications should work properly")
+        }
+        
+        // Check notification presentation settings
+        await checkNotificationPresentationSettings()
+    }
+    
+    /// Check and configure notification presentation settings
+    private func checkNotificationPresentationSettings() async {
+        print("🔍 FCM: Checking notification presentation settings...")
+        
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        
+        // Log detailed presentation information
+        print("🔍 FCM: Notification presentation details:")
+        print("  - Authorization Status: \(settings.authorizationStatus)")
+        print("  - Alert Setting: \(settings.alertSetting)")
+        print("  - Lock Screen Setting: \(settings.lockScreenSetting)")
+        print("  - Notification Center Setting: \(settings.notificationCenterSetting)")
+        
+        // For iOS 14+, check if we need to request additional permissions
+        if #available(iOS 14.0, *) {
+            print("🔍 FCM: iOS 14+ detected - checking for additional permissions...")
+            
+            // Check if we have proper alert permissions
+            if settings.alertSetting == .disabled {
+                print("⚠️ FCM: Alert notifications are disabled - this will prevent banners")
+                print("⚠️ FCM: User needs to enable alerts in Settings > Notifications > Zip")
+            } else if settings.alertSetting == .enabled {
+                print("✅ FCM: Alert notifications are enabled - banners should work")
+            }
+            
+            // Check lock screen settings
+            if settings.lockScreenSetting == .disabled {
+                print("⚠️ FCM: Lock screen notifications are disabled")
+            } else {
+                print("✅ FCM: Lock screen notifications are enabled")
+            }
+            
+            // Check notification center settings
+            if settings.notificationCenterSetting == .disabled {
+                print("⚠️ FCM: Notification center notifications are disabled")
+            } else {
+                print("✅ FCM: Notification center notifications are enabled")
+            }
         }
     }
     
@@ -761,6 +812,39 @@ extension FCMService {
         } catch {
             print("❌ FCM: Failed to schedule immediate notification: \(error)")
         }
+    }
+    
+    /// Guide user to proper notification settings
+    func guideUserToNotificationSettings() async {
+        print("🔧 FCM: Guiding user to notification settings...")
+        
+        await checkNotificationSettings()
+        
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        
+        if settings.alertSetting == .disabled {
+            print("⚠️ FCM: Alert notifications are disabled - this prevents banners")
+            print("🔧 FCM: User should go to Settings > Notifications > Zip > Allow Notifications > Alerts")
+            print("🔧 FCM: And enable 'Banners' or 'Alerts' for proper notification display")
+        }
+        
+        if settings.lockScreenSetting == .disabled {
+            print("⚠️ FCM: Lock screen notifications are disabled")
+            print("🔧 FCM: User should enable 'Show on Lock Screen' in notification settings")
+        }
+        
+        if settings.notificationCenterSetting == .disabled {
+            print("⚠️ FCM: Notification center notifications are disabled")
+            print("🔧 FCM: User should enable 'Show in Notification Center' in notification settings")
+        }
+        
+        print("🔧 FCM: For best results, user should enable:")
+        print("  - Allow Notifications: ON")
+        print("  - Alerts: Banners or Alerts")
+        print("  - Badges: ON")
+        print("  - Sounds: ON")
+        print("  - Show on Lock Screen: ON")
+        print("  - Show in Notification Center: ON")
     }
     
     /// Test notification with different presentation styles

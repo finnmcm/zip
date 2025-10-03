@@ -51,6 +51,7 @@ protocol SupabaseServiceProtocol {
     func createOrder(_ order: Order) async throws -> Order
     func fetchUserOrders(userId: String) async throws -> [Order]
     func fetchOrderStatus(orderId: UUID) async throws -> Order?
+    func cancelOrder(orderId: UUID) async throws -> Bool
     func addToCart(_ cartItem: CartItem) async throws -> CartItem
     func removeFromCart(id: UUID) async throws -> Bool
     func fetchUserCart(userId: String) async throws -> [CartItem]
@@ -694,6 +695,34 @@ final class SupabaseService: SupabaseServiceProtocol {
             return nil
         } catch {
             print("❌ Error fetching order status from Supabase: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+    func cancelOrder(orderId: UUID) async throws -> Bool {
+        // Check if Supabase client is configured
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            // Update the order status to cancelled
+            let updateData: [String: String] = [
+                "status": "cancelled",
+                "updated_at": ISO8601DateFormatter().string(from: Date())
+            ]
+            
+            let response = try await supabase
+                .from("orders")
+                .update(updateData)
+                .eq("id", value: orderId.uuidString.lowercased())
+                .execute()
+            
+            print("✅ Successfully cancelled order: \(orderId)")
+            return true
+            
+        } catch {
+            print("❌ Error cancelling order in Supabase: \(error)")
             throw SupabaseError.networkError(error)
         }
     }

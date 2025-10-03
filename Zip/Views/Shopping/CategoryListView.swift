@@ -37,6 +37,9 @@ struct CategoryListView: View {
                             activeOrder: activeOrder,
                             onBannerDismiss: {
                                 orderStatusViewModel.dismissBanner()
+                            },
+                            onOrderCancelled: { _ in
+                                orderStatusViewModel.clearActiveOrder()
                             }
                         )
                     }

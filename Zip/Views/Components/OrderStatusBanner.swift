@@ -8,6 +8,7 @@ import SwiftUI
 struct OrderStatusBanner: View {
     let order: Order
     let onDismiss: () -> Void
+    let onOrderCancelled: ((Order) -> Void)?
     
     @State private var isVisible = false
     @State private var timeRemaining: TimeInterval = 0
@@ -61,7 +62,7 @@ struct OrderStatusBanner: View {
             // Main banner content
             ZStack {
                 // NavigationLink for the main banner area
-                NavigationLink(destination: OrderTrackingView(order: order)) {
+                NavigationLink(destination: OrderTrackingView(order: order, onOrderCancelled: onOrderCancelled)) {
                     HStack(spacing: AppMetrics.spacing) {
                         // Status icon with background
                         ZStack {
@@ -146,13 +147,15 @@ struct OrderStatusBanner: View {
 struct OrderStatusBannerContainer: View {
     let activeOrder: Order?
     let onBannerDismiss: () -> Void
+    let onOrderCancelled: ((Order) -> Void)?
     
     var body: some View {
         if let order = activeOrder, 
            [OrderStatus.inQueue, OrderStatus.inProgress].contains(order.status) {
             OrderStatusBanner(
                 order: order,
-                onDismiss: onBannerDismiss
+                onDismiss: onBannerDismiss,
+                onOrderCancelled: onOrderCancelled
             )
             .allowsHitTesting(true)
         }
@@ -177,7 +180,8 @@ struct OrderStatusBannerContainer: View {
                     deliveryAddress: "123 Main St",
                     estimatedDeliveryTime: Date().addingTimeInterval(1800) // 30 minutes from now
                 ),
-                onDismiss: {}
+                onDismiss: {},
+                onOrderCancelled: nil
             )
             
             Spacer()
@@ -203,7 +207,8 @@ struct OrderStatusBannerContainer: View {
                     deliveryAddress: "123 Main St",
                     estimatedDeliveryTime: Date().addingTimeInterval(600) // 10 minutes from now
                 ),
-                onDismiss: {}
+                onDismiss: {},
+                onOrderCancelled: nil
             )
             
             Spacer()

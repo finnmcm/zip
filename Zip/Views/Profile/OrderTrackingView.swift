@@ -9,6 +9,8 @@ struct OrderTrackingView: View {
     let order: Order
     @StateObject private var viewModel = OrderTrackingViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var showCancelConfirmation = false
+    var onOrderCancelled: ((Order) -> Void)? = nil
     
     var body: some View {
         ScrollView {
@@ -27,9 +29,51 @@ struct OrderTrackingView: View {
         }
         .onAppear {
             viewModel.setOrder(order)
+            viewModel.onOrderCancelled = onOrderCancelled
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
+        .overlay(
+            // Confirmation Dialog Overlay
+            Group {
+                if showCancelConfirmation {
+                    ZStack {
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                showCancelConfirmation = false
+                            }
+                        
+                        ConfirmationDialog(
+                            title: "Cancel Order",
+                            message: "Are you sure you want to cancel this order? This action cannot be undone and you will receive a full refund.",
+                            confirmButtonTitle: "Yes, Cancel Order",
+                            cancelButtonTitle: "Keep Order",
+                            isDestructive: true,
+                            confirmAction: {
+                                showCancelConfirmation = false
+                                Task {
+                                    await viewModel.cancelOrder()
+                                }
+                            },
+                            cancelAction: {
+                                showCancelConfirmation = false
+                            }
+                        )
+                        .padding(.horizontal, AppMetrics.spacingLarge)
+                    }
+                }
+            }
+        )
+        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button("OK") {
+                viewModel.errorMessage = nil
+            }
+        } message: {
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
+            }
+        }
     }
     
     // MARK: - Header Section
@@ -73,13 +117,13 @@ struct OrderTrackingView: View {
                 
                 Spacer()
                 
-                Text(order.status.displayName)
+                Text((viewModel.updatedOrder ?? order).status.displayName)
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(order.status.color)
+                    .foregroundColor((viewModel.updatedOrder ?? order).status.color)
                     .padding(.horizontal, AppMetrics.spacingSmall)
                     .padding(.vertical, AppMetrics.spacingSmall / 2)
-                    .background(order.status.color.opacity(0.1))
+                    .background((viewModel.updatedOrder ?? order).status.color.opacity(0.1))
                     .cornerRadius(AppMetrics.cornerRadiusSmall)
             }
         }
@@ -101,10 +145,10 @@ struct OrderTrackingView: View {
             }
             
             VStack(spacing: AppMetrics.spacingSmall) {
-                detailRow(title: "Order ID", value: order.id.uuidString.prefix(8).uppercased())
-                detailRow(title: "Order Date", value: order.createdAt.formatted(date: .abbreviated, time: .shortened))
-                detailRow(title: "Total Amount", value: order.totalAmount.formatted(.currency(code: "USD")))
-                detailRow(title: "Tip", value: order.tip.formatted(.currency(code: "USD")))
+                detailRow(title: "Order ID", value: (viewModel.updatedOrder ?? order).id.uuidString.prefix(8).uppercased())
+                detailRow(title: "Order Date", value: (viewModel.updatedOrder ?? order).createdAt.formatted(date: .abbreviated, time: .shortened))
+                detailRow(title: "Total Amount", value: (viewModel.updatedOrder ?? order).totalAmount.formatted(.currency(code: "USD")))
+                detailRow(title: "Tip", value: (viewModel.updatedOrder ?? order).tip.formatted(.currency(code: "USD")))
             }
         }
         .padding()
@@ -125,7 +169,7 @@ struct OrderTrackingView: View {
             }
             
             LazyVStack(spacing: AppMetrics.spacingSmall) {
-                ForEach(order.items) { item in
+                ForEach((viewModel.updatedOrder ?? order).items) { item in
                     orderItemRow(item)
                 }
             }
@@ -148,8 +192,8 @@ struct OrderTrackingView: View {
             }
             
             VStack(spacing: AppMetrics.spacingSmall) {
-                detailRow(title: "Delivery Address", value: order.deliveryAddress)
-                if let estimatedTime = order.estimatedDeliveryTime {
+                detailRow(title: "Delivery Address", value: (viewModel.updatedOrder ?? order).deliveryAddress)
+                if let estimatedTime = (viewModel.updatedOrder ?? order).estimatedDeliveryTime {
                     detailRow(title: "Estimated Delivery", value: estimatedTime.formatted(date: .omitted, time: .shortened))
                 }
             }
@@ -163,19 +207,30 @@ struct OrderTrackingView: View {
     // MARK: - Action Buttons Section
     private var actionButtonsSection: some View {
         VStack(spacing: AppMetrics.spacing) {
-            Button(action: {
-                // Cancel Order action
-                print("Cancel Order tapped")
-            }) {
-                Text("Cancel Order")
-                    .font(.headline)
-                    .fontWeight(.semibold)
+            // Only show Cancel Order button if the order can be cancelled
+            if let currentOrder = viewModel.currentOrder ?? viewModel.updatedOrder, currentOrder.canBeCancelled {
+                Button(action: {
+                    showCancelConfirmation = true
+                }) {
+                    HStack {
+                        if viewModel.isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .scaleEffect(0.8)
+                        }
+                        
+                        Text("Cancel Order")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                    }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, AppMetrics.spacing)
                     .padding(.horizontal, AppMetrics.spacing)
-                    .background(AppColors.northwesternPurple)
+                    .background(Color.red)
                     .cornerRadius(AppMetrics.cornerRadiusSmall)
+                }
+                .disabled(viewModel.isLoading)
             }
             
             Button(action: {
@@ -274,7 +329,8 @@ struct OrderTrackingView: View {
                 totalAmount: 17.99,
                 deliveryAddress: "123 Main St",
                 estimatedDeliveryTime: Date().addingTimeInterval(1800) // 30 minutes from now
-            )
+            ),
+            onOrderCancelled: nil
         )
     }
 }
