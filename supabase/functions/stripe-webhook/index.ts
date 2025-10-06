@@ -63,6 +63,100 @@ function extractOrderId(event: Stripe.Event): string | null {
   return typeof orderId === 'string' ? orderId : null;
 }
 
+async function notifyZippers(orderId: string | null): Promise<void> {
+  console.log('🔔 Notifying zippers of new order...');
+
+  // Query zippers table to get all zipper IDs
+  const { data: zippers, error: zippersError } = await supabase
+    .from('zippers')
+    .select('id');
+
+  if (zippersError) {
+    console.error('Error fetching zippers:', zippersError.message);
+    throw zippersError;
+  }
+
+  if (!zippers || zippers.length === 0) {
+    console.log('No zippers found in database');
+    return;
+  }
+
+  const zipperIds = zippers.map(z => z.id);
+  console.log(`Found ${zipperIds.length} zipper(s)`);
+
+  // Query fcm_tokens table to get tokens for these zipper IDs
+  const { data: fcmTokens, error: tokensError } = await supabase
+    .from('fcm_tokens')
+    .select('token')
+    .in('user_id', zipperIds);
+
+  if (tokensError) {
+    console.error('Error fetching FCM tokens:', tokensError.message);
+    throw tokensError;
+  }
+
+  if (!fcmTokens || fcmTokens.length === 0) {
+    console.log('No FCM tokens found for zippers');
+    return;
+  }
+
+  const tokens = fcmTokens.map(t => t.token);
+  console.log(`Found ${tokens.length} FCM token(s) for zippers`);
+
+  // Invoke push edge function
+  // Ensure SUPABASE_URL doesn't already end with /functions/v1
+  let baseUrl = SUPABASE_URL;
+  if (baseUrl.endsWith('/')) {
+    baseUrl = baseUrl.slice(0, -1);
+  }
+  const zipPushUrl = `${baseUrl}/functions/v1/push`;
+  
+  console.log(`📤 Invoking push function at URL: ${zipPushUrl}`);
+  
+  const payload = {
+    fcm_tokens: tokens,
+    title: '🚀 New Order!',
+    body: orderId ? `Order #${orderId.substring(0, 8)} needs to be fulfilled` : 'A new order needs to be fulfilled',
+    data: {
+      type: 'new_order',
+      order_id: orderId || '',
+      timestamp: new Date().toISOString()
+    },
+    priority: 'high',
+    sound: 'default',
+    badge: 1
+  };
+
+  console.log('📤 Payload:', JSON.stringify(payload, null, 2));
+  
+  const response = await fetch(zipPushUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+    body: JSON.stringify(payload)
+  });
+
+  console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('❌ push invocation failed:', errorText);
+    
+    // Special handling for 404 - function might not be deployed
+    if (response.status === 404) {
+      console.error('❌ push function not found. Please ensure the push edge function is deployed to Supabase.');
+      console.error('❌ Deploy command: supabase functions deploy push');
+    }
+    
+    throw new Error(`push failed: ${response.status} ${errorText}`);
+  }
+
+  const result = await response.json();
+  console.log('✅ push invocation successful:', result);
+}
+
 async function handle(event: Stripe.Event): Promise<Response> {
   const status = eventTypeToStatus[event.type];
   if (!status) {
@@ -105,6 +199,22 @@ async function handle(event: Stripe.Event): Promise<Response> {
   }
 
   console.log('RPC success:', data);
+
+  // Notify zippers if order was successfully placed (status = in_queue)
+  // Only notify on the FIRST transition to in_queue to avoid duplicate notifications
+  // (Stripe sends multiple events like payment_intent.succeeded AND charge.succeeded)
+  if (status === 'in_queue' && data && data.previous_status !== 'in_queue') {
+    console.log(`🔔 Order transitioned from '${data.previous_status}' to 'in_queue' - notifying zippers`);
+    try {
+      await notifyZippers(orderId);
+    } catch (notifyError) {
+      console.error('Failed to notify zippers:', notifyError);
+      // Don't fail the webhook if notification fails
+    }
+  } else if (status === 'in_queue' && data && data.previous_status === 'in_queue') {
+    console.log(`⏭️ Order already in 'in_queue' status - skipping duplicate zipper notification`);
+  }
+
   return new Response(JSON.stringify({ ok: true, result: data }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }
 

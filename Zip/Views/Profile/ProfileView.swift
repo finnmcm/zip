@@ -65,70 +65,12 @@ struct ProfileView: View {
                             )
                         }
                         
-                        NavigationLink(destination: NotificationCenterView()) {
-                            ProfileOptionRow(
-                                icon: "bell",
-                                title: "Notifications",
-                                subtitle: "View your notifications"
-                            )
-                        }
-                        
-                        NavigationLink(destination: NotificationSettingsView()) {
-                            ProfileOptionRow(
-                                icon: "bell.badge",
-                                title: "Notification Settings",
-                                subtitle: "Manage your notification preferences"
-                            )
-                        }
-                        
-                        ProfileOptionRow(
-                            icon: "creditcard",
-                            title: "Payment Methods",
-                            subtitle: "Manage your payment options"
-                        ) 
-                        
-                        ProfileOptionRow(
-                            icon: "questionmark.circle",
-                            title: "Help & Support",
-                            subtitle: "Get help with your orders"
-                        )
+
                         NavigationLink(destination: ReportBugView()) {
                             ProfileOptionRow(
                                 icon: "ladybug",
                                 title: "Report a Bug",
-                                subtitle: "Zip is still in development. Get paid to make it better"
-                            )
-                        }
-                        
-                        // Debug: Test notification button
-                        Button(action: {
-                            Task {
-                                do {
-                                    // Get the current FCM token
-                                    guard let fcmToken = fcmService.fcmToken else {
-                                        print("❌ ProfileView: No FCM token available")
-                                        return
-                                    }
-                                    
-                                    let success = try await supabaseService.sendPushNotification(
-                                        fcmTokens: [fcmToken],
-                                        title: "🧪 Test Notification",
-                                        body: "This is a test notification sent via zip-push edge function",
-                                        data: ["type": "test", "source": "profile_view"],
-                                        priority: "high",
-                                        sound: "default",
-                                        badge: 1
-                                    )
-                                    print("📤 ProfileView: Test notification result: \(success)")
-                                } catch {
-                                    print("❌ ProfileView: Failed to send test notification: \(error)")
-                                }
-                            }
-                        }) {
-                            ProfileOptionRow(
-                                icon: "bell.badge",
-                                title: "Test Notification",
-                                subtitle: "Test zip-push edge function notification"
+                                subtitle: "Help us improve Zip"
                             )
                         }
                         

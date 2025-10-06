@@ -233,20 +233,6 @@ struct OrderTrackingView: View {
                 .disabled(viewModel.isLoading)
             }
             
-            Button(action: {
-                // Report Problem action
-                print("Report Problem tapped")
-            }) {
-                Text("Report Problem")
-                    .font(.headline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppMetrics.spacing)
-                    .padding(.horizontal, AppMetrics.spacing)
-                    .background(AppColors.northwesternPurple)
-                    .cornerRadius(AppMetrics.cornerRadiusSmall)
-            }
         }
         .padding(.top, AppMetrics.spacing)
         .padding(.bottom, AppMetrics.spacingLarge)

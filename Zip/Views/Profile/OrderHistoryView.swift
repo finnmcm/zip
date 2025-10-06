@@ -11,10 +11,10 @@ struct OrderHistoryView: View {
     @ObservedObject var authViewModel: AuthViewModel
     @State private var isLoading = false
     @State private var selectedOrder: Order?
-    @State private var showingOrderDetail = false
     @State private var errorMessage: String?
     @State private var refreshTask: Task<Void, Never>?
     @State private var lastRefreshTime: Date = .distantPast
+    @State private var autoRefreshTask: Task<Void, Never>?
     
     var body: some View {
         NavigationStack {
@@ -31,17 +31,17 @@ struct OrderHistoryView: View {
             .navigationTitle("Order History")
             .navigationBarTitleDisplayMode(.large)
 
-            .sheet(isPresented: $showingOrderDetail) {
-                if let order = selectedOrder {
-                    OrderDetailView(order: order)
-                }
+            .sheet(item: $selectedOrder) { order in
+                OrderDetailView(order: order)
             }
             .onAppear {
                 loadOrders()
+                startAutoRefresh()
             }
             .onDisappear {
                 // Cancel any pending refresh tasks when view disappears
                 refreshTask?.cancel()
+                autoRefreshTask?.cancel()
             }
             .refreshable {
                 await performRefresh()
@@ -125,31 +125,22 @@ struct OrderHistoryView: View {
     // MARK: - Order List View
     
     private var orderListView: some View {
-        List {
-            ForEach(userOrders) { order in
-                OrderHistoryRow(order: order) {
-                    // Debug logging
-                    print("🔍 OrderHistoryView: Order clicked - ID: \(order.id), Items: \(order.items.count), Status: \(order.status)")
-                    
-                    // Only allow order detail view if we have complete order data
-                    guard !order.items.isEmpty else {
-                        print("⚠️ OrderDetailView: Order has no items, skipping detail view")
-                        return
+        Group {
+            if userOrders.isEmpty {
+                emptyStateView
+            } else {
+                List {
+                    ForEach(userOrders) { order in
+                        OrderHistoryRow(order: order) {
+                            print("🔍 OrderHistoryView: Order clicked - ID: \(order.id), Items: \(order.items.count), Status: \(order.status)")
+                            
+                            selectedOrder = order
+                        }
                     }
-                    
-                    // Additional validation
-                    guard order.totalAmount > 0 else {
-                        print("⚠️ OrderDetailView: Order has invalid total amount, skipping detail view")
-                        return
-                    }
-                    
-                    print("✅ OrderHistoryView: Order data validated, showing detail view")
-                    selectedOrder = order
-                    showingOrderDetail = true
                 }
+                .listStyle(.plain)
             }
         }
-        .listStyle(.plain)
     }
     
     // MARK: - Data Loading Methods
@@ -177,7 +168,7 @@ struct OrderHistoryView: View {
         
         // Check if we're refreshing too frequently (debounce)
         let timeSinceLastRefresh = Date().timeIntervalSince(lastRefreshTime)
-        if timeSinceLastRefresh < 2.0 { // 2 second minimum between refreshes
+        if timeSinceLastRefresh < 1.0 { // 1 second minimum between refreshes
             return
         }
         
@@ -188,6 +179,24 @@ struct OrderHistoryView: View {
         
         // Wait for the task to complete
         await refreshTask?.value
+    }
+    
+    private func startAutoRefresh() {
+        // Cancel any existing auto-refresh task
+        autoRefreshTask?.cancel()
+        
+        // Start a new auto-refresh task that fires every 3 seconds
+        autoRefreshTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 3_000_000_000) // 3 seconds
+                
+                if Task.isCancelled {
+                    break
+                }
+                
+                await performRefresh()
+            }
+        }
     }
     
     private func refreshOrders() async {
@@ -366,42 +375,29 @@ struct OrderDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var deliveryImageURL: String?
     @State private var isLoadingDeliveryImage = false
-    @State private var isDataLoaded = false
-    @State private var retryCount = 0
-    @State private var hasError = false
-    @State private var errorMessage = ""
-    private let maxRetries = 3
     
     var body: some View {
         NavigationStack {
-            Group {
-                if hasError {
-                    errorView
-                } else if !isDataLoaded {
-                    loadingView
-                } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: AppMetrics.spacingLarge) {
-                            // Order Summary
-                            orderSummarySection
-                            
-                            // Items List
-                            itemsSection
-                            
-                            // Delivery Details
-                            deliverySection
-                            
-                            // Delivery Image (if available)
-                            if order.status == .delivered {
-                                deliveryImageSection
-                            }
-                            
-                            // Payment Details
-                            paymentSection
-                        }
-                        .padding()
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppMetrics.spacingLarge) {
+                    // Order Summary
+                    orderSummarySection
+                    
+                    // Items List
+                    itemsSection
+                    
+                    // Delivery Details
+                    deliverySection
+                    
+                    // Delivery Image (if available)
+                    if order.status == .delivered {
+                        deliveryImageSection
                     }
+                    
+                    // Payment Details
+                    paymentSection
                 }
+                .padding()
             }
             .navigationTitle("Order Details")
             .navigationBarTitleDisplayMode(.inline)
@@ -413,53 +409,11 @@ struct OrderDetailView: View {
                 }
             }
             .onAppear {
-                loadOrderData()
+                loadDeliveryImage()
             }
         }
     }
     
-    private var loadingView: some View {
-        VStack(spacing: AppMetrics.spacingLarge) {
-            ProgressView()
-                .scaleEffect(1.5)
-                .progressViewStyle(CircularProgressViewStyle(tint: AppColors.accent))
-            
-            Text("Loading Order Details...")
-                .font(.body)
-                .foregroundColor(AppColors.textSecondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    private var errorView: some View {
-        VStack(spacing: AppMetrics.spacingLarge) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 60))
-                .foregroundColor(AppColors.textSecondary)
-            
-            Text("Unable to Load Order")
-                .font(.title2)
-                .fontWeight(.semibold)
-                .foregroundColor(AppColors.textPrimary)
-            
-            Text(errorMessage.isEmpty ? "There was an error loading the order details." : errorMessage)
-                .font(.body)
-                .foregroundColor(AppColors.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, AppMetrics.spacingLarge)
-            
-            Button("Try Again") {
-                retryCount = 0
-                hasError = false
-                errorMessage = ""
-                loadOrderData()
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(AppColors.accent)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
     
     private var orderSummarySection: some View {
         VStack(alignment: .leading, spacing: AppMetrics.spacing) {
@@ -691,62 +645,18 @@ struct OrderDetailView: View {
     
     // MARK: - Data Loading Methods
     
-    private func loadOrderData() {
-        print("🔍 OrderDetailView: Loading order data for order: \(order.id) (attempt \(retryCount + 1))")
-        print("🔍 OrderDetailView: Order has \(order.items.count) items, total: $\(order.totalAmount)")
-        
-        // Check if order data is valid
-        guard !order.items.isEmpty && order.totalAmount > 0 else {
-            if retryCount < maxRetries {
-                print("⚠️ OrderDetailView: Order data incomplete, retrying...")
-                retryCount += 1
-                
-                // Retry after a longer delay
-                Task {
-                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                    await MainActor.run {
-                        loadOrderData()
-                    }
-                }
-                return
-            } else {
-                print("❌ OrderDetailView: Max retries reached, showing error")
-                errorMessage = "Order data is incomplete or corrupted. Please try again later."
-                hasError = true
-                return
-            }
-        }
-        
-        // Simulate a brief loading period to ensure data is ready
-        Task {
-            // Add a small delay to ensure the order data is fully loaded
-            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-            
-            await MainActor.run {
-                print("✅ OrderDetailView: Order data loaded successfully")
-                isDataLoaded = true
-            }
-            
-            // Load delivery image after data is loaded
-            loadDeliveryImage()
-        }
-    }
-    
     private func loadDeliveryImage() {
         // Only load if we don't already have the image URL
         guard deliveryImageURL == nil && !isLoadingDeliveryImage else {
-            print("🔍 Skipping delivery image load - already loaded or loading")
             return
         }
         
         // Check if order already has the image URL
         if let existingURL = order.deliveryImageURL {
-            print("🔍 Using existing delivery image URL: \(existingURL)")
             deliveryImageURL = existingURL
             return
         }
         
-        print("🔍 Loading delivery image for order: \(order.id)")
         isLoadingDeliveryImage = true
         
         Task {
@@ -755,13 +665,11 @@ struct OrderDetailView: View {
                 let imageURL = try await supabaseService.fetchDeliveryImageURL(for: order.id)
                 
                 await MainActor.run {
-                    print("🔍 Delivery image URL result: \(imageURL ?? "nil")")
                     deliveryImageURL = imageURL
                     isLoadingDeliveryImage = false
                 }
             } catch {
                 await MainActor.run {
-                    print("⚠️ Failed to load delivery image: \(error)")
                     isLoadingDeliveryImage = false
                 }
             }
@@ -772,4 +680,5 @@ struct OrderDetailView: View {
 #Preview {
     OrderHistoryView(authViewModel: AuthViewModel())
 }
+
 
