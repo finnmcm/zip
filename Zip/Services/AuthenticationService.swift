@@ -105,7 +105,32 @@ final class AuthenticationService: AuthenticationServiceProtocol {
         } catch {
             // Handle other authentication errors
             print("❌ Signup failed: \(error)")
-            throw AuthError.signUpFailed
+            print("❌ Error type: \(type(of: error))")
+            print("❌ Error description: \(error.localizedDescription)")
+            
+            // Parse Supabase auth errors
+            let errorMessage = error.localizedDescription.lowercased()
+            
+            // Check for specific error patterns
+            if errorMessage.contains("user already registered") || 
+               errorMessage.contains("email already exists") ||
+               errorMessage.contains("already registered") {
+                throw AuthError.emailAlreadyInUse
+            } else if errorMessage.contains("password") && 
+                      (errorMessage.contains("weak") || errorMessage.contains("short") || errorMessage.contains("invalid")) {
+                throw AuthError.weakPassword
+            } else if errorMessage.contains("too many requests") || 
+                      errorMessage.contains("rate limit") {
+                throw AuthError.rateLimitExceeded
+            } else if errorMessage.contains("network") || 
+                      errorMessage.contains("connection") {
+                throw AuthError.networkError
+            } else if errorMessage.contains("invalid email") {
+                throw AuthError.invalidEmail
+            } else {
+                // For any other auth-related error, throw a generic sign up failed error
+                throw AuthError.signUpFailed
+            }
         }
     }
     
@@ -113,17 +138,48 @@ final class AuthenticationService: AuthenticationServiceProtocol {
         guard let supabase = supabase else {
             throw AuthError.clientNotConfigured
         }
-        let result = try await supabase.auth.signIn(email: email, password: password)
-        let userID = result.user.id.uuidString.lowercased()
         
-        let profileResponse: User = try await supabase
-            .from("users")
-            .select()
-            .eq("id", value: userID)
-            .single()
-            .execute()
-            .value
-        return profileResponse
+        do {
+            let result = try await supabase.auth.signIn(email: email, password: password)
+            let userID = result.user.id.uuidString.lowercased()
+            
+            let profileResponse: User = try await supabase
+                .from("users")
+                .select()
+                .eq("id", value: userID)
+                .single()
+                .execute()
+                .value
+            return profileResponse
+            
+        } catch {
+            print("❌ Sign in error: \(error)")
+            print("❌ Error type: \(type(of: error))")
+            print("❌ Error description: \(error.localizedDescription)")
+            
+            // Parse Supabase auth errors
+            let errorMessage = error.localizedDescription.lowercased()
+            
+            // Check for specific error patterns
+            if errorMessage.contains("invalid login credentials") || 
+               errorMessage.contains("invalid email or password") {
+                throw AuthError.invalidCredentials
+            } else if errorMessage.contains("email not confirmed") || 
+                      errorMessage.contains("email confirmation") {
+                throw AuthError.emailNotConfirmed
+            } else if errorMessage.contains("too many requests") || 
+                      errorMessage.contains("rate limit") {
+                throw AuthError.rateLimitExceeded
+            } else if errorMessage.contains("user not found") {
+                throw AuthError.userNotFound
+            } else if errorMessage.contains("network") || 
+                      errorMessage.contains("connection") {
+                throw AuthError.networkError
+            } else {
+                // For any other auth-related error, throw a generic sign in failed error
+                throw AuthError.signInFailed
+            }
+        }
     }
     
     func signOut() async throws {
@@ -319,6 +375,12 @@ enum AuthError: LocalizedError {
     case userNotFound
     case verificationEmailFailed
     case rateLimitExceeded
+    case invalidCredentials
+    case emailNotConfirmed
+    case networkError
+    case emailAlreadyInUse
+    case weakPassword
+    case invalidEmail
     
     var errorDescription: String? {
         switch self {
@@ -327,7 +389,7 @@ enum AuthError: LocalizedError {
         case .signUpFailed:
             return "Failed to create account. Please try again."
         case .signInFailed:
-            return "Invalid email or password. Please try again."
+            return "Sign in failed. Please check your credentials and try again."
         case .signOutFailed:
             return "Failed to sign out. Please try again."
         case .passwordResetFailed:
@@ -342,6 +404,18 @@ enum AuthError: LocalizedError {
             return "Failed to resend verification email. Please try again."
         case .rateLimitExceeded:
             return "Too many requests. Please wait a moment before trying again."
+        case .invalidCredentials:
+            return "Invalid email or password. Please check your credentials and try again."
+        case .emailNotConfirmed:
+            return "Please verify your email address before signing in. Check your inbox for a confirmation link."
+        case .networkError:
+            return "Network connection error. Please check your internet connection and try again."
+        case .emailAlreadyInUse:
+            return "This email is already registered. Please sign in or use a different email."
+        case .weakPassword:
+            return "Password is too weak. Please use a stronger password with at least 8 characters."
+        case .invalidEmail:
+            return "Invalid email format. Please enter a valid email address."
         }
     }
 }

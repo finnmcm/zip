@@ -97,7 +97,6 @@ struct MainTabView: View {
                 .tabItem { 
                     Image(systemName: "person")
                 }
-                .badge(fcmService.unreadCount > 0 ? fcmService.unreadCount : 0)
             if authViewModel.currentUser?.role == .admin {
                 AdminView(authViewModel: authViewModel)
                     .tabItem { 

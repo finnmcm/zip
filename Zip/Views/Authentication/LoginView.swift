@@ -139,70 +139,179 @@ private struct SignUpForm: View {
         VStack(spacing: AppMetrics.spacingLarge) {
             // Name Fields
             HStack(spacing: AppMetrics.spacing) {
-                FormField(
-                    title: "First Name",
-                    text: $viewModel.firstName,
-                    placeholder: "First Name",
-                    field: .firstName,
-                    focusedField: _focusedField,
-                    textContentType: .givenName
-                )
+                VStack(alignment: .leading, spacing: 4) {
+                    FormField(
+                        title: "First Name",
+                        text: $viewModel.firstName,
+                        placeholder: "First Name",
+                        field: .firstName,
+                        focusedField: _focusedField,
+                        textContentType: .givenName
+                    )
+                    if !viewModel.firstName.isEmpty && viewModel.firstName.isEmptyOrWhitespace {
+                        ValidationWarning(message: "First name is required")
+                    }
+                }
                 
-                FormField(
-                    title: "Last Name",
-                    text: $viewModel.lastName,
-                    placeholder: "Last Name",
-                    field: .lastName,
-                    focusedField: _focusedField,
-                    textContentType: .familyName
-                )
+                VStack(alignment: .leading, spacing: 4) {
+                    FormField(
+                        title: "Last Name",
+                        text: $viewModel.lastName,
+                        placeholder: "Last Name",
+                        field: .lastName,
+                        focusedField: _focusedField,
+                        textContentType: .familyName
+                    )
+                    if !viewModel.lastName.isEmpty && viewModel.lastName.isEmptyOrWhitespace {
+                        ValidationWarning(message: "Last name is required")
+                    }
+                }
             }
             
             // Email Field
-            FormField(
-                title: "Email Address",
-                text: $viewModel.email,
-                placeholder: "yourname@u.northwestern.edu",
-                field: .email,
-                focusedField: _focusedField,
-                textContentType: .emailAddress,
-                keyboardType: .emailAddress
-            )
+            VStack(alignment: .leading, spacing: 4) {
+                FormField(
+                    title: "Email Address",
+                    text: $viewModel.email,
+                    placeholder: "yourname@u.northwestern.edu",
+                    field: .email,
+                    focusedField: _focusedField,
+                    textContentType: .emailAddress,
+                    keyboardType: .emailAddress
+                )
+                if !viewModel.email.isEmpty && !viewModel.isValidEmail {
+                    ValidationWarning(message: "Must use Northwestern email (@u.northwestern.edu)")
+                }
+            }
             
             // Phone Number Field
-            FormField(
-                title: "Phone Number",
-                text: $viewModel.phoneNumber,
-                placeholder: "(123) 456-7890",
-                field: .phoneNumber,
-                focusedField: _focusedField,
-                textContentType: .telephoneNumber,
-                keyboardType: .phonePad
-            )
+            VStack(alignment: .leading, spacing: 4) {
+                FormField(
+                    title: "Phone Number",
+                    text: $viewModel.phoneNumber,
+                    placeholder: "(123) 456-7890",
+                    field: .phoneNumber,
+                    focusedField: _focusedField,
+                    textContentType: .telephoneNumber,
+                    keyboardType: .phonePad
+                )
+                if !viewModel.phoneNumber.isEmpty && !viewModel.isValidPhoneNumber {
+                    ValidationWarning(message: "Valid phone number required (10-15 digits)")
+                }
+            }
             
             // Password Fields
-            FormField(
-                title: "Password",
-                text: $viewModel.password,
-                placeholder: "Password (min 8 characters)",
-                field: .password,
-                focusedField: _focusedField,
-                textContentType: .newPassword,
-                isSecure: true
-            )
+            VStack(alignment: .leading, spacing: 4) {
+                FormField(
+                    title: "Password",
+                    text: $viewModel.password,
+                    placeholder: "Password (min 8 characters)",
+                    field: .password,
+                    focusedField: _focusedField,
+                    textContentType: .newPassword,
+                    isSecure: true
+                )
+                
+                // Password Requirements
+                PasswordRequirementsView(password: viewModel.password)
+            }
             
-            FormField(
-                title: "Confirm Password",
-                text: $viewModel.confirmPassword,
-                placeholder: "Confirm Password",
-                field: .confirmPassword,
-                focusedField: _focusedField,
-                textContentType: .newPassword,
-                isSecure: true
-            )
+            VStack(alignment: .leading, spacing: 4) {
+                FormField(
+                    title: "Confirm Password",
+                    text: $viewModel.confirmPassword,
+                    placeholder: "Confirm Password",
+                    field: .confirmPassword,
+                    focusedField: _focusedField,
+                    textContentType: .newPassword,
+                    isSecure: true
+                )
+                if !viewModel.confirmPassword.isEmpty && !viewModel.doPasswordsMatch {
+                    ValidationWarning(message: "Passwords do not match")
+                }
+            }
         }
     }
 }
+
+// MARK: - Password Requirements View
+private struct PasswordRequirementsView: View {
+    let password: String
+    
+    private var meetsLengthRequirement: Bool {
+        password.count >= 8
+    }
+    
+    private var hasLetter: Bool {
+        password.rangeOfCharacter(from: .letters) != nil
+    }
+    
+    private var hasNumber: Bool {
+        password.rangeOfCharacter(from: .decimalDigits) != nil
+    }
+    
+    var body: some View {
+        HStack{
+        VStack(alignment: .leading, spacing: AppMetrics.spacingSmall) {
+            RequirementRow(
+                text: "At least 8 characters",
+                isMet: meetsLengthRequirement
+            )
+            
+            RequirementRow(
+                text: "Contains at least one letter",
+                isMet: hasLetter
+            )
+            
+            RequirementRow(
+                text: "Contains at least one number",
+                isMet: hasNumber
+            )
+        }
+        .padding(.horizontal, AppMetrics.spacing)
+        .padding(.vertical, AppMetrics.spacingSmall)
+    Spacer()
+    }
+    }
+}
+
+// MARK: - Requirement Row
+private struct RequirementRow: View {
+    let text: String
+    let isMet: Bool
+    
+    var body: some View {
+        HStack(spacing: AppMetrics.spacingSmall) {
+            Image(systemName: isMet ? "checkmark.circle.fill" : "circle")
+                .font(.caption)
+                .foregroundStyle(isMet ? .green : AppColors.textSecondary.opacity(0.5))
+            
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(isMet ? AppColors.textPrimary : AppColors.textSecondary)
+        }
+    }
+}
+
+// MARK: - Validation Warning
+private struct ValidationWarning: View {
+    let message: String
+    
+    var body: some View {
+        HStack(spacing: AppMetrics.spacingSmall) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(.caption2)
+                .foregroundStyle(.red)
+            
+            Text(message)
+                .font(.caption2)
+                .foregroundStyle(.red)
+        }
+        .padding(.horizontal, AppMetrics.spacingSmall)
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+}
+
 
 // MARK: - Sign In Form
 private struct SignInForm: View {
