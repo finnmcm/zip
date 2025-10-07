@@ -7,10 +7,16 @@ import SwiftUI
 
 struct EmailVerificationBanner: View {
     @State private var isVisible = false
-    let currentUser: User?
+    @State private var isCheckingStatus = false
+    @State private var showSuccessMessage = false
+    @ObservedObject var authViewModel: AuthViewModel
     
-    init(currentUser: User? = nil) {
-        self.currentUser = currentUser
+    init(currentUser: User? = nil, authViewModel: AuthViewModel) {
+        self.authViewModel = authViewModel
+    }
+    
+    private var currentUser: User? {
+        authViewModel.currentUser
     }
     
     private var shouldShowBanner: Bool {
@@ -31,29 +37,47 @@ struct EmailVerificationBanner: View {
         let _ = print("🔍 EmailVerificationBanner: shouldShowBanner = \(shouldShowBanner)")
         if shouldShowBanner {
             let _ = print("🔍 EmailVerificationBanner: Showing banner for user.verified = \(currentUser?.verified ?? false)")
-            HStack(spacing: AppMetrics.spacing) {
-                Image(systemName: "envelope.fill")
-                    .foregroundColor(.white)
-                    .font(.title2)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(bannerTitle)
-                        .font(.body)
-                        .fontWeight(.semibold)
+            VStack(spacing: AppMetrics.spacingSmall) {
+                HStack(spacing: AppMetrics.spacing) {
+                    Image(systemName: "envelope.fill")
                         .foregroundColor(.white)
+                        .font(.title2)
                     
-                    Text(bannerMessage)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.9))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(bannerTitle)
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        
+                        Text(bannerMessage)
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                    
+                    Spacer()
                 }
                 
-                Spacer()
-                
-                Button(action: {
-                    // TODO: Add resend verification email functionality
-                    print("Resend verification email tapped")
-                }) {
-                    Text("Resend")
+                // Action buttons
+                HStack(spacing: AppMetrics.spacing) {
+                    Button(action: {
+                        Task {
+                            isCheckingStatus = true
+                            await authViewModel.manualCheckVerificationStatus()
+                            // Small delay to show the loading state
+                            try? await Task.sleep(nanoseconds: 500_000_000)
+                            isCheckingStatus = false
+                        }
+                    }) {
+                        HStack(spacing: 4) {
+                            if isCheckingStatus {
+                                ProgressView()
+                                    .tint(.white)
+                                    .scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            Text("Check Status")
+                        }
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.white)
@@ -61,6 +85,40 @@ struct EmailVerificationBanner: View {
                         .padding(.vertical, AppMetrics.spacingSmall)
                         .background(Color.white.opacity(0.2))
                         .cornerRadius(AppMetrics.cornerRadiusSmall)
+                    }
+                    .disabled(isCheckingStatus)
+                    
+                    Button(action: {
+                        Task {
+                            await authViewModel.resendVerificationEmail()
+                            showSuccessMessage = true
+                            // Hide success message after 3 seconds
+                            try? await Task.sleep(nanoseconds: 3_000_000_000)
+                            showSuccessMessage = false
+                        }
+                    }) {
+                        Text("Resend Email")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, AppMetrics.spacing)
+                            .padding(.vertical, AppMetrics.spacingSmall)
+                            .background(Color.white.opacity(0.2))
+                            .cornerRadius(AppMetrics.cornerRadiusSmall)
+                    }
+                    
+                    Spacer()
+                }
+                
+                if showSuccessMessage {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.white)
+                        Text("Verification email sent!")
+                            .font(.caption)
+                            .foregroundColor(.white)
+                    }
+                    .transition(.opacity)
                 }
             }
             .padding(.horizontal, AppMetrics.spacingLarge)
@@ -73,6 +131,7 @@ struct EmailVerificationBanner: View {
             .opacity(isVisible ? 1.0 : 0.0)
             .offset(y: isVisible ? 0 : -20)
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isVisible)
+            .animation(.easeInOut(duration: 0.3), value: showSuccessMessage)
             .onAppear {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     isVisible = true
@@ -90,15 +149,18 @@ struct EmailVerificationBanner: View {
             .ignoresSafeArea()
         
         VStack {
-            EmailVerificationBanner(currentUser: User(
-                id: "test-id",
-                email: "test@u.northwestern.edu",
-                firstName: "Test",
-                lastName: "User",
-                phoneNumber: "1234567890",
-                verified: false,
-                fcmToken: nil
-            ))
+            EmailVerificationBanner(
+                currentUser: User(
+                    id: "test-id",
+                    email: "test@u.northwestern.edu",
+                    firstName: "Test",
+                    lastName: "User",
+                    phoneNumber: "1234567890",
+                    verified: false,
+                    fcmToken: nil
+                ),
+                authViewModel: AuthViewModel()
+            )
             Spacer()
         }
     }

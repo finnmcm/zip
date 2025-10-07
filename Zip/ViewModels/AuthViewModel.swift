@@ -359,19 +359,57 @@ final class AuthViewModel: ObservableObject {
     
     // MARK: - Verification Status Checking
     
+    /// Manually checks verification status - can be called from UI
+    func manualCheckVerificationStatus() async {
+        await checkVerificationStatus()
+    }
+    
+    /// Resends verification email to the current user
+    func resendVerificationEmail() async {
+        guard let currentUser = currentUser else {
+            print("❌ Cannot resend verification email: No current user")
+            errorMessage = "Unable to resend verification email. Please try logging in again."
+            return
+        }
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            try await authService.resendVerificationEmail(email: currentUser.email)
+            // Use errorMessage to show success (we don't have a success message property)
+            errorMessage = "✅ Verification email sent! Please check your inbox."
+            print("✅ Verification email resent to: \(currentUser.email)")
+            
+            // Clear the message after 5 seconds
+            Task {
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+                if errorMessage == "✅ Verification email sent! Please check your inbox." {
+                    errorMessage = nil
+                }
+            }
+        } catch let error as AuthError {
+            errorMessage = error.localizedDescription
+            print("❌ Error resending verification email: \(error)")
+        } catch {
+            errorMessage = "Failed to resend verification email. Please try again."
+            print("❌ Error resending verification email: \(error)")
+        }
+    }
+    
     /// Starts periodic checking of verification status for unverified users
     private func startVerificationStatusChecking() {
         // Stop any existing timer
         stopVerificationStatusChecking()
         
-        // Check every 30 seconds
-        verificationCheckTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+        // Check every 5 seconds for more responsive feedback
+        verificationCheckTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             Task {
                 await self?.checkVerificationStatus()
             }
         }
         
-        print("🔄 Started verification status checking")
+        print("🔄 Started verification status checking (every 5 seconds)")
     }
     
     /// Stops periodic verification status checking

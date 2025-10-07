@@ -19,6 +19,7 @@ protocol AuthenticationServiceProtocol {
     func resetPassword(email: String) async throws
     func updateProfile(_ user: User) async throws -> User
     func checkVerificationStatus(email: String) async throws -> Bool
+    func resendVerificationEmail(email: String) async throws
 }
 
 final class AuthenticationService: AuthenticationServiceProtocol {
@@ -279,6 +280,31 @@ final class AuthenticationService: AuthenticationServiceProtocol {
             throw error
         }
     }
+    
+    func resendVerificationEmail(email: String) async throws {
+        guard let supabase = supabase else {
+            throw AuthError.clientNotConfigured
+        }
+        
+        do {
+            // Supabase resend API for email confirmation
+            // The resend method sends a new OTP (one-time password) for signup confirmation
+            _ = try await supabase.auth.resend(email: email, type: .signup)
+            
+            print("✅ Verification email resent to: \(email)")
+        } catch {
+            print("❌ Error resending verification email: \(error)")
+            print("❌ Error details: \(error.localizedDescription)")
+            
+            // Check if the error is due to rate limiting
+            let errorDescription = error.localizedDescription.lowercased()
+            if errorDescription.contains("rate") || errorDescription.contains("too many") || errorDescription.contains("limit") {
+                throw AuthError.rateLimitExceeded
+            }
+            
+            throw AuthError.verificationEmailFailed
+        }
+    }
 }
 
 // MARK: - Authentication Errors
@@ -291,6 +317,8 @@ enum AuthError: LocalizedError {
     case profileUpdateFailed
     case databaseError(String)
     case userNotFound
+    case verificationEmailFailed
+    case rateLimitExceeded
     
     var errorDescription: String? {
         switch self {
@@ -310,6 +338,10 @@ enum AuthError: LocalizedError {
             return "Database error: \(message)"
         case .userNotFound:
             return "User profile not found. Please contact support."
+        case .verificationEmailFailed:
+            return "Failed to resend verification email. Please try again."
+        case .rateLimitExceeded:
+            return "Too many requests. Please wait a moment before trying again."
         }
     }
 }

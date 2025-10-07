@@ -63,6 +63,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Utilities/Environment.xcconfig,
 			);
 			target = AC88C0932E54FCBB00CBD98E /* Zip */;
 		};
