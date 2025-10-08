@@ -22,7 +22,7 @@ struct ProductListView: View {
         self.authViewModel = authViewModel
     }
 
-    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
     
     private var filteredProducts: [Product] {
         let baseProducts: [Product]

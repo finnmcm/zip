@@ -11,6 +11,13 @@ struct VerificationResult: Codable {
     let verified: Bool
 }
 
+struct DeleteAccountResponse: Codable {
+    let success: Bool
+    let message: String?
+    let userId: String?
+    let error: String?
+}
+
 protocol AuthenticationServiceProtocol {
     func signUp(email: String, password: String, firstName: String, lastName: String, phoneNumber: String, role: UserRole) async throws -> User
     func signIn(email: String, password: String) async throws -> User
@@ -20,6 +27,7 @@ protocol AuthenticationServiceProtocol {
     func updateProfile(_ user: User) async throws -> User
     func checkVerificationStatus(email: String) async throws -> Bool
     func resendVerificationEmail(email: String) async throws
+    func deleteAccount() async throws
 }
 
 final class AuthenticationService: AuthenticationServiceProtocol {
@@ -361,6 +369,55 @@ final class AuthenticationService: AuthenticationServiceProtocol {
             throw AuthError.verificationEmailFailed
         }
     }
+    
+    func deleteAccount() async throws {
+        guard let supabase = supabase else {
+            throw AuthError.clientNotConfigured
+        }
+        
+        do {
+            // Get current user to verify they're authenticated
+            guard let currentUser = try await getCurrentUser() else {
+                throw AuthError.userNotFound
+            }
+            
+            print("🗑️ Starting account deletion for user: \(currentUser.email)")
+            
+            // Get the current session to get the access token
+            let session = try await supabase.auth.session
+            let accessToken = session.accessToken
+            
+            // Call the Edge Function to delete the user account
+            let response: DeleteAccountResponse = try await supabase.functions.invoke(
+                "delete-user-account"
+            )
+            
+            // Check if the response indicates success
+            if response.success {
+                print("✅ Account deleted successfully for user: \(currentUser.email)")
+                print("ℹ️ User has been deleted from both database and Auth system")
+            } else {
+                print("❌ Account deletion failed: \(response.error ?? "Unknown error")")
+                throw AuthError.accountDeletionFailed
+            }
+            
+        } catch {
+            print("❌ Error deleting account: \(error)")
+            print("❌ Error type: \(type(of: error))")
+            print("❌ Error description: \(error.localizedDescription)")
+            
+            // Parse specific errors
+            let errorMessage = error.localizedDescription.lowercased()
+            
+            if errorMessage.contains("network") || errorMessage.contains("connection") {
+                throw AuthError.networkError
+            } else if errorMessage.contains("not found") {
+                throw AuthError.userNotFound
+            } else {
+                throw AuthError.accountDeletionFailed
+            }
+        }
+    }
 }
 
 // MARK: - Authentication Errors
@@ -381,6 +438,7 @@ enum AuthError: LocalizedError {
     case emailAlreadyInUse
     case weakPassword
     case invalidEmail
+    case accountDeletionFailed
     
     var errorDescription: String? {
         switch self {
@@ -416,6 +474,8 @@ enum AuthError: LocalizedError {
             return "Password is too weak. Please use a stronger password with at least 8 characters."
         case .invalidEmail:
             return "Invalid email format. Please enter a valid email address."
+        case .accountDeletionFailed:
+            return "Failed to delete account. Please try again or contact support."
         }
     }
 }

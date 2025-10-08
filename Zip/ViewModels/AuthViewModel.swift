@@ -475,6 +475,46 @@ final class AuthViewModel: ObservableObject {
             }
         }
     }
+    
+    // MARK: - Account Deletion
+    
+    func deleteAccount() async {
+        guard let currentUser = currentUser else {
+            errorMessage = "No user logged in to delete"
+            return
+        }
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        do {
+            print("🗑️ AuthViewModel: Starting account deletion for user: \(currentUser.email)")
+            
+            // Call the authentication service to delete the account
+            try await authService.deleteAccount()
+            
+            // Clear all local state
+            self.currentUser = nil
+            self.isAuthenticated = false
+            self.clearForm()
+            self.errorMessage = nil
+            
+            // Clear saved credentials
+            _ = keychainService.clearCredentials()
+            
+            // Stop verification checking
+            stopVerificationStatusChecking()
+            
+            print("✅ AuthViewModel: Account deleted successfully")
+            
+        } catch let error as AuthError {
+            errorMessage = error.localizedDescription
+            print("❌ AuthViewModel: Account deletion error: \(error)")
+        } catch {
+            errorMessage = "An unexpected error occurred while deleting your account. Please try again."
+            print("❌ AuthViewModel: Unexpected account deletion error: \(error)")
+        }
+    }
 }
 /*
 🔄 FCM: onUserLogin called

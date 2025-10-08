@@ -54,6 +54,14 @@ final class ZipperViewModel: ObservableObject {
             let orders = try await supabaseService.fetchPendingOrders()
             pendingOrders = orders
             print("✅ Successfully loaded \(orders.count) pending orders")
+            
+            // Debug: Print order details
+            for order in orders {
+                print("🔍 Order \(order.id.uuidString.prefix(8)) has \(order.items.count) items:")
+                for item in order.items {
+                    print("  - \(item.quantity)x \(item.product.displayName)")
+                }
+            }
         } catch {
             print("❌ Error loading pending orders: \(error)")
             errorMessage = "Failed to load pending orders. Please try again."

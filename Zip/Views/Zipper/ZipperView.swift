@@ -195,6 +195,9 @@ struct ActiveOrderView: View {
                                 .foregroundColor(AppColors.textPrimary)
                         }
                     }
+                    .onAppear {
+                        print("🔍 ActiveOrderView: Displaying \(order.items.count) items for order \(order.id.uuidString.prefix(8))")
+                    }
                 }
                 
                 Divider()
@@ -389,6 +392,9 @@ struct PendingOrderRow: View {
                     Text("\(item.quantity)x \(item.product.displayName)")
                         .font(.caption)
                         .foregroundColor(AppColors.textSecondary)
+                }
+                .onAppear {
+                    print("🔍 Displaying \(order.items.count) items for order \(order.id.uuidString.prefix(8))")
                 }
                 
                 if order.items.count > 3 {

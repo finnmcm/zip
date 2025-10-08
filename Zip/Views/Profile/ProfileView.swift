@@ -12,6 +12,11 @@ struct ProfileView: View {
     @StateObject private var fcmService = FCMService.shared
     private let supabaseService = SupabaseService.shared
     
+    // Delete account confirmation states
+    @State private var showingDeleteConfirmation = false
+    @State private var showingFinalConfirmation = false
+    @State private var deleteConfirmationText = ""
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -74,6 +79,18 @@ struct ProfileView: View {
                             )
                         }
                         
+                        // Delete Account Button
+                        Button(action: {
+                            showingDeleteConfirmation = true
+                        }) {
+                            ProfileOptionRow(
+                                icon: "trash",
+                                title: "Delete Account",
+                                subtitle: "Permanently remove your account and data",
+                                isDestructive: true
+                            )
+                        }
+                        .buttonStyle(.plain)
                         
                     }
                     .padding(.horizontal, AppMetrics.spacingLarge)
@@ -110,6 +127,39 @@ struct ProfileView: View {
             }
             .navigationTitle("Profile")
         }
+        .alert("Delete Account", isPresented: $showingDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Continue", role: .destructive) {
+                showingFinalConfirmation = true
+            }
+        } message: {
+            Text("Are you sure you want to delete your account? This action cannot be undone and will permanently remove all your data including order history, cart items, and account information.")
+        }
+        .alert("Final Confirmation", isPresented: $showingFinalConfirmation) {
+            TextField("Type 'DELETE' to confirm", text: $deleteConfirmationText)
+            Button("Cancel", role: .cancel) {
+                deleteConfirmationText = ""
+            }
+            Button("Delete Account", role: .destructive) {
+                Task {
+                    await authViewModel.deleteAccount()
+                }
+                deleteConfirmationText = ""
+            }
+            .disabled(deleteConfirmationText != "DELETE")
+        } message: {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("This will permanently delete:")
+                Text("• Your account and profile")
+                Text("• All order history")
+                Text("• Push notification tokens")
+                Text("• All associated data")
+                
+                Text("\nType 'DELETE' in the text field to confirm this action.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
         .enableInjection()
     }
     
@@ -126,18 +176,26 @@ private struct ProfileOptionRow: View {
     let icon: String
     let title: String
     let subtitle: String
+    let isDestructive: Bool
+    
+    init(icon: String, title: String, subtitle: String, isDestructive: Bool = false) {
+        self.icon = icon
+        self.title = title
+        self.subtitle = subtitle
+        self.isDestructive = isDestructive
+    }
     
     var body: some View {
             HStack(spacing: AppMetrics.spacing) {
                 Image(systemName: icon)
                     .font(.title2)
-                    .foregroundStyle(AppColors.accent)
+                    .foregroundStyle(isDestructive ? .red : AppColors.accent)
                     .frame(width: 24)
                 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.body)
-                        .foregroundStyle(AppColors.textPrimary)
+                        .foregroundStyle(isDestructive ? .red : AppColors.textPrimary)
                     Text(subtitle)
                         .font(.caption)
                         .foregroundStyle(AppColors.textSecondary)

@@ -87,6 +87,9 @@ protocol SupabaseServiceProtocol {
     func sendPushNotification(fcmTokens: [String], title: String, body: String, data: [String: String]?, priority: String?, sound: String?, badge: Int?) async throws -> Bool
     func fetchZipperFCMTokens() async throws -> [String]
     func notifyZippersOfNewOrder(_ order: Order) async throws -> Bool
+    
+    // MARK: - Account Deletion Operations
+    // Note: Account deletion is now handled by the delete-user-account Edge Function
 }
 
 final class SupabaseService: SupabaseServiceProtocol {
@@ -1030,6 +1033,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     .execute()
                     .value
                     
+                print("🔍 Found \(orderItemsResponse.count) order items for order \(orderData.id)")
                 
                 // Convert order items to CartItems
                 var cartItems: [CartItem] = []
@@ -1042,6 +1046,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                         .execute()
                         .value
                         
+                    print("🔍 Fetched product data for product_id \(itemData.product_id): \(productResponse.count) results")
                     
                     if let productData = productResponse.first {
                         // Parse product category
@@ -1076,6 +1081,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                             userId: UUID(uuidString: orderData.user_id) ?? UUID()
                         )
                         cartItems.append(cartItem)
+                        print("🔍 Created cart item: \(itemData.quantity)x \(product.displayName)")
                     }
                 }
                 
@@ -1118,7 +1124,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil
                 )
                 
-                print("🔍 Created Order object with ID: \(order.id.uuidString) (original DB ID: \(orderData.id))")
+                print("🔍 Created Order object with ID: \(order.id.uuidString) (original DB ID: \(orderData.id)) with \(cartItems.count) items")
                 orders.append(order)
             }
             
@@ -1866,6 +1872,10 @@ final class SupabaseService: SupabaseServiceProtocol {
             throw error
         }
     }
+    
+    // MARK: - Account Deletion Operations
+    // Note: Account deletion is now handled by the delete-user-account Edge Function
+    // which properly deletes user data from both database tables and Supabase Auth
     
 }
 
