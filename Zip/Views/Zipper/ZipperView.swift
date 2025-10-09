@@ -104,175 +104,175 @@ struct ActiveOrderView: View {
     let onClearImage: () -> Void
     
     var body: some View {
-        VStack(spacing: AppMetrics.spacingLarge) {
-            // Header
-            VStack(spacing: AppMetrics.spacing) {
-                Image(systemName: "bicycle")
-                    .font(.system(size: 60))
-                    .foregroundColor(AppColors.accent)
-                
-                Text("Active Delivery")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(AppColors.textPrimary)
-                
-                Text("Complete this order to accept new ones")
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.top, AppMetrics.spacingLarge)
-            
-            // Order Details Card
-            VStack(alignment: .leading, spacing: AppMetrics.spacing) {
-                // Customer Info
-                HStack {
-                    Image(systemName: "person.circle.fill")
+        ScrollView {
+            VStack(spacing: AppMetrics.spacingLarge) {
+                // Header
+                VStack(spacing: AppMetrics.spacing) {
+                    Image(systemName: "bicycle")
+                        .font(.system(size: 60))
                         .foregroundColor(AppColors.accent)
-                    VStack(alignment: .leading) {
-                        Text("Customer")
-                            .font(.caption)
-                            .foregroundColor(AppColors.textSecondary)
-                        Text("\(order.firstName) \(order.lastName)")
-                            .font(.headline)
-                            .foregroundColor(AppColors.textPrimary)
-                    }
-                    Spacer()
-                }
-                
-                Divider()
-                
-                // Delivery Address
-                HStack(alignment: .top) {
-                    Image(systemName: "location.circle.fill")
-                        .foregroundColor(AppColors.accent)
-                    VStack(alignment: .leading) {
-                        Text("Delivery Address")
-                            .font(.caption)
-                            .foregroundColor(AppColors.textSecondary)
-                        Text(order.deliveryAddress)
-                            .font(.body)
-                            .foregroundColor(AppColors.textPrimary)
-                    }
-                    Spacer()
-                }
-                
-                if let instructions = order.deliveryInstructions, !instructions.isEmpty {
-                    Divider()
                     
-                    HStack(alignment: .top) {
-                        Image(systemName: "note.text")
+                    Text("Active Delivery")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(AppColors.textPrimary)
+                    
+                    Text("Complete this order to accept new ones")
+                        .font(.subheadline)
+                        .foregroundColor(AppColors.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, AppMetrics.spacingLarge)
+                
+                // Order Details Card
+                VStack(alignment: .leading, spacing: AppMetrics.spacing) {
+                    // Customer Info
+                    HStack {
+                        Image(systemName: "person.circle.fill")
                             .foregroundColor(AppColors.accent)
                         VStack(alignment: .leading) {
-                            Text("Instructions")
+                            Text("Customer")
                                 .font(.caption)
                                 .foregroundColor(AppColors.textSecondary)
-                            Text(instructions)
+                            Text("\(order.firstName) \(order.lastName)")
+                                .font(.headline)
+                                .foregroundColor(AppColors.textPrimary)
+                        }
+                        Spacer()
+                    }
+                    
+                    Divider()
+                    
+                    // Delivery Address
+                    HStack(alignment: .top) {
+                        Image(systemName: "location.circle.fill")
+                            .foregroundColor(AppColors.accent)
+                        VStack(alignment: .leading) {
+                            Text("Delivery Address")
+                                .font(.caption)
+                                .foregroundColor(AppColors.textSecondary)
+                            Text(order.deliveryAddress)
                                 .font(.body)
                                 .foregroundColor(AppColors.textPrimary)
                         }
                         Spacer()
                     }
-                }
-                
-                Divider()
-                
-                // Order Items
-                VStack(alignment: .leading, spacing: AppMetrics.spacingSmall) {
-                    Text("Order Items")
-                        .font(.caption)
-                        .foregroundColor(AppColors.textSecondary)
                     
-                    ForEach(order.items) { item in
-                        HStack {
-                            Text("\(item.quantity)x \(item.product.displayName)")
-                                .font(.body)
-                                .foregroundColor(AppColors.textPrimary)
+                    if let instructions = order.deliveryInstructions, !instructions.isEmpty {
+                        Divider()
+                        
+                        HStack(alignment: .top) {
+                            Image(systemName: "note.text")
+                                .foregroundColor(AppColors.accent)
+                            VStack(alignment: .leading) {
+                                Text("Instructions")
+                                    .font(.caption)
+                                    .foregroundColor(AppColors.textSecondary)
+                                Text(instructions)
+                                    .font(.body)
+                                    .foregroundColor(AppColors.textPrimary)
+                            }
                             Spacer()
-                            Text("$\(String(format: "%.2f", NSDecimalNumber(decimal: item.product.price * Decimal(item.quantity)).doubleValue))")
-                                .font(.body)
-                                .fontWeight(.medium)
-                                .foregroundColor(AppColors.textPrimary)
                         }
                     }
-                    .onAppear {
-                        print("🔍 ActiveOrderView: Displaying \(order.items.count) items for order \(order.id.uuidString.prefix(8))")
-                    }
-                }
-                
-                Divider()
-                
-                // Total
-                HStack {
-                    Text("Total")
-                        .font(.headline)
-                        .foregroundColor(AppColors.textPrimary)
-                    Spacer()
-                    Text("$\(String(format: "%.2f", NSDecimalNumber(decimal: order.totalAmount).doubleValue))")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(AppColors.textPrimary)
-                }
-            }
-            .padding(AppMetrics.spacing)
-            .background(AppColors.secondaryBackground)
-            .cornerRadius(AppMetrics.cornerRadius)
-            
-            Spacer()
-            
-            // Captured Image Section
-            if let capturedImage = capturedImage {
-                VStack(spacing: AppMetrics.spacing) {
-                    Text("Delivery Photo")
-                        .font(.headline)
-                        .foregroundColor(AppColors.textPrimary)
                     
-                    Image(uiImage: capturedImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxHeight: 200)
-                        .cornerRadius(AppMetrics.cornerRadius)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppMetrics.cornerRadius)
-                                .stroke(AppColors.accent, lineWidth: 2)
-                        )
+                    Divider()
                     
-                    Button(action: onClearImage) {
-                        HStack {
-                            Image(systemName: "trash")
-                            Text("Remove Photo")
+                    // Order Items
+                    VStack(alignment: .leading, spacing: AppMetrics.spacingSmall) {
+                        Text("Order Items")
+                            .font(.caption)
+                            .foregroundColor(AppColors.textSecondary)
+                        
+                        ForEach(order.items) { item in
+                            HStack {
+                                Text("\(item.quantity)x \(item.product.displayName)")
+                                    .font(.body)
+                                    .foregroundColor(AppColors.textPrimary)
+                                Spacer()
+                                Text("$\(String(format: "%.2f", NSDecimalNumber(decimal: item.product.price * Decimal(item.quantity)).doubleValue))")
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(AppColors.textPrimary)
+                            }
                         }
-                        .font(.caption)
-                        .foregroundColor(.red)
-                        .padding(.horizontal, AppMetrics.spacing)
-                        .padding(.vertical, 8)
-                        .background(Color.red.opacity(0.1))
-                        .cornerRadius(AppMetrics.cornerRadius)
+                        .onAppear {
+                            print("🔍 ActiveOrderView: Displaying \(order.items.count) items for order \(order.id.uuidString.prefix(8))")
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    // Total
+                    HStack {
+                        Text("Total")
+                            .font(.headline)
+                            .foregroundColor(AppColors.textPrimary)
+                        Spacer()
+                        Text("$\(String(format: "%.2f", NSDecimalNumber(decimal: order.totalAmount).doubleValue))")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(AppColors.textPrimary)
                     }
                 }
                 .padding(AppMetrics.spacing)
                 .background(AppColors.secondaryBackground)
                 .cornerRadius(AppMetrics.cornerRadius)
-                .padding(.horizontal, AppMetrics.spacing)
-            }
-            
-            // Complete Order Button
-            Button(action: onCompleteOrder) {
-                HStack {
-                    Image(systemName: capturedImage != nil ? "checkmark.circle.fill" : "camera.fill")
-                    Text(capturedImage != nil ? "Complete Order" : "Take Photo")
+                
+                // Captured Image Section
+                if let capturedImage = capturedImage {
+                    VStack(spacing: AppMetrics.spacing) {
+                        Text("Delivery Photo")
+                            .font(.headline)
+                            .foregroundColor(AppColors.textPrimary)
+                        
+                        Image(uiImage: capturedImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxHeight: 200)
+                            .cornerRadius(AppMetrics.cornerRadius)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppMetrics.cornerRadius)
+                                    .stroke(AppColors.accent, lineWidth: 2)
+                            )
+                        
+                        Button(action: onClearImage) {
+                            HStack {
+                                Image(systemName: "trash")
+                                Text("Remove Photo")
+                            }
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .padding(.horizontal, AppMetrics.spacing)
+                            .padding(.vertical, 8)
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(AppMetrics.cornerRadius)
+                        }
+                    }
+                    .padding(AppMetrics.spacing)
+                    .background(AppColors.secondaryBackground)
+                    .cornerRadius(AppMetrics.cornerRadius)
+                    .padding(.horizontal, AppMetrics.spacing)
                 }
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(AppColors.accent)
-                .cornerRadius(AppMetrics.cornerRadius)
+                
+                // Complete Order Button
+                Button(action: onCompleteOrder) {
+                    HStack {
+                        Image(systemName: capturedImage != nil ? "checkmark.circle.fill" : "camera.fill")
+                        Text(capturedImage != nil ? "Complete Order" : "Take Photo")
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(AppColors.accent)
+                    .cornerRadius(AppMetrics.cornerRadius)
+                }
+                .padding(.horizontal, AppMetrics.spacing)
+                .padding(.bottom, AppMetrics.spacingLarge)
             }
             .padding(.horizontal, AppMetrics.spacing)
-            .padding(.bottom, AppMetrics.spacingLarge)
         }
-        .padding(.horizontal, AppMetrics.spacing)
     }
 }
 

@@ -120,7 +120,6 @@ struct ProductDetailView: View {
                         // Add to Cart Button
                         Button(action: {
                             print("🛒 ProductDetailView: Add to cart button tapped for '\(product.displayName)'")
-                            cartViewModel.add(product: product)
                             addToCart()
                         }) {
                             HStack {

@@ -64,7 +64,6 @@ final class CartViewModel: ObservableObject {
         }
         
         print("🛒 CartViewModel: Add operation complete - final items count: \(items.count)")
-        showBannerNotification(message: "Item added to cart!", type: .success)
     }
 
     func decrement(item: CartItem) {
