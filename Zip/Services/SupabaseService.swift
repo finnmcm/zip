@@ -489,6 +489,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                         
                         // Parse dates
                         let dateFormatter = ISO8601DateFormatter()
+                        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
                         let productCreatedAt = dateFormatter.date(from: productData.created_at) ?? Date()
                         let productUpdatedAt = dateFormatter.date(from: productData.updated_at) ?? Date()
                         
@@ -520,9 +521,31 @@ final class SupabaseService: SupabaseServiceProtocol {
                 try Task.checkCancellation()
                 
                 // Parse dates
+                print("🔍 DEBUG: Raw created_at string from DB: '\(orderData.created_at)'")
                 let dateFormatter = ISO8601DateFormatter()
-                let createdAt = dateFormatter.date(from: orderData.created_at) ?? Date()
-                let updatedAt = dateFormatter.date(from: orderData.updated_at) ?? Date()
+                // Try with fractional seconds and timezone first
+                dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                var createdAt = dateFormatter.date(from: orderData.created_at)
+                
+                // If that fails, try without timezone (for timestamps like "2025-10-09T02:16:38")
+                if createdAt == nil {
+                    dateFormatter.formatOptions = [.withInternetDateTime]
+                    createdAt = dateFormatter.date(from: orderData.created_at)
+                }
+                
+                // If still nil, try adding 'Z' to indicate UTC
+                if createdAt == nil {
+                    createdAt = dateFormatter.date(from: orderData.created_at + "Z")
+                }
+                
+                let finalCreatedAt = createdAt ?? Date()
+                print("🔍 DEBUG: Parsed created_at date: \(finalCreatedAt) (parsing \(createdAt == nil ? "FAILED" : "succeeded"))")
+                
+                var updatedAt = dateFormatter.date(from: orderData.updated_at)
+                if updatedAt == nil {
+                    updatedAt = dateFormatter.date(from: orderData.updated_at + "Z")
+                }
+                let finalUpdatedAt = updatedAt ?? Date()
                 
                 // Create User object (we'll need to fetch this from users table)
                 // For now, create a minimal user object with the ID we have
@@ -535,8 +558,8 @@ final class SupabaseService: SupabaseServiceProtocol {
                     storeCredit: 0.0,
                     verified: false, // Will be populated when we fetch user details
                     fcmToken: nil,
-                    createdAt: createdAt,
-                    updatedAt: updatedAt
+                    createdAt: finalCreatedAt,
+                    updatedAt: finalUpdatedAt
                 )
                 
                 // Parse OrderStatus
@@ -561,11 +584,11 @@ final class SupabaseService: SupabaseServiceProtocol {
                     tip: Decimal(orderData.tip),
                     totalAmount: Decimal(orderData.total_amount),
                     deliveryAddress: orderData.delivery_address,
-                    createdAt: createdAt,
+                    createdAt: finalCreatedAt,
                     estimatedDeliveryTime: nil, // Will be added when we have this field
                     actualDeliveryTime: nil, // Will be added when we have this field
                     paymentIntentId: orderData.payment_intent_id,
-                    updatedAt: updatedAt,
+                    updatedAt: finalUpdatedAt,
                     deliveryInstructions: orderData.delivery_instructions,
                     isCampusDelivery: orderData.is_campus_delivery,
                     fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil,
@@ -633,6 +656,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                         
                         // Parse dates
                         let dateFormatter = ISO8601DateFormatter()
+                        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
                         let productCreatedAt = dateFormatter.date(from: productData.created_at) ?? Date()
                         let productUpdatedAt = dateFormatter.date(from: productData.updated_at) ?? Date()
                         
@@ -661,9 +685,31 @@ final class SupabaseService: SupabaseServiceProtocol {
                 }
                 
                 // Parse dates
+                print("🔍 DEBUG fetchOrderStatus: Raw created_at string from DB: '\(orderData.created_at)'")
                 let dateFormatter = ISO8601DateFormatter()
-                let createdAt = dateFormatter.date(from: orderData.created_at) ?? Date()
-                let updatedAt = dateFormatter.date(from: orderData.updated_at) ?? Date()
+                // Try with fractional seconds and timezone first
+                dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                var createdAt = dateFormatter.date(from: orderData.created_at)
+                
+                // If that fails, try without timezone (for timestamps like "2025-10-09T02:16:38")
+                if createdAt == nil {
+                    dateFormatter.formatOptions = [.withInternetDateTime]
+                    createdAt = dateFormatter.date(from: orderData.created_at)
+                }
+                
+                // If still nil, try adding 'Z' to indicate UTC
+                if createdAt == nil {
+                    createdAt = dateFormatter.date(from: orderData.created_at + "Z")
+                }
+                
+                let finalCreatedAt = createdAt ?? Date()
+                print("🔍 DEBUG fetchOrderStatus: Parsed created_at date: \(finalCreatedAt) (parsing \(createdAt == nil ? "FAILED" : "succeeded"))")
+                
+                var updatedAt = dateFormatter.date(from: orderData.updated_at)
+                if updatedAt == nil {
+                    updatedAt = dateFormatter.date(from: orderData.updated_at + "Z")
+                }
+                let finalUpdatedAt = updatedAt ?? Date()
                 
                 // Create User object (we'll need to fetch this from users table)
                 // For now, create a minimal user object with the ID we have
@@ -676,8 +722,8 @@ final class SupabaseService: SupabaseServiceProtocol {
                     storeCredit: 0.0,
                     verified: false, // Will be populated when we fetch user details
                     fcmToken: nil,
-                    createdAt: createdAt,
-                    updatedAt: updatedAt
+                    createdAt: finalCreatedAt,
+                    updatedAt: finalUpdatedAt
                 )
                 
                 // Parse OrderStatus
@@ -696,11 +742,11 @@ final class SupabaseService: SupabaseServiceProtocol {
                     tip: Decimal(orderData.tip),
                     totalAmount: Decimal(orderData.total_amount),
                     deliveryAddress: orderData.delivery_address,
-                    createdAt: createdAt,
+                    createdAt: finalCreatedAt,
                     estimatedDeliveryTime: nil, // Will be added when we have this field
                     actualDeliveryTime: nil, // Will be added when we have this field
                     paymentIntentId: orderData.payment_intent_id,
-                    updatedAt: updatedAt,
+                    updatedAt: finalUpdatedAt,
                     deliveryInstructions: orderData.delivery_instructions,
                     isCampusDelivery: orderData.is_campus_delivery,
                     fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil,
@@ -1079,6 +1125,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                         
                         // Parse dates
                         let dateFormatter = ISO8601DateFormatter()
+                        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
                         let productCreatedAt = dateFormatter.date(from: productData.created_at) ?? Date()
                         let productUpdatedAt = dateFormatter.date(from: productData.updated_at) ?? Date()
                         
@@ -1108,9 +1155,31 @@ final class SupabaseService: SupabaseServiceProtocol {
                 }
                 
                 // Parse dates
+                print("🔍 DEBUG fetchPendingOrders: Raw created_at string from DB: '\(orderData.created_at)'")
                 let dateFormatter = ISO8601DateFormatter()
-                let createdAt = dateFormatter.date(from: orderData.created_at) ?? Date()
-                let updatedAt = dateFormatter.date(from: orderData.updated_at) ?? Date()
+                // Try with fractional seconds and timezone first
+                dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                var createdAt = dateFormatter.date(from: orderData.created_at)
+                
+                // If that fails, try without timezone (for timestamps like "2025-10-09T02:16:38")
+                if createdAt == nil {
+                    dateFormatter.formatOptions = [.withInternetDateTime]
+                    createdAt = dateFormatter.date(from: orderData.created_at)
+                }
+                
+                // If still nil, try adding 'Z' to indicate UTC
+                if createdAt == nil {
+                    createdAt = dateFormatter.date(from: orderData.created_at + "Z")
+                }
+                
+                let finalCreatedAt = createdAt ?? Date()
+                print("🔍 DEBUG fetchPendingOrders: Parsed created_at date: \(finalCreatedAt) (parsing \(createdAt == nil ? "FAILED" : "succeeded"))")
+                
+                var updatedAt = dateFormatter.date(from: orderData.updated_at)
+                if updatedAt == nil {
+                    updatedAt = dateFormatter.date(from: orderData.updated_at + "Z")
+                }
+                let finalUpdatedAt = updatedAt ?? Date()
                 
                 // Create User object
                 let user = User(
@@ -1122,8 +1191,8 @@ final class SupabaseService: SupabaseServiceProtocol {
                     storeCredit: 0.0,
                     verified: false,
                     fcmToken: nil,
-                    createdAt: createdAt,
-                    updatedAt: updatedAt
+                    createdAt: finalCreatedAt,
+                    updatedAt: finalUpdatedAt
                 )
                 
                 // Create Order object
@@ -1136,11 +1205,11 @@ final class SupabaseService: SupabaseServiceProtocol {
                     tip: Decimal(orderData.tip),
                     totalAmount: Decimal(orderData.total_amount),
                     deliveryAddress: orderData.delivery_address,
-                    createdAt: createdAt,
+                    createdAt: finalCreatedAt,
                     estimatedDeliveryTime: nil,
                     actualDeliveryTime: nil,
                     paymentIntentId: orderData.payment_intent_id,
-                    updatedAt: updatedAt,
+                    updatedAt: finalUpdatedAt,
                     deliveryInstructions: orderData.delivery_instructions,
                     isCampusDelivery: orderData.is_campus_delivery,
                     fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil,
@@ -1213,6 +1282,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                     
                     // Parse dates
                     let dateFormatter = ISO8601DateFormatter()
+                    dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
                     let productCreatedAt = dateFormatter.date(from: productData.created_at) ?? Date()
                     let productUpdatedAt = dateFormatter.date(from: productData.updated_at) ?? Date()
                     
@@ -1240,10 +1310,32 @@ final class SupabaseService: SupabaseServiceProtocol {
                 }
             }
             
-            // Parse dates
-            let dateFormatter = ISO8601DateFormatter()
-            let createdAt = dateFormatter.date(from: orderData.created_at) ?? Date()
-            let updatedAt = dateFormatter.date(from: orderData.updated_at) ?? Date()
+                // Parse dates
+                print("🔍 DEBUG fetchActiveOrderForZipper: Raw created_at string from DB: '\(orderData.created_at)'")
+                let dateFormatter = ISO8601DateFormatter()
+                // Try with fractional seconds and timezone first
+                dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                var createdAt = dateFormatter.date(from: orderData.created_at)
+                
+                // If that fails, try without timezone (for timestamps like "2025-10-09T02:16:38")
+                if createdAt == nil {
+                    dateFormatter.formatOptions = [.withInternetDateTime]
+                    createdAt = dateFormatter.date(from: orderData.created_at)
+                }
+                
+                // If still nil, try adding 'Z' to indicate UTC
+                if createdAt == nil {
+                    createdAt = dateFormatter.date(from: orderData.created_at + "Z")
+                }
+                
+                let finalCreatedAt = createdAt ?? Date()
+                print("🔍 DEBUG fetchActiveOrderForZipper: Parsed created_at date: \(finalCreatedAt) (parsing \(createdAt == nil ? "FAILED" : "succeeded"))")
+                
+                var updatedAt = dateFormatter.date(from: orderData.updated_at)
+                if updatedAt == nil {
+                    updatedAt = dateFormatter.date(from: orderData.updated_at + "Z")
+                }
+                let finalUpdatedAt = updatedAt ?? Date()
             
             // Create User object
             let user = User(
@@ -1254,8 +1346,8 @@ final class SupabaseService: SupabaseServiceProtocol {
                 phoneNumber: "",
                 storeCredit: 0.0,
                 verified: false,
-                createdAt: createdAt,
-                updatedAt: updatedAt
+                createdAt: finalCreatedAt,
+                updatedAt: finalUpdatedAt
             )
             
             // Create Order object
@@ -1268,11 +1360,11 @@ final class SupabaseService: SupabaseServiceProtocol {
                 tip: Decimal(orderData.tip),
                 totalAmount: Decimal(orderData.total_amount),
                 deliveryAddress: orderData.delivery_address,
-                createdAt: createdAt,
+                createdAt: finalCreatedAt,
                 estimatedDeliveryTime: nil,
                 actualDeliveryTime: nil,
                 paymentIntentId: orderData.payment_intent_id,
-                updatedAt: updatedAt,
+                updatedAt: finalUpdatedAt,
                 deliveryInstructions: orderData.delivery_instructions,
                 isCampusDelivery: orderData.is_campus_delivery,
                 fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil,
