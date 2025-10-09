@@ -21,6 +21,8 @@ struct OrderData: Codable {
     let is_campus_delivery: Bool
     let payment_intent_id: String?
     let fulfilled_by: String?
+    let first_name: String?
+    let last_name: String?
 }
 
 struct FCMTokenData: Codable {
@@ -87,6 +89,11 @@ protocol SupabaseServiceProtocol {
     func sendPushNotification(fcmTokens: [String], title: String, body: String, data: [String: String]?, priority: String?, sound: String?, badge: Int?) async throws -> Bool
     func fetchZipperFCMTokens() async throws -> [String]
     func notifyZippersOfNewOrder(_ order: Order) async throws -> Bool
+    
+    // MARK: - Order Statistics Operations
+    func fetchOrderStatistics(periodType: TimePeriodType, days: Int) async throws -> [OrderStatistics]
+    func fetchRecentStatistics() async throws -> [OrderStatistics]
+    func fetchStatisticsSummary(periodType: TimePeriodType, periodsCount: Int) async throws -> OrderStatistics?
     
     // MARK: - Account Deletion Operations
     // Note: Account deletion is now handled by the delete-user-account Edge Function
@@ -379,7 +386,9 @@ final class SupabaseService: SupabaseServiceProtocol {
                 delivery_instructions: order.deliveryInstructions,
                 is_campus_delivery: order.isCampusDelivery,
                 payment_intent_id: order.paymentIntentId,
-                fulfilled_by: order.fulfilledBy?.uuidString
+                fulfilled_by: order.fulfilledBy?.uuidString,
+                first_name: order.user.firstName,
+                last_name: order.user.lastName
             )
             
             // Insert the order into the orders table
@@ -559,7 +568,9 @@ final class SupabaseService: SupabaseServiceProtocol {
                     updatedAt: updatedAt,
                     deliveryInstructions: orderData.delivery_instructions,
                     isCampusDelivery: orderData.is_campus_delivery,
-                    fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil
+                    fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil,
+                    firstName: orderData.first_name ?? "",
+                    lastName: orderData.last_name ?? ""
                 )
                 
                 orders.append(order)
@@ -692,7 +703,9 @@ final class SupabaseService: SupabaseServiceProtocol {
                     updatedAt: updatedAt,
                     deliveryInstructions: orderData.delivery_instructions,
                     isCampusDelivery: orderData.is_campus_delivery,
-                    fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil
+                    fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil,
+                    firstName: orderData.first_name ?? "",
+                    lastName: orderData.last_name ?? ""
                 )
             }
             return nil
@@ -780,13 +793,19 @@ final class SupabaseService: SupabaseServiceProtocol {
         }
         
         do {
-            // Use count() to get the total number of users
-            let response = try await supabase
-                .from("users")
-                .select("id", head: true, count: .exact)
-                .execute()
+            // Fetch all user IDs and count them
+            // Note: Using select with count for larger datasets might be better handled by a database function
+            struct UserIdResponse: Codable {
+                let id: String
+            }
             
-            let count = response.count ?? 0
+            let response: [UserIdResponse] = try await supabase
+                .from("users")
+                .select("id")
+                .execute()
+                .value
+            
+            let count = response.count
             print("✅ Successfully fetched user count: \(count)")
             return count
         } catch {
@@ -815,10 +834,13 @@ final class SupabaseService: SupabaseServiceProtocol {
             // For each zipper, fetch their user information
             for zipperData in zippersResponse {
                 // Fetch user information for this zipper
+                // Ensure the ID is in lowercase UUID format for comparison
+                let zipperId = zipperData.id.lowercased()
+                
                 let userResponse: [User] = try await supabase
                     .from("users")
                     .select()
-                    .eq("id", value: zipperData.id)
+                    .eq("id", value: zipperId)
                     .execute()
                     .value
                 
@@ -1121,7 +1143,9 @@ final class SupabaseService: SupabaseServiceProtocol {
                     updatedAt: updatedAt,
                     deliveryInstructions: orderData.delivery_instructions,
                     isCampusDelivery: orderData.is_campus_delivery,
-                    fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil
+                    fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil,
+                    firstName: orderData.first_name ?? "",
+                    lastName: orderData.last_name ?? ""
                 )
                 
                 print("🔍 Created Order object with ID: \(order.id.uuidString) (original DB ID: \(orderData.id)) with \(cartItems.count) items")
@@ -1251,7 +1275,9 @@ final class SupabaseService: SupabaseServiceProtocol {
                 updatedAt: updatedAt,
                 deliveryInstructions: orderData.delivery_instructions,
                 isCampusDelivery: orderData.is_campus_delivery,
-                fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil
+                fulfilledBy: orderData.fulfilled_by != nil ? UUID(uuidString: orderData.fulfilled_by!) : nil,
+                firstName: orderData.first_name ?? "",
+                lastName: orderData.last_name ?? ""
             )
             
             print("✅ Successfully fetched active order for zipper: \(zipperId)")
@@ -1870,6 +1896,94 @@ final class SupabaseService: SupabaseServiceProtocol {
         } catch {
             print("❌ NOTIFY: Failed to send new order notification to zippers: \(error)")
             throw error
+        }
+    }
+    
+    // MARK: - Order Statistics Operations
+    
+    func fetchOrderStatistics(periodType: TimePeriodType, days: Int = 30) async throws -> [OrderStatistics] {
+        guard let supabase = supabase else {
+            print("❌ STATS: Supabase client not configured")
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        print("📊 STATS: Fetching \(periodType.rawValue) statistics for last \(days) days")
+        
+        do {
+            let startDate = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
+            let dateFormatter = ISO8601DateFormatter()
+            
+            let response: [OrderStatistics] = try await supabase
+                .from("order_statistics")
+                .select()
+                .eq("period_type", value: periodType.rawValue)
+                .gte("period_start", value: dateFormatter.string(from: startDate))
+                .order("period_start", ascending: false)
+                .execute()
+                .value
+            
+            print("✅ STATS: Successfully fetched \(response.count) statistics records")
+            return response
+            
+        } catch {
+            print("❌ STATS: Failed to fetch order statistics: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+
+
+    
+    func fetchRecentStatistics() async throws -> [OrderStatistics] {
+        guard let supabase = supabase else {
+            print("❌ STATS: Supabase client not configured")
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        print("📊 STATS: Fetching recent statistics from view")
+        
+        do {
+            let response: [OrderStatistics] = try await supabase
+                .from("recent_order_statistics")
+                .select()
+                .order("period_start", ascending: false)
+                .execute()
+                .value
+            
+            print("✅ STATS: Successfully fetched \(response.count) recent statistics")
+            return response
+            
+        } catch {
+            print("❌ STATS: Failed to fetch recent statistics: \(error)")
+            throw SupabaseError.networkError(error)
+        }
+    }
+    
+
+    
+    func fetchStatisticsSummary(periodType: TimePeriodType, periodsCount: Int = 1) async throws -> OrderStatistics? {
+        guard let supabase = supabase else {
+            print("❌ STATS: Supabase client not configured")
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        print("📊 STATS: Fetching summary for \(periodType.rawValue) (last \(periodsCount) periods)")
+        
+        do {
+            let response: [OrderStatistics] = try await supabase
+                .from("order_statistics")
+                .select()
+                .eq("period_type", value: periodType.rawValue)
+                .order("period_start", ascending: false)
+                .limit(periodsCount)
+                .execute()
+                .value
+            
+            print("✅ STATS: Successfully fetched \(response.count) summary records")
+            return response.first
+            
+        } catch {
+            print("❌ STATS: Failed to fetch statistics summary: \(error)")
+            throw SupabaseError.networkError(error)
         }
     }
     

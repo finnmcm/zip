@@ -303,7 +303,7 @@ struct CategoryCard: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(category.displayName)
+                        Text(category.displayName)xb
                             .font(.title)
                             .foregroundStyle(AppColors.accent)
                         

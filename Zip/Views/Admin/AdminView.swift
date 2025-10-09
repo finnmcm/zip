@@ -22,101 +22,23 @@ struct AdminView: View {
                 .padding(.horizontal)
                 .padding(.top)
                 
-                // Error State
-                if let errorMessage = adminViewModel.errorMessage {
-                    VStack(spacing: 16) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.largeTitle)
-                            .foregroundColor(.red)
-                        Text("Error loading data")
-                            .font(.headline)
-                        Text(errorMessage)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                        Button("Retry") {
-                            Task {
-                                await adminViewModel.loadAdminData()
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)
-                }
-                // Loading State
-                else if adminViewModel.isLoading {
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(1.2)
-                        Text("Loading admin data...")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)
-                } else {
-                    // Quick Stats Cards
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 16) {
-                        StatCard(
-                            title: "Orders",
-                            value: "\(adminViewModel.totalOrdersFulfilled)",
-                            icon: "cart.fill",
-                            color: .blue
-                        )
-                        
-                        StatCard(
-                            title: "Total Revenue",
-                            value: adminViewModel.formattedTotalRevenue,
-                            icon: "dollarsign.circle.fill",
-                            color: .green
-                        )
-                        
-                        StatCard(
-                            title: "Active Zippers",
-                            value: "\(adminViewModel.activeZippers)",
-                            icon: "scooter",
-                            color: .orange
-                        )
-                        
-                        StatCard(
-                            title: "Low Stock",
-                            value: "\(adminViewModel.lowStockCount)",
-                            icon: "exclamationmark.triangle.fill",
-                            color: adminViewModel.lowStockCount > 0 ? .red : .green
-                        )
-                        
-                        StatCard(
-                            title: "Customers",
-                            value: "\(adminViewModel.numUsers)",
-                            icon: "person.3.fill",
-                            color: .purple
-                        )
-                    }
-                    .padding(.horizontal)
-                }
-                
                 // Tab View Section
                 VStack(alignment: .leading, spacing: 12) {
                     // Custom Tab Picker
                     HStack(spacing: 0) {
-                        TabButton(title: "Activity", isSelected: selectedTab == 0) {
+                      /*  TabButton(title: "Activity", isSelected: selectedTab == 0) {
                             selectedTab = 0
-                        }
-                        
+                        }*/
+                        /*
                         TabButton(title: "Low-Stock", isSelected: selectedTab == 1) {
                             selectedTab = 1
                         }
                         
                         TabButton(title: "Zippers", isSelected: selectedTab == 2) {
                             selectedTab = 2
-                        }
+                        }*/
                         
-                        TabButton(title: "FCM Test", isSelected: selectedTab == 3) {
+                        TabButton(title: "Analytics", isSelected: selectedTab == 3) {
                             selectedTab = 3
                         }
                     }
@@ -221,8 +143,8 @@ struct AdminView: View {
                         }
                         .tag(2)
                         
-                        // FCM Testing Tab
-                        FCMTestView()
+                        // Analytics Tab
+                        AdminAnalyticsView()
                             .tag(3)
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))

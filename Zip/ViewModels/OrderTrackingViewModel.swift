@@ -224,7 +224,9 @@ extension OrderTrackingViewModel {
             totalAmount: 9.98,
             deliveryAddress: "123 Main St, Evanston, IL",
             estimatedDeliveryTime: Date().addingTimeInterval(1800), // 30 minutes from now
-            deliveryInstructions: "Leave at front door"
+            deliveryInstructions: "Leave at front door",
+            firstName: mockUser.firstName,
+            lastName: mockUser.lastName
         )
         
         setOrder(mockOrder)

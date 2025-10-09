@@ -104,7 +104,9 @@ struct OrderStatusBannerDemo: View {
             tip: 2.00,
             totalAmount: 17.99,
             deliveryAddress: "123 Demo St",
-            estimatedDeliveryTime: Date().addingTimeInterval(status == .inQueue ? 1800 : 600) // 30 min for queue, 10 min for progress
+            estimatedDeliveryTime: Date().addingTimeInterval(status == .inQueue ? 1800 : 600), // 30 min for queue, 10 min for progress
+            firstName: mockUser.firstName,
+            lastName: mockUser.lastName
         )
         
         orderStatusViewModel.activeOrder = mockOrder

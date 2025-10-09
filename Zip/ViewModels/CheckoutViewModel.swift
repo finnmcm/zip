@@ -84,7 +84,9 @@ final class CheckoutViewModel: ObservableObject {
             deliveryAddress: isCampusDelivery ? selectedBuilding : selectedAddress,
             createdAt: Date(),
             deliveryInstructions: deliveryInstructions,
-            isCampusDelivery: isCampusDelivery
+            isCampusDelivery: isCampusDelivery,
+            firstName: currentUser.firstName,
+            lastName: currentUser.lastName
         )
         print("🍎 order: \(order)")
         
@@ -248,7 +250,9 @@ final class CheckoutViewModel: ObservableObject {
             deliveryAddress: isCampusDelivery ? selectedBuilding : selectedAddress,
             createdAt: Date(),
             deliveryInstructions: deliveryInstructions,
-            isCampusDelivery: isCampusDelivery
+            isCampusDelivery: isCampusDelivery,
+            firstName: currentUser.firstName,
+            lastName: currentUser.lastName
         )
         
         do {

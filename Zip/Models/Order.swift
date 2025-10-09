@@ -23,6 +23,8 @@ final class Order: Identifiable, Codable {
     var isCampusDelivery: Bool
     var fulfilledBy: UUID?
     var deliveryImageURL: String?
+    var firstName: String
+    var lastName: String
     
     // Database metadata
     var updatedAt: Date
@@ -42,7 +44,7 @@ final class Order: Identifiable, Codable {
     // Relationships - will be handled manually since we're not using SwiftData
     var userOrders: [Order] = []
     
-    init(id: UUID = UUID(), user: User, items: [CartItem], status: OrderStatus = .pending, rawAmount: Decimal, tip: Decimal, totalAmount: Decimal, deliveryAddress: String, createdAt: Date = Date(), estimatedDeliveryTime: Date? = nil, actualDeliveryTime: Date? = nil, paymentIntentId: String? = nil, updatedAt: Date = Date(), deliveryInstructions: String? = nil, isCampusDelivery: Bool = false, fulfilledBy: UUID? = nil, deliveryImageURL: String? = nil) {
+    init(id: UUID = UUID(), user: User, items: [CartItem], status: OrderStatus = .pending, rawAmount: Decimal, tip: Decimal, totalAmount: Decimal, deliveryAddress: String, createdAt: Date = Date(), estimatedDeliveryTime: Date? = nil, actualDeliveryTime: Date? = nil, paymentIntentId: String? = nil, updatedAt: Date = Date(), deliveryInstructions: String? = nil, isCampusDelivery: Bool = false, fulfilledBy: UUID? = nil, deliveryImageURL: String? = nil, firstName: String, lastName: String) {
         self.id = id
         self.user = user
         self.items = items
@@ -60,6 +62,8 @@ final class Order: Identifiable, Codable {
         self.isCampusDelivery = isCampusDelivery
         self.fulfilledBy = fulfilledBy
         self.deliveryImageURL = deliveryImageURL
+        self.firstName = firstName
+        self.lastName = lastName
     }
     
     // MARK: - Codable Implementation
@@ -81,6 +85,8 @@ final class Order: Identifiable, Codable {
         case isCampusDelivery = "is_campus_delivery"
         case fulfilledBy = "fulfilled_by"
         case deliveryImageURL = "delivery_image_url"
+        case firstName = "first_name"
+        case lastName = "last_name"
     }
     
     required init(from decoder: Decoder) throws {
@@ -105,6 +111,8 @@ final class Order: Identifiable, Codable {
         isCampusDelivery = try container.decodeIfPresent(Bool.self, forKey: .isCampusDelivery) ?? false
         fulfilledBy = try container.decodeIfPresent(UUID.self, forKey: .fulfilledBy)
         deliveryImageURL = try container.decodeIfPresent(String.self, forKey: .deliveryImageURL)
+        firstName = try container.decode(String.self, forKey: .firstName)
+        lastName = try container.decode(String.self, forKey: .lastName)
     }
     
     func encode(to encoder: Encoder) throws {
@@ -127,6 +135,8 @@ final class Order: Identifiable, Codable {
         try container.encode(isCampusDelivery, forKey: .isCampusDelivery)
         try container.encodeIfPresent(fulfilledBy, forKey: .fulfilledBy)
         try container.encodeIfPresent(deliveryImageURL, forKey: .deliveryImageURL)
+        try container.encode(firstName, forKey: .firstName)
+        try container.encode(lastName, forKey: .lastName)
     }
 }
 

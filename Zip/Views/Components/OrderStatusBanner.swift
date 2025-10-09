@@ -178,7 +178,9 @@ struct OrderStatusBannerContainer: View {
                     tip: 2.00,
                     totalAmount: 17.99,
                     deliveryAddress: "123 Main St",
-                    estimatedDeliveryTime: Date().addingTimeInterval(1800) // 30 minutes from now
+                    estimatedDeliveryTime: Date().addingTimeInterval(1800), // 30 minutes from now
+                    firstName: "John",
+                    lastName: "Doe"
                 ),
                 onDismiss: {},
                 onOrderCancelled: nil
@@ -205,7 +207,9 @@ struct OrderStatusBannerContainer: View {
                     tip: 2.00,
                     totalAmount: 17.99,
                     deliveryAddress: "123 Main St",
-                    estimatedDeliveryTime: Date().addingTimeInterval(600) // 10 minutes from now
+                    estimatedDeliveryTime: Date().addingTimeInterval(600), // 10 minutes from now
+                    firstName: "John",
+                    lastName: "Doe"
                 ),
                 onDismiss: {},
                 onOrderCancelled: nil

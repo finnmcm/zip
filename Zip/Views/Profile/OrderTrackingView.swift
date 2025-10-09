@@ -314,7 +314,9 @@ struct OrderTrackingView: View {
                 tip: 2.00,
                 totalAmount: 17.99,
                 deliveryAddress: "123 Main St",
-                estimatedDeliveryTime: Date().addingTimeInterval(1800) // 30 minutes from now
+                estimatedDeliveryTime: Date().addingTimeInterval(1800), // 30 minutes from now
+                firstName: "John",
+                lastName: "Doe"
             ),
             onOrderCancelled: nil
         )

@@ -133,7 +133,7 @@ struct ActiveOrderView: View {
                         Text("Customer")
                             .font(.caption)
                             .foregroundColor(AppColors.textSecondary)
-                        Text(order.user.fullName)
+                        Text("\(order.firstName) \(order.lastName)")
                             .font(.headline)
                             .foregroundColor(AppColors.textPrimary)
                     }
@@ -367,7 +367,7 @@ struct PendingOrderRow: View {
                 HStack {
                     Image(systemName: "person.circle")
                         .foregroundColor(AppColors.textSecondary)
-                    Text(order.user.fullName)
+                    Text("\(order.firstName) \(order.lastName)")
                         .font(.body)
                         .foregroundColor(AppColors.textPrimary)
                 }

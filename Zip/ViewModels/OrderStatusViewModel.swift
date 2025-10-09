@@ -164,7 +164,9 @@ extension OrderStatusViewModel {
             tip: 2.00,
             totalAmount: 17.99,
             deliveryAddress: "123 Main St",
-            estimatedDeliveryTime: Date().addingTimeInterval(1800) // 30 minutes from now
+            estimatedDeliveryTime: Date().addingTimeInterval(1800), // 30 minutes from now
+            firstName: mockUser.firstName,
+            lastName: mockUser.lastName
         )
         
         activeOrder = mockOrder
