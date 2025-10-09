@@ -29,21 +29,53 @@ struct FeatureProductCard: View {
                         .frame(height: AppMetrics.featureCardImageHeight)
                     
                     if let imageURL = product.primaryImageURL, !imageURL.isEmpty {
-                        AsyncImage(url: URL(string: imageURL)) { image in
-                            image
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: AppMetrics.featureCardImageHeight)
-                                .clipped()
-                        } placeholder: {
+                        AsyncImage(url: URL(string: imageURL)) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: AppMetrics.featureCardImageHeight)
+                                    .clipped()
+                            case .failure(let error):
+                                VStack {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .font(.system(size: 30))
+                                        .foregroundStyle(.red.opacity(0.7))
+                                    Text("Error")
+                                        .font(.caption2)
+                                        .foregroundStyle(.red)
+                                }
+                                .onAppear {
+                                    print("❌ FeatureCard AsyncImage FAILED for \(product.displayName)")
+                                    print("   Error: \(error)")
+                                    print("   URL: \(imageURL)")
+                                    print("   Images count: \(product.images.count)")
+                                }
+                            case .empty:
+                                Image(systemName: "shippingbox")
+                                    .font(.system(size: 35))
+                                    .foregroundStyle(AppColors.accent.opacity(0.7))
+                            @unknown default:
+                                Image(systemName: "shippingbox")
+                                    .font(.system(size: 35))
+                                    .foregroundStyle(AppColors.accent.opacity(0.7))
+                            }
+                        }
+                    } else {
+                        VStack {
                             Image(systemName: "shippingbox")
                                 .font(.system(size: 35))
                                 .foregroundStyle(AppColors.accent.opacity(0.7))
+                            Text("No URL")
+                                .font(.caption2)
+                                .foregroundStyle(.gray)
                         }
-                    } else {
-                        Image(systemName: "shippingbox")
-                            .font(.system(size: 35))
-                            .foregroundStyle(AppColors.accent.opacity(0.7))
+                        .onAppear {
+                            print("🔍 FeatureCard: Product \(product.displayName) has NO IMAGE URL")
+                            print("   - primaryImageURL: \(product.primaryImageURL ?? "nil")")
+                            print("   - images count: \(product.images.count)")
+                        }
                     }
                 }
                 

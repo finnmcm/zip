@@ -9,20 +9,18 @@ import Inject
 struct CategoryListView: View {
     @ObserveInjection var inject
     @State private var searchText = ""
-    let cartViewModel: CartViewModel
-    let shoppingViewModel: ShoppingViewModel
-    let orderStatusViewModel: OrderStatusViewModel
-    let authViewModel: AuthViewModel
+    @ObservedObject var cartViewModel: CartViewModel
+    @ObservedObject var shoppingViewModel: ShoppingViewModel
+    @ObservedObject var orderStatusViewModel: OrderStatusViewModel
+    @ObservedObject var authViewModel: AuthViewModel
     
     private let categories = ProductCategory.allCases
     
-    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
-    
     init(cartViewModel: CartViewModel, shoppingViewModel: ShoppingViewModel, orderStatusViewModel: OrderStatusViewModel, authViewModel: AuthViewModel) {
-        self.cartViewModel = cartViewModel
-        self.shoppingViewModel = shoppingViewModel
-        self.orderStatusViewModel = orderStatusViewModel
-        self.authViewModel = authViewModel
+        self._cartViewModel = ObservedObject(wrappedValue: cartViewModel)
+        self._shoppingViewModel = ObservedObject(wrappedValue: shoppingViewModel)
+        self._orderStatusViewModel = ObservedObject(wrappedValue: orderStatusViewModel)
+        self._authViewModel = ObservedObject(wrappedValue: authViewModel)
     }
     
     var body: some View {
@@ -51,143 +49,34 @@ struct CategoryListView: View {
                     EmailVerificationBanner(currentUser: authViewModel.currentUser, authViewModel: authViewModel)
                     
                     ScrollView {
-                        VStack(spacing: 0) {
-                            // Header
-                            HStack {
-                                Rectangle()
-                                    .foregroundStyle(AppColors.accent)
-                                    .frame(width: 120, height: 2)
-                                
+                        VStack(spacing: AppMetrics.spacingLarge) {
+                            // Modern Header Section
+                            VStack(spacing: AppMetrics.spacing) {
                                 Image("logo_inverted")
                                     .resizable()
-                                    .frame(width: 100, height: 100)
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(height: 80)
+                                    .padding(.top, AppMetrics.spacingSmall)
                                 
-                                Rectangle()
-                                    .foregroundStyle(AppColors.accent)
-                                    .frame(width: 120, height: 2)
-                            }
-                            
-                            // Product Search Bar
-                            HStack {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundStyle(AppColors.textSecondary)
-                                    .padding(.leading, AppMetrics.spacing)
-                                
-                                TextField("Search all products...", text: $searchText)
-                                    .textFieldStyle(.plain)
-                                    .font(.body)
+                                Text("Shop Zip")
+                                    .font(.system(size: 28, weight: .bold))
                                     .foregroundStyle(AppColors.textPrimary)
-                                
-                                if !searchText.isEmpty {
-                                    Button(action: {
-                                        searchText = ""
-                                    }) {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundStyle(AppColors.textSecondary)
-                                    }
-                                    .padding(.trailing, AppMetrics.spacing)
-                                }
                             }
-                            .padding(.vertical, AppMetrics.spacing)
-                            .background(
-                                RoundedRectangle(cornerRadius: AppMetrics.cornerRadius)
-                                    .fill(AppColors.surface)
-                                    .stroke(AppColors.border, lineWidth: 1)
-                            )
                             .padding(.horizontal, AppMetrics.spacingLarge)
                             
-                            // Search Results
+                            // Search Bar Section
+                            searchBarView
+                                .padding(.horizontal, AppMetrics.spacingLarge)
+                            
+                            // Search Results Section
                             if !searchText.isEmpty {
-                                let searchResults = shoppingViewModel.products.filter { product in
-                                    product.displayName.localizedCaseInsensitiveContains(searchText) ||
-                                    product.category.displayName.localizedCaseInsensitiveContains(searchText)
-                                }
-                                
-                                if !searchResults.isEmpty {
-                                    VStack(alignment: .leading, spacing: AppMetrics.spacingSmall) {
-                                        Text("Search Results (\(searchResults.count))")
-                                            .font(.headline)
-                                            .foregroundStyle(AppColors.textPrimary)
-                                            .padding(.horizontal, AppMetrics.spacingLarge)
-                                        
-                                        ScrollView(.horizontal, showsIndicators: false) {
-                                            HStack(spacing: AppMetrics.spacing) {
-                                                ForEach(searchResults) { product in
-                                                    FeatureProductCard(product: product, cartViewModel: cartViewModel, authViewModel: authViewModel)
-                                                        .frame(width: 160)
-                                                }
-                                            }
-                                            .padding(.horizontal, AppMetrics.spacingLarge)
-                                        }
-                                    }
-                                    .padding(.vertical, AppMetrics.spacing)
-                                } else {
-                                    VStack(spacing: AppMetrics.spacing) {
-                                        Image(systemName: "magnifyingglass")
-                                            .font(.system(size: 32))
-                                            .foregroundStyle(AppColors.textSecondary)
-                                        
-                                        Text("No products found")
-                                            .font(.headline)
-                                            .foregroundStyle(AppColors.textPrimary)
-                                        
-                                        Text("Try searching with different keywords")
-                                            .font(.subheadline)
-                                            .foregroundStyle(AppColors.textSecondary)
-                                    }
-                                    .padding(.vertical, AppMetrics.spacingLarge)
-                                }
+                                searchResultsView
+                            } else {
+                                // Categories Section
+                                categoriesContentView
                             }
-                            
-                            // Categories Grid
-                            VStack {
-                                if shoppingViewModel.isLoading {
-                                    VStack(spacing: AppMetrics.spacingLarge) {
-                                        ProgressView()
-                                            .tint(AppColors.accent)
-                                            .scaleEffect(1.5)
-                                        Text("Loading products...")
-                                            .font(.subheadline)
-                                            .foregroundStyle(AppColors.textSecondary)
-                                    }
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                } else if let errorMessage = shoppingViewModel.errorMessage {
-                                    VStack(spacing: AppMetrics.spacingLarge) {
-                                        Image(systemName: "exclamationmark.triangle")
-                                            .font(.system(size: 48))
-                                            .foregroundStyle(AppColors.textSecondary)
-                                        
-                                        Text("Unable to load products")
-                                            .font(.headline)
-                                            .foregroundStyle(AppColors.textSecondary)
-                                        
-                                        Text(errorMessage)
-                                            .font(.subheadline)
-                                            .foregroundStyle(AppColors.textSecondary.opacity(0.7))
-                                            .multilineTextAlignment(.center)
-                                            .padding(.horizontal, AppMetrics.spacingLarge)
-                                        
-                                        Button("Retry") {
-                                            Task {
-                                                await shoppingViewModel.loadProducts()
-                                            }
-                                        }
-                                        .padding()
-                                        .background(AppColors.accent)
-                                        .foregroundStyle(.white)
-                                        .cornerRadius(AppMetrics.cornerRadiusLarge)
-                                    }
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                } else {
-                                    ForEach(categories, id: \.self) { category in
-                                            CategoryCard(category: category, productCount: shoppingViewModel.products.filter { $0.category == category }.count, cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel, authViewModel: authViewModel)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, AppMetrics.spacingLarge)
-                            
-                            Spacer(minLength: 0)
                         }
+                        .padding(.bottom, AppMetrics.spacingLarge)
                     }
                     
                     // Cart notification banner at the bottom
@@ -213,113 +102,239 @@ struct CategoryListView: View {
         }
         .enableInjection()
     }
+    
+    // MARK: - Search Bar
+    private var searchBarView: some View {
+        HStack(spacing: AppMetrics.spacing) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(AppColors.textSecondary)
+                .font(.system(size: 18))
+            
+            TextField("Search products...", text: $searchText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 16))
+                .foregroundStyle(AppColors.textPrimary)
+                .autocorrectionDisabled()
+            
+            if !searchText.isEmpty {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        searchText = ""
+                    }
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(AppColors.textSecondary)
+                        .font(.system(size: 18))
+                }
+            }
+        }
+        .padding(.horizontal, AppMetrics.spacingLarge)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(AppColors.surface)
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        )
+    }
+    
+    // MARK: - Search Results
+    private var searchResultsView: some View {
+        let searchResults = shoppingViewModel.products.filter { product in
+            product.displayName.localizedCaseInsensitiveContains(searchText) ||
+            product.category.displayName.localizedCaseInsensitiveContains(searchText)
+        }
+        
+        return VStack(alignment: .leading, spacing: AppMetrics.spacing) {
+            if !searchResults.isEmpty {
+                Text("Found \(searchResults.count) \(searchResults.count == 1 ? "product" : "products")")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(AppColors.textPrimary)
+                    .padding(.horizontal, AppMetrics.spacingLarge)
+                
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: AppMetrics.spacing) {
+                        ForEach(searchResults) { product in
+                            FeatureProductCard(product: product, cartViewModel: cartViewModel, authViewModel: authViewModel)
+                                .frame(width: 160)
+                        }
+                    }
+                    .padding(.horizontal, AppMetrics.spacingLarge)
+                }
+            } else {
+                VStack(spacing: AppMetrics.spacing) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 48))
+                        .foregroundStyle(AppColors.textSecondary.opacity(0.5))
+                    
+                    Text("No products found")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(AppColors.textPrimary)
+                    
+                    Text("Try searching with different keywords")
+                        .font(.system(size: 14))
+                        .foregroundStyle(AppColors.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 40)
+            }
+        }
+    }
+    
+    // MARK: - Categories Content
+    @ViewBuilder
+    private var categoriesContentView: some View {
+        let _ = print("🏪 CategoryListView: Rendering categoriesContentView - isLoading: \(shoppingViewModel.isLoading), products count: \(shoppingViewModel.products.count), errorMessage: \(shoppingViewModel.errorMessage ?? "nil")")
+        
+        if shoppingViewModel.isLoading {
+            loadingView
+        } else if let errorMessage = shoppingViewModel.errorMessage {
+            errorView(message: errorMessage)
+        } else {
+            VStack(alignment: .leading, spacing: AppMetrics.spacing) {
+                Text("Browse Categories")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(AppColors.textPrimary)
+                    .padding(.horizontal, AppMetrics.spacingLarge)
+                
+                VStack(spacing: AppMetrics.spacing) {
+                    ForEach(categories, id: \.self) { category in
+                        CategoryCard(
+                            category: category,
+                            productCount: shoppingViewModel.products.filter { $0.category == category }.count,
+                            inStockCount: shoppingViewModel.products.filter { $0.category == category && $0.quantity > 0 }.count,
+                            cartViewModel: cartViewModel,
+                            shoppingViewModel: shoppingViewModel,
+                            authViewModel: authViewModel
+                        )
+                    }
+                }
+                .padding(.horizontal, AppMetrics.spacingLarge)
+            }
+        }
+    }
+    
+    // MARK: - Loading View
+    private var loadingView: some View {
+        VStack(spacing: AppMetrics.spacingLarge) {
+            ProgressView()
+                .tint(AppColors.accent)
+                .scaleEffect(1.5)
+            Text("Loading products...")
+                .font(.system(size: 16))
+                .foregroundStyle(AppColors.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
+    }
+    
+    // MARK: - Error View
+    private func errorView(message: String) -> some View {
+        VStack(spacing: AppMetrics.spacingLarge) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 56))
+                .foregroundStyle(AppColors.textSecondary.opacity(0.5))
+            
+            Text("Unable to load products")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(AppColors.textPrimary)
+            
+            Text(message)
+                .font(.system(size: 14))
+                .foregroundStyle(AppColors.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, AppMetrics.spacingLarge)
+            
+            Button(action: {
+                Task {
+                    await shoppingViewModel.loadProducts()
+                }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.clockwise")
+                    Text("Retry")
+                        .fontWeight(.semibold)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(AppColors.accent)
+                .cornerRadius(10)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+    }
 }
 
+// MARK: - Category Card
 struct CategoryCard: View {
     let category: ProductCategory
     let productCount: Int
-    let cartViewModel: CartViewModel
-    let shoppingViewModel: ShoppingViewModel
-    let authViewModel: AuthViewModel
+    let inStockCount: Int
+    @ObservedObject var cartViewModel: CartViewModel
+    @ObservedObject var shoppingViewModel: ShoppingViewModel
+    @ObservedObject var authViewModel: AuthViewModel
     
-    // Get featured products for this category (first 3-4 products)
-    private var featuredProducts: [Product] {
-        let categoryProducts = shoppingViewModel.products.filter { $0.category == category && $0.quantity > 0 }
-        return Array(categoryProducts.prefix(4))
-    }
-    
-    // Helper to determine if we should use a system image or asset image
     private var isAssetImage: Bool {
         return category == .foodsnacks || category == .chipscandy
     }
     
     var body: some View {
-        VStack(spacing: AppMetrics.spacing) {
-        NavigationLink(destination: ProductListView(category: category, cartViewModel: cartViewModel, shoppingViewModel: shoppingViewModel, authViewModel: authViewModel)) {
-            HStack{
-                if isAssetImage {
-                    Image(category.iconName)
-                        .resizable()
-                        .renderingMode(.template)
-                        .foregroundColor(AppColors.northwesternPurple)
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: category == .foodsnacks ? 34 : 44, height: category == .foodsnacks ? 34 : 44)
-                        .padding(.top, 10)
-                } else {
-                    Image(systemName: category.iconName)
-                        .foregroundStyle(AppColors.northwesternPurple)
-                        .font(.title)
-                        .padding(.top, 10)
-                }
-            Text(category.displayName)
-                .font(.title)
-                .foregroundStyle(AppColors.textPrimary)
-                .padding(.top, 10)
-
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(AppColors.textSecondary)
-                    .font(.title)
-                    .padding(.trailing, 20)
-                    .padding(.top, 10)
-            }
+        NavigationLink(destination: ProductListView(
+            category: category,
+            cartViewModel: cartViewModel,
+            shoppingViewModel: shoppingViewModel,
+            authViewModel: authViewModel
+        )) {
+            cardContent
         }
         .buttonStyle(.plain)
-            // Featured Products Section
-          /*  if !featuredProducts.isEmpty {
-                VStack(alignment: .leading, spacing: AppMetrics.spacingSmall) {
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: AppMetrics.spacing) {
-                            ForEach(featuredProducts) { product in
-                                FeatureProductCard(product: product, cartViewModel: cartViewModel, authViewModel: authViewModel)
-                                    .frame(width: 160)
-                            }
-                        }
-                    }
-                }
-            }*/
+    }
+    
+    // MARK: - Card Content
+    private var cardContent: some View {
+        HStack(spacing: AppMetrics.spacingLarge) {
+            categoryIcon
+            
+            Text(category.displayName)
+                .font(.system(size: 23, weight: .semibold))
+                .foregroundStyle(AppColors.textPrimary)
+            
+            Spacer()
             
             /*
-            RoundedRectangle(cornerRadius: 20.0)
-                                    .stroke(AppColors.northwesternPurple, lineWidth: 2.0)
-            .frame(width: 350, height: 100)
-            .foregroundStyle(.white)
-            .overlay {
-                HStack{
-                    if isAssetImage {
-                        Image(category.iconName)
-                            .resizable()
-                            .renderingMode(.template)
-                            .foregroundColor(AppColors.northwesternPurple)
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: 24, height: 24)
-                            .padding(.leading, 20)
-                    } else {
-                        Image(systemName: category.iconName)
-                            .foregroundStyle(AppColors.northwesternPurple)
-                            .padding(.leading, 20)
-                            .font(.title)
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(category.displayName)xb
-                            .font(.title)
-                            .foregroundStyle(AppColors.accent)
-                        
-                        Text("\(productCount) items")
-                            .font(.caption)
-                            .foregroundStyle(AppColors.textSecondary)
-                    }
-                    .padding(.leading, 10)
-                    
-                    Spacer()
-                }
-            }   
-            */
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AppColors.textSecondary)*/
         }
-        .padding(.vertical, 10)
+        .padding(.horizontal, AppMetrics.spacingLarge)
+        .padding(.vertical, AppMetrics.spacingLarge)
+        .frame(maxWidth: .infinity)
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(AppColors.border.opacity(0.3), lineWidth: 1)
+        )
+    }
+    
+    // MARK: - Category Icon
+    @ViewBuilder
+    private var categoryIcon: some View {
+        if isAssetImage {
+            Image(category.iconName)
+                .resizable()
+                .renderingMode(.template)
+                .foregroundColor(AppColors.northwesternPurple)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 32, height: 32)
+        } else {
+            Image(systemName: category.iconName)
+                .font(.system(size: 28))
+                .foregroundStyle(AppColors.northwesternPurple)
+                .frame(width: 32, height: 32)
+        }
     }
 }
-
-

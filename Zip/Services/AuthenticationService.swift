@@ -100,9 +100,10 @@ final class AuthenticationService: AuthenticationServiceProtocol {
                 fcmToken: nil
             )
             print("Creating user profile:", newUser)
+            print("📧 Verification email sent to: \(email)")
+            print("⏳ User must verify email before logging in")
             
-            // Register FCM token for new user after profile creation
-            await FCMService.shared.onUserLogin()
+            // Note: FCM token registration happens after email verification during login
                 
             return newUser
             

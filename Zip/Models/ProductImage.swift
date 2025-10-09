@@ -9,7 +9,7 @@ final class ProductImage: Identifiable, Codable {
     let id: UUID
     let productId: UUID
     let productName: String
-    let imageURL: String? // Made optional to handle null values from database
+    var imageURL: String? // Made optional and mutable to handle null values and URL conversion
     let altText: String?
     let createdAt: Date
     

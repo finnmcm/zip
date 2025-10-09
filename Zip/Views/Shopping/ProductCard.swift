@@ -36,14 +36,19 @@ struct ProductCard: View {
                                 Text("Error")
                                     .font(.caption2)
                                     .foregroundStyle(.red)
-                                Text(imageURL)
+                                Text(imageURL.prefix(30) + "...")
                                     .font(.caption2)
                                     .foregroundStyle(.gray)
                                     .lineLimit(1)
                             }
                             .onAppear {
-                                print("❌ AsyncImage failed for \(product.displayName): \(error)")
+                                print("❌ AsyncImage FAILED for \(product.displayName)")
+                                print("   Error: \(error)")
                                 print("   URL: \(imageURL)")
+                                print("   Images count: \(product.images.count)")
+                                if !product.images.isEmpty {
+                                    print("   First image URL: \(product.images.first?.imageURL ?? "nil")")
+                                }
                             }
                         case .empty:
                             VStack {
@@ -53,6 +58,10 @@ struct ProductCard: View {
                                 Text("Loading...")
                                     .font(.caption2)
                                     .foregroundStyle(.gray)
+                            }
+                            .onAppear {
+                                print("🔄 AsyncImage LOADING for \(product.displayName)")
+                                print("   URL: \(imageURL)")
                             }
                         @unknown default:
                             VStack {
@@ -75,9 +84,13 @@ struct ProductCard: View {
                             .foregroundStyle(.gray)
                     }
                     .onAppear {
-                        print("🔍 Product \(product.displayName) has no image URL")
+                        print("🔍 Product \(product.displayName) has NO IMAGE URL")
                         print("   - primaryImageURL: \(product.primaryImageURL ?? "nil")")
                         print("   - images count: \(product.images.count)")
+                        print("   - deprecated imageURL: \(product.imageURL ?? "nil")")
+                        for (index, image) in product.images.enumerated() {
+                            print("   - Image \(index): \(image.imageURL ?? "nil")")
+                        }
                     }
                 }
             }
@@ -112,8 +125,6 @@ struct ProductCard: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: "plus")
-                            .font(.caption.bold())
-                        Text("Add to Cart")
                             .font(.caption.bold())
                     }
                     .frame(maxWidth: .infinity)

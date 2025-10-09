@@ -29,21 +29,61 @@ struct ProductDetailView: View {
                             .frame(height: 300)
                         
                         if let imageURL = product.primaryImageURL, !imageURL.isEmpty {
-                            AsyncImage(url: URL(string: imageURL)) { image in
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(height: 300)
-                                    .clipped()
-                            } placeholder: {
+                            AsyncImage(url: URL(string: imageURL)) { phase in
+                                switch phase {
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(height: 300)
+                                        .clipped()
+                                case .failure(let error):
+                                    VStack(spacing: 12) {
+                                        Image(systemName: "exclamationmark.triangle")
+                                            .font(.system(size: 60))
+                                            .foregroundStyle(.red.opacity(0.7))
+                                        Text("Failed to load image")
+                                            .font(.caption)
+                                            .foregroundStyle(.red)
+                                        Text(imageURL.prefix(40) + "...")
+                                            .font(.caption2)
+                                            .foregroundStyle(.gray)
+                                            .multilineTextAlignment(.center)
+                                    }
+                                    .padding()
+                                    .onAppear {
+                                        print("❌ DetailView AsyncImage FAILED for \(product.displayName)")
+                                        print("   Error: \(error)")
+                                        print("   URL: \(imageURL)")
+                                        print("   Images count: \(product.images.count)")
+                                        if !product.images.isEmpty {
+                                            print("   First image URL: \(product.images.first?.imageURL ?? "nil")")
+                                        }
+                                    }
+                                case .empty:
+                                    ProgressView()
+                                        .scaleEffect(1.5)
+                                @unknown default:
+                                    Image(systemName: "shippingbox")
+                                        .font(.system(size: 80))
+                                        .foregroundStyle(AppColors.accent.opacity(0.7))
+                                }
+                            }
+                        } else {
+                            VStack(spacing: 12) {
                                 Image(systemName: "shippingbox")
                                     .font(.system(size: 80))
                                     .foregroundStyle(AppColors.accent.opacity(0.7))
+                                Text("No image available")
+                                    .font(.caption)
+                                    .foregroundStyle(.gray)
                             }
-                        } else {
-                            Image(systemName: "shippingbox")
-                                .font(.system(size: 80))
-                                .foregroundStyle(AppColors.accent.opacity(0.7))
+                            .onAppear {
+                                print("🔍 DetailView: Product \(product.displayName) has NO IMAGE URL")
+                                print("   - primaryImageURL: \(product.primaryImageURL ?? "nil")")
+                                print("   - images count: \(product.images.count)")
+                                print("   - deprecated imageURL: \(product.imageURL ?? "nil")")
+                            }
                         }
                     }
                     

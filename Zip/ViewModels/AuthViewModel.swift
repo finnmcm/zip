@@ -21,6 +21,9 @@ final class AuthViewModel: ObservableObject {
     @Published var isSignUpMode: Bool = false
     @Published var isAuthenticated: Bool = false
     @Published var rememberMe: Bool = false
+    @Published var isPendingEmailVerification: Bool = false
+    @Published var pendingVerificationEmail: String?
+    @Published var pendingVerificationPassword: String?
     
     // MARK: - Callbacks
     var onAuthenticationSuccess: (() -> Void)?
@@ -91,23 +94,26 @@ final class AuthViewModel: ObservableObject {
                 phoneNumber: phoneNumber.trimmed
             )
             
-            currentUser = user
-            isAuthenticated = true
+            // Store credentials for pending verification
+            pendingVerificationEmail = email.trimmed
+            pendingVerificationPassword = password
+            
+            // Set pending verification state instead of authenticated
+            isPendingEmailVerification = true
+            isAuthenticated = false
+            currentUser = nil
+            
+            // Clear form but preserve verification credentials
+            let storedEmail = pendingVerificationEmail
+            let storedPassword = pendingVerificationPassword
             clearForm()
+            pendingVerificationEmail = storedEmail
+            pendingVerificationPassword = storedPassword
+            
             errorMessage = nil
             
             print("✅ User signed up successfully: \(user.email)")
-            
-            // Initialize FCM for the authenticated user
-            await fcmService.onUserLogin()
-            
-            // Start periodic verification checking for unverified users
-            if !user.verified {
-                startVerificationStatusChecking()
-            }
-            
-            // Notify that authentication was successful
-            onAuthenticationSuccess?()
+            print("⏳ User needs to verify email before accessing the app")
             
         } catch let error as AuthError {
             errorMessage = error.localizedDescription
@@ -135,6 +141,9 @@ final class AuthViewModel: ObservableObject {
             
             currentUser = user
             isAuthenticated = true
+            isPendingEmailVerification = false
+            pendingVerificationEmail = nil
+            pendingVerificationPassword = nil
             errorMessage = nil
             
             // Save credentials to keychain if remember me is enabled
@@ -178,6 +187,9 @@ final class AuthViewModel: ObservableObject {
             try await authService.signOut()
             currentUser = nil
             isAuthenticated = false
+            isPendingEmailVerification = false
+            pendingVerificationEmail = nil
+            pendingVerificationPassword = nil
             
             // Clear saved credentials on logout
             _ = keychainService.clearCredentials()
@@ -195,6 +207,9 @@ final class AuthViewModel: ObservableObject {
             // Even if signout fails, clear local state
             currentUser = nil
             isAuthenticated = false
+            isPendingEmailVerification = false
+            pendingVerificationEmail = nil
+            pendingVerificationPassword = nil
             _ = keychainService.clearCredentials()
             rememberMe = false
             

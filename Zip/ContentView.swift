@@ -20,9 +20,18 @@ struct ContentView: View {
             if authViewModel.isAuthenticated {
                 MainTabView(cartViewModel: cartViewModel, authViewModel: authViewModel, shoppingViewModel: shoppingViewModel)
                     .environmentObject(authViewModel)
+                    .task {
+                        // Load products immediately when authenticated view appears
+                        print("📱 ContentView: .task triggered, loading products...")
+                        await shoppingViewModel.loadProducts()
+                        print("📱 ContentView: .task completed")
+                    }
                     .onAppear {
-                        // Set up authentication success callback
+                        print("📱 ContentView: MainTabView appeared, isAuthenticated: \(authViewModel.isAuthenticated)")
+                        
+                        // Set up authentication success callback for subsequent logins
                         authViewModel.onAuthenticationSuccess = {
+                            print("📱 ContentView: onAuthenticationSuccess callback triggered")
                             Task {
                                 await shoppingViewModel.loadProducts()
                             }
@@ -30,19 +39,27 @@ struct ContentView: View {
                         
                         // Set up email verification success callback
                         authViewModel.onEmailVerificationSuccess = {
-                            print("🔄 Email verification callback triggered - refreshing products...")
-                            Task {
-                                await shoppingViewModel.loadProducts()
-                            }
-                        }
-                        
-                        // If already authenticated, load products
-                        if authViewModel.isAuthenticated {
+                            print("🔄 ContentView: Email verification callback triggered - refreshing products...")
                             Task {
                                 await shoppingViewModel.loadProducts()
                             }
                         }
                     }
+                    .onChange(of: authViewModel.isAuthenticated) { oldValue, newValue in
+                        print("📱 ContentView: isAuthenticated changed from \(oldValue) to \(newValue)")
+                        if newValue {
+                            print("📱 ContentView: User became authenticated, loading products...")
+                            Task {
+                                await shoppingViewModel.loadProducts()
+                            }
+                        }
+                    }
+            } else if authViewModel.isPendingEmailVerification,
+                      let email = authViewModel.pendingVerificationEmail,
+                      let password = authViewModel.pendingVerificationPassword {
+                // Show email verification pending view
+                EmailVerificationPendingView(email: email, password: password)
+                    .environmentObject(authViewModel)
             } else {
                 LoginView()
                     .environmentObject(authViewModel)

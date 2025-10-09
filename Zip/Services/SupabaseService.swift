@@ -249,6 +249,24 @@ final class SupabaseService: SupabaseServiceProtocol {
                     
                 
                 print("✅ Successfully fetched \(response.count) product images for \(productIds.count) products from Supabase")
+                
+                // Convert storage paths to signed URLs if needed
+                for productImage in response {
+                    if let imageURL = productImage.imageURL, !imageURL.isEmpty {
+                        // Check if this is a storage path (doesn't start with http)
+                        if !imageURL.hasPrefix("http") {
+                            print("🔍 Converting storage path to signed URL: \(imageURL)")
+                            do {
+                                let signedURL = try await getProductImageSignedURL(path: imageURL)
+                                productImage.imageURL = signedURL
+                                print("✅ Converted to signed URL: \(signedURL)")
+                            } catch {
+                                print("⚠️ Failed to convert storage path to signed URL: \(error)")
+                            }
+                        }
+                    }
+                }
+                
                 return response
             } catch {
                 print("❌ Error fetching product images from Supabase: \(error)")
@@ -258,6 +276,42 @@ final class SupabaseService: SupabaseServiceProtocol {
         
         // If Supabase client is not configured, throw an error
         throw SupabaseError.clientNotConfigured
+    }
+    
+    // MARK: - Product Image URL Helper
+    
+    /// Converts a storage path to a signed URL for product images
+    private func getProductImageSignedURL(path: String) async throws -> String {
+        guard let supabase = supabase else {
+            throw SupabaseError.clientNotConfigured
+        }
+        
+        do {
+            // Remove leading slash if present
+            let cleanPath = path.hasPrefix("/") ? String(path.dropFirst()) : path
+            
+            // Try to get a public URL first (if bucket is public)
+            let publicURL = try supabase.storage
+                .from("product-images")
+                .getPublicURL(path: cleanPath)
+            
+            return publicURL.absoluteString
+        } catch {
+            print("⚠️ Failed to get public URL, trying signed URL: \(error)")
+            
+            // If public URL fails, try to get a signed URL
+            do {
+                let cleanPath = path.hasPrefix("/") ? String(path.dropFirst()) : path
+                let signedURL = try await supabase.storage
+                    .from("product-images")
+                    .createSignedURL(path: cleanPath, expiresIn: 3600) // 1 hour expiry
+                
+                return signedURL.absoluteString
+            } catch {
+                print("❌ Failed to get signed URL: \(error)")
+                throw error
+            }
+        }
     }
     
     func fetchLowStockItems() async throws -> [Product] {
