@@ -29,29 +29,6 @@ struct CategoryListView: View {
                 AppColors.background.ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Order status banner at the top
-                    if let activeOrder = orderStatusViewModel.activeOrder {
-                        OrderStatusBannerContainer(
-                            activeOrder: activeOrder,
-                            onBannerDismiss: {
-                                orderStatusViewModel.dismissBanner()
-                            },
-                            onOrderCancelled: { _ in
-                                orderStatusViewModel.clearActiveOrder()
-                                Task {
-                                    await authViewModel.refreshCurrentUser()
-                                }
-                            },
-                            authViewModel: authViewModel
-                        )
-                    }
-                    
-                    // Store closed banner
-                    StoreClosedBanner(currentUser: authViewModel.currentUser)
-                    
-                    // Email verification banner
-                    EmailVerificationBanner(currentUser: authViewModel.currentUser, authViewModel: authViewModel)
-                    
                     ScrollView {
                         VStack(spacing: AppMetrics.spacingLarge) {
                             // Modern Header Section
@@ -95,6 +72,33 @@ struct CategoryListView: View {
                             removal: .move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.8)).combined(with: .offset(y: 50))
                         ))
                         .animation(.spring(response: 0.5, dampingFraction: 0.8), value: cartViewModel.showBanner)
+                    }
+                }
+                .overlay(alignment: .top) {
+                    // Banners overlaid on top
+                    VStack(spacing: 0) {
+                        // Order status banner at the top
+                        if let activeOrder = orderStatusViewModel.activeOrder {
+                            OrderStatusBannerContainer(
+                                activeOrder: activeOrder,
+                                onBannerDismiss: {
+                                    orderStatusViewModel.dismissBanner()
+                                },
+                                onOrderCancelled: { _ in
+                                    orderStatusViewModel.clearActiveOrder()
+                                    Task {
+                                        await authViewModel.refreshCurrentUser()
+                                    }
+                                },
+                                authViewModel: authViewModel
+                            )
+                        }
+                        
+                        // Store closed banner
+                   //     StoreClosedBanner(currentUser: authViewModel.currentUser)
+                        
+                        // Email verification banner
+                        EmailVerificationBanner(currentUser: authViewModel.currentUser, authViewModel: authViewModel)
                     }
                 }
             }
