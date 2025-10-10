@@ -340,6 +340,43 @@ final class AuthViewModel: ObservableObject {
 
     // MARK: - User Data Management
     
+    /// Refreshes the current user's data from the database
+    func refreshCurrentUser() async {
+        guard let currentUserId = currentUser?.id else {
+            print("⚠️ AuthViewModel: No current user to refresh")
+            return
+        }
+        
+        print("🔄 AuthViewModel: Refreshing user data for ID: \(currentUserId)")
+        
+        do {
+            if let refreshedUser = try await authService.fetchUserById(userId: currentUserId) {
+                // Create a new user instance with updated data
+                let updatedUser = User(
+                    id: refreshedUser.id,
+                    email: refreshedUser.email,
+                    firstName: refreshedUser.firstName,
+                    lastName: refreshedUser.lastName,
+                    phoneNumber: refreshedUser.phoneNumber,
+                    storeCredit: refreshedUser.storeCredit,
+                    role: refreshedUser.role,
+                    verified: refreshedUser.verified,
+                    fcmToken: refreshedUser.fcmToken,
+                    createdAt: refreshedUser.createdAt,
+                    updatedAt: refreshedUser.updatedAt
+                )
+                updatedUser.orders = currentUser?.orders ?? []
+                
+                self.currentUser = updatedUser
+                print("✅ AuthViewModel: User data refreshed. Store credit: $\(refreshedUser.storeCredit)")
+            } else {
+                print("⚠️ AuthViewModel: Could not fetch updated user data")
+            }
+        } catch {
+            print("❌ AuthViewModel: Error refreshing user data: \(error)")
+        }
+    }
+    
     /// Updates the current user's orders
     /// - Parameter orders: Array of orders to assign to the current user
     func updateUserOrders(_ orders: [Order]) {

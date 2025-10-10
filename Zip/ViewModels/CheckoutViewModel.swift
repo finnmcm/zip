@@ -22,6 +22,7 @@ final class CheckoutViewModel: ObservableObject {
     @Published var appliedStoreCredit: Decimal = 0.0
     @Published var showStoreCreditOption: Bool = false
     @Published var isApplePayAvailable: Bool = false
+    @Published var isOffCampusAddressWithinRadius: Bool = true
 
     private let stripe: StripeServiceProtocol
     private let supabase: SupabaseServiceProtocol
@@ -60,6 +61,15 @@ final class CheckoutViewModel: ObservableObject {
             return
         }
         
+        // Validate stock levels before processing payment
+        let stockValidation = await validateCartStock()
+        if !stockValidation.isValid {
+            errorMessage = stockValidation.errorMessage
+            showErrorBanner = true
+            paymentError = stockValidation.errorMessage
+            return
+        }
+        
         isProcessing = true
         defer { isProcessing = false }
 
@@ -94,16 +104,6 @@ final class CheckoutViewModel: ObservableObject {
             // Create order in Supabase backend
             let createdOrder = try await supabase.createOrder(order)
             lastOrder = createdOrder
-            
-            // Check if user has sufficient store credit to cover the entire order
-            let maxStoreCredit = min(currentUser.storeCredit, total)
-            print("🍎 maxStoreCredit available: $\(maxStoreCredit)")
-            
-            // If user has enough store credit to cover the entire order, apply it automatically
-            if currentUser.storeCredit >= total && appliedStoreCredit == 0 {
-                print("🍎 Auto-applying store credit to cover entire order")
-                appliedStoreCredit = total
-            }
             
             // Handle payment based on store credit application
             if appliedStoreCredit >= total {
@@ -140,11 +140,11 @@ final class CheckoutViewModel: ObservableObject {
                 return
             }
             
-            // Process Apple Pay payment for remaining amount
+            // Process Apple Pay payment for remaining amount (after store credit)
             let description = "Zip Order #\(createdOrder.id.uuidString.prefix(8))"
             let result = await stripe.processApplePayPayment(
-                amount: cart.subtotal, // Include delivery fee
-                tip: tipAmount, 
+                amount: finalTotal, // Amount after store credit discount
+                tip: 0, // Tip already included in finalTotal
                 description: description, 
                 orderId: createdOrder.id
             )
@@ -163,6 +163,12 @@ final class CheckoutViewModel: ObservableObject {
                 
                 // Update the OrderStatusViewModel with the new active order
                 orderStatusViewModel.activeOrder = createdOrder
+                
+                // Update user's store credit if any was applied
+                if appliedStoreCredit > 0 {
+                    print("💳 Updating user store credit after partial payment...")
+                    await updateUserStoreCredit(amount: appliedStoreCredit)
+                }
                 
                 // Provide haptic feedback for successful payment
                 let impactFeedback = UINotificationFeedbackGenerator()
@@ -223,6 +229,15 @@ final class CheckoutViewModel: ObservableObject {
             return
         }
         
+        // Validate stock levels before processing payment
+        let stockValidation = await validateCartStock()
+        if !stockValidation.isValid {
+            errorMessage = stockValidation.errorMessage
+            showErrorBanner = true
+            paymentError = stockValidation.errorMessage
+            return
+        }
+        
         isProcessing = true
         defer { isProcessing = false }
 
@@ -259,16 +274,6 @@ final class CheckoutViewModel: ObservableObject {
             // Create order in Supabase backend
             let createdOrder = try await supabase.createOrder(order)
             lastOrder = createdOrder
-            
-            // Check if user has sufficient store credit to cover the entire order
-            let maxStoreCredit = min(currentUser.storeCredit, total)
-            print("🔍 maxStoreCredit available: $\(maxStoreCredit)")
-            
-            // If user has enough store credit to cover the entire order, apply it automatically
-            if currentUser.storeCredit >= total && appliedStoreCredit == 0 {
-                print("🔍 Auto-applying store credit to cover entire order")
-                appliedStoreCredit = total
-            }
             
             // Handle payment based on store credit application
             if appliedStoreCredit >= total {
@@ -307,11 +312,11 @@ final class CheckoutViewModel: ObservableObject {
                 return
             }
             
-            // Process payment for remaining amount
+            // Process payment for remaining amount (after store credit)
             let description = "Zip Order #\(createdOrder.id.uuidString.prefix(8))"
             let result = await stripe.processPayment(
-                amount: cart.subtotal, 
-                tip: tipAmount, 
+                amount: finalTotal, // Amount after store credit discount
+                tip: 0, // Tip already included in finalTotal
                 description: description, 
                 orderId: createdOrder.id
             )
@@ -330,6 +335,12 @@ final class CheckoutViewModel: ObservableObject {
                 
                 // Update the OrderStatusViewModel with the new active order
                 orderStatusViewModel.activeOrder = createdOrder
+                
+                // Update user's store credit if any was applied
+                if appliedStoreCredit > 0 {
+                    print("💳 Updating user store credit after partial payment...")
+                    await updateUserStoreCredit(amount: appliedStoreCredit)
+                }
                 
                 // Note: Zippers are notified automatically via Stripe webhook when payment succeeds
                 
@@ -384,6 +395,44 @@ final class CheckoutViewModel: ObservableObject {
     func dismissErrorBanner() {
         showErrorBanner = false
         paymentError = nil
+    }
+    
+    // MARK: - Stock Validation
+    
+    /// Validates that all items in the cart are still in stock with sufficient quantities
+    /// - Returns: A tuple with a boolean indicating if stock is valid and an optional error message
+    private func validateCartStock() async -> (isValid: Bool, errorMessage: String?) {
+        print("🔍 Validating cart stock levels...")
+        
+        for cartItem in cart.items {
+            do {
+                // Fetch the latest product data from the database
+                guard let currentProduct = try await supabase.fetchProduct(id: cartItem.product.id) else {
+                    print("❌ Product not found: \(cartItem.product.displayName)")
+                    return (false, "\(cartItem.product.displayName) is no longer available")
+                }
+                
+                // Check if the cart quantity exceeds available stock
+                if cartItem.quantity > currentProduct.quantity {
+                    print("❌ Insufficient stock for \(cartItem.product.displayName): requested \(cartItem.quantity), available \(currentProduct.quantity)")
+                    
+                    if currentProduct.quantity == 0 {
+                        return (false, "\(cartItem.product.displayName) is out of stock")
+                    } else {
+                        return (false, "Only \(currentProduct.quantity) of \(cartItem.product.displayName) in stock (you have \(cartItem.quantity) in cart)")
+                    }
+                }
+                
+                print("✅ Stock validated for \(cartItem.product.displayName): \(cartItem.quantity) requested, \(currentProduct.quantity) available")
+                
+            } catch {
+                print("❌ Error fetching product \(cartItem.product.displayName): \(error)")
+                return (false, "Unable to verify stock availability. Please try again.")
+            }
+        }
+        
+        print("✅ All cart items validated successfully")
+        return (true, nil)
     }
     
     // MARK: - Store Credit Methods

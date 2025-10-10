@@ -17,6 +17,9 @@ final class OrderTrackingViewModel: ObservableObject {
     // MARK: - Services
     private let supabaseService = SupabaseService()
     
+    // MARK: - Dependencies
+    private let authViewModel: AuthViewModel
+    
     // MARK: - Callbacks
     var onOrderCancelled: ((Order) -> Void)?
     
@@ -25,7 +28,8 @@ final class OrderTrackingViewModel: ObservableObject {
     private let refreshInterval: TimeInterval = 30 // Refresh every 30 seconds
     
     // MARK: - Initialization
-    init() {
+    init(authViewModel: AuthViewModel) {
+        self.authViewModel = authViewModel
         startRefreshTimer()
     }
     
@@ -133,7 +137,7 @@ final class OrderTrackingViewModel: ObservableObject {
         defer { isLoading = false }
         
         do {
-            let success = try await supabaseService.cancelOrder(orderId: currentOrder.id)
+            let success = try await supabaseService.cancelOrder(orderId: currentOrder.id, order_value: currentOrder.totalAmount, userId: authViewModel.currentUser?.id ?? "")
             
             if success {
                 // Update the local order status
@@ -143,6 +147,9 @@ final class OrderTrackingViewModel: ObservableObject {
                 
                 // Stop the refresh timer since the order is now cancelled
                 stopRefreshTimer()
+                
+                // Refresh user data to update store credit
+                await authViewModel.refreshCurrentUser()
                 
                 // Notify other view models that the order was cancelled
                 onOrderCancelled?(currentOrder)

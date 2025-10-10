@@ -23,6 +23,7 @@ protocol AuthenticationServiceProtocol {
     func signIn(email: String, password: String) async throws -> User
     func signOut() async throws
     func getCurrentUser() async throws -> User?
+    func fetchUserById(userId: String) async throws -> User?
     func resetPassword(email: String) async throws
     func updateProfile(_ user: User) async throws -> User
     func checkVerificationStatus(email: String) async throws -> Bool
@@ -262,6 +263,37 @@ final class AuthenticationService: AuthenticationServiceProtocol {
             
         } catch {
             print("❌ AuthenticationService: Error getting current user: \(error)")
+            print("❌ AuthenticationService: Error type: \(type(of: error))")
+            if let postgrestError = error as? PostgrestError {
+                print("❌ AuthenticationService: PostgrestError code: \(postgrestError.code ?? "nil")")
+                print("❌ AuthenticationService: PostgrestError message: \(postgrestError.message)")
+            }
+            return nil
+        }
+    }
+    
+    func fetchUserById(userId: String) async throws -> User? {
+        guard let supabase = supabase else {
+            throw AuthError.clientNotConfigured
+        }
+        
+        do {
+            print("🔍 AuthenticationService: Fetching user by ID: \(userId)")
+            
+            // Fetch user profile from database by ID
+            let profileResponse: User = try await supabase
+                .from("users")
+                .select()
+                .eq("id", value: userId)
+                .single()
+                .execute()
+                .value
+            
+            print("✅ AuthenticationService: User fetched successfully: \(profileResponse.email)")
+            return profileResponse
+            
+        } catch {
+            print("❌ AuthenticationService: Error fetching user by ID: \(error)")
             print("❌ AuthenticationService: Error type: \(type(of: error))")
             if let postgrestError = error as? PostgrestError {
                 print("❌ AuthenticationService: PostgrestError code: \(postgrestError.code ?? "nil")")

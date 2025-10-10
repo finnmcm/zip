@@ -204,7 +204,10 @@ struct CheckoutView: View {
                                     Spacer()
                             }
                             HStack{
-                                Button(action: { viewModel.isCampusDelivery = true }) {
+                                Button(action: { 
+                                    viewModel.isCampusDelivery = true
+                                    viewModel.isOffCampusAddressWithinRadius = true // Reset when switching to campus
+                                }) {
                                     Text("On Campus")
                                         .font(.headline)
                                         .foregroundStyle( !viewModel.isCampusDelivery ? AppColors.textSecondary : AppColors.accent)
@@ -214,7 +217,10 @@ struct CheckoutView: View {
                                     }
                                     .buttonStyle(.plain)
                 
-                                Button(action: { viewModel.isCampusDelivery = false }) {
+                                Button(action: { 
+                                    viewModel.isCampusDelivery = false
+                                    // Will be updated by AddressSelectionView when address is selected
+                                }) {
                                     Text("Off Campus")
                                         .font(.headline)
                                         .foregroundStyle(viewModel.isCampusDelivery ? AppColors.textSecondary : AppColors.accent)
@@ -259,7 +265,7 @@ struct CheckoutView: View {
                                 })
                                 .frame(height: 50)
                                 .cornerRadius(AppMetrics.cornerRadiusLarge)
-                                .disabled(viewModel.isProcessing || viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "" || !(viewModel.authViewModel.currentUser?.verified ?? false))
+                                .disabled(viewModel.isProcessing || viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "" || !viewModel.isCampusDelivery && !viewModel.isOffCampusAddressWithinRadius || !(viewModel.authViewModel.currentUser?.verified ?? false))
                                 .padding(.horizontal, AppMetrics.spacingLarge)
                             }
                             
@@ -286,11 +292,11 @@ struct CheckoutView: View {
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "" ? AppColors.textSecondary : AppColors.accent)
+                                .background(viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "" || !viewModel.isCampusDelivery && !viewModel.isOffCampusAddressWithinRadius ? AppColors.textSecondary : AppColors.accent)
                                 .foregroundColor(.white)
                                 .cornerRadius(AppMetrics.cornerRadiusLarge)
                             }
-                            .disabled(viewModel.isProcessing || viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "" || !(viewModel.authViewModel.currentUser?.verified ?? false))
+                            .disabled(viewModel.isProcessing || viewModel.isCampusDelivery == true && viewModel.selectedBuilding == "" || !viewModel.isCampusDelivery && viewModel.selectedAddress == "" || !viewModel.isCampusDelivery && !viewModel.isOffCampusAddressWithinRadius || !(viewModel.authViewModel.currentUser?.verified ?? false))
                             .buttonStyle(.plain)
                             .padding(.horizontal, AppMetrics.spacingLarge)
                             .padding(.bottom, AppMetrics.spacingLarge)

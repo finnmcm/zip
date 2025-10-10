@@ -9,6 +9,7 @@ struct OrderStatusBanner: View {
     let order: Order
     let onDismiss: () -> Void
     let onOrderCancelled: ((Order) -> Void)?
+    @ObservedObject var authViewModel: AuthViewModel
     
     @State private var isVisible = false
     @State private var timeRemaining: TimeInterval = 0
@@ -62,7 +63,7 @@ struct OrderStatusBanner: View {
             // Main banner content
             ZStack {
                 // NavigationLink for the main banner area
-                NavigationLink(destination: OrderTrackingView(order: order, onOrderCancelled: onOrderCancelled)) {
+                NavigationLink(destination: OrderTrackingView(order: order, authViewModel: authViewModel, onOrderCancelled: onOrderCancelled)) {
                     HStack(spacing: AppMetrics.spacing) {
                         // Status icon with background
                         ZStack {
@@ -148,6 +149,7 @@ struct OrderStatusBannerContainer: View {
     let activeOrder: Order?
     let onBannerDismiss: () -> Void
     let onOrderCancelled: ((Order) -> Void)?
+    @ObservedObject var authViewModel: AuthViewModel
     
     var body: some View {
         if let order = activeOrder, 
@@ -155,7 +157,8 @@ struct OrderStatusBannerContainer: View {
             OrderStatusBanner(
                 order: order,
                 onDismiss: onBannerDismiss,
-                onOrderCancelled: onOrderCancelled
+                onOrderCancelled: onOrderCancelled,
+                authViewModel: authViewModel
             )
             .allowsHitTesting(true)
         }
@@ -183,7 +186,8 @@ struct OrderStatusBannerContainer: View {
                     lastName: "Doe"
                 ),
                 onDismiss: {},
-                onOrderCancelled: nil
+                onOrderCancelled: nil,
+                authViewModel: AuthViewModel()
             )
             
             Spacer()
@@ -212,7 +216,8 @@ struct OrderStatusBannerContainer: View {
                     lastName: "Doe"
                 ),
                 onDismiss: {},
-                onOrderCancelled: nil
+                onOrderCancelled: nil,
+                authViewModel: AuthViewModel()
             )
             
             Spacer()

@@ -42,10 +42,28 @@ final class CartViewModel: ObservableObject {
     func add(product: Product, quantity: Int = 1) {
         print("🛒 CartViewModel: Adding product '\(product.displayName)' with quantity \(quantity)")
         print("🛒 CartViewModel: Current items count before add: \(items.count)")
+        print("🛒 CartViewModel: Product stock available: \(product.quantity)")
         
         if let existingItem = items.first(where: { $0.product.id == product.id }) {
-            print("🛒 CartViewModel: Found existing item, incrementing quantity from \(existingItem.quantity) to \(existingItem.quantity + quantity)")
-            existingItem.quantity += quantity
+            print("🛒 CartViewModel: Found existing item, current quantity: \(existingItem.quantity)")
+            
+            // Check if adding the requested quantity would exceed available stock
+            let newQuantity = existingItem.quantity + quantity
+            if newQuantity > product.quantity {
+                print("❌ CartViewModel: Cannot add \(quantity) more - would exceed stock. Current: \(existingItem.quantity), Available: \(product.quantity)")
+                let availableToAdd = product.quantity - existingItem.quantity
+                if availableToAdd > 0 {
+                    showBannerNotification(message: "Only \(availableToAdd) more in stock", type: .error)
+                } else {
+                    showBannerNotification(message: "No more \(product.displayName) in stock", type: .error)
+                }
+                let notificationFeedback = UINotificationFeedbackGenerator()
+                notificationFeedback.notificationOccurred(.error)
+                return
+            }
+            
+            print("🛒 CartViewModel: Incrementing quantity from \(existingItem.quantity) to \(newQuantity)")
+            existingItem.quantity = newQuantity
             // Force UI update by reassigning the array
             items = Array(items)
             // Provide haptic feedback
@@ -53,6 +71,19 @@ final class CartViewModel: ObservableObject {
             impactFeedback.impactOccurred()
             showBannerNotification(message: "\(product.displayName) quantity updated!", type: .success)
         } else {
+            // Check if requested quantity exceeds available stock for new item
+            if quantity > product.quantity {
+                print("❌ CartViewModel: Cannot add \(quantity) - exceeds stock. Available: \(product.quantity)")
+                if product.quantity > 0 {
+                    showBannerNotification(message: "Only \(product.quantity) in stock", type: .error)
+                } else {
+                    showBannerNotification(message: "\(product.displayName) out of stock", type: .error)
+                }
+                let notificationFeedback = UINotificationFeedbackGenerator()
+                notificationFeedback.notificationOccurred(.error)
+                return
+            }
+            
             print("🛒 CartViewModel: Creating new cart item for '\(product.displayName)'")
             let newItem = CartItem(product: product, quantity: quantity, userId: UUID()) // Using placeholder UUID for now
             items.append(newItem)
@@ -95,7 +126,22 @@ final class CartViewModel: ObservableObject {
             print("❌ CartViewModel: Could not find item to increment")
             return 
         }
-        print("🛒 CartViewModel: Incrementing quantity from \(items[idx].quantity) to \(items[idx].quantity + 1)")
+        
+        let currentQuantity = items[idx].quantity
+        let availableStock = item.product.quantity
+        
+        print("🛒 CartViewModel: Current quantity: \(currentQuantity), Available stock: \(availableStock)")
+        
+        // Check if incrementing would exceed available stock
+        if currentQuantity >= availableStock {
+            print("❌ CartViewModel: Cannot increment - at stock limit. Current: \(currentQuantity), Available: \(availableStock)")
+            showBannerNotification(message: "Maximum stock reached for \(item.product.displayName)", type: .error)
+            let notificationFeedback = UINotificationFeedbackGenerator()
+            notificationFeedback.notificationOccurred(.error)
+            return
+        }
+        
+        print("🛒 CartViewModel: Incrementing quantity from \(currentQuantity) to \(currentQuantity + 1)")
         items[idx].quantity += 1
         // Force UI update by reassigning the array
         items = Array(items)

@@ -92,7 +92,7 @@ struct ConfirmationDialog: View {
         
         ConfirmationDialog(
             title: "Cancel Order",
-            message: "Are you sure you want to cancel this order? This action cannot be undone and you will receive a full refund.",
+            message: "Are you sure you want to cancel this order? You will receive a full refund in the form of Zip store credit.",
             confirmButtonTitle: "Yes, Cancel Order",
             cancelButtonTitle: "Keep Order",
             isDestructive: true,

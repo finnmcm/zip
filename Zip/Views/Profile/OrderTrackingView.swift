@@ -7,10 +7,18 @@ import SwiftUI
 
 struct OrderTrackingView: View {
     let order: Order
-    @StateObject private var viewModel = OrderTrackingViewModel()
+    @ObservedObject var authViewModel: AuthViewModel
+    @StateObject private var viewModel: OrderTrackingViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showCancelConfirmation = false
     var onOrderCancelled: ((Order) -> Void)? = nil
+    
+    init(order: Order, authViewModel: AuthViewModel, onOrderCancelled: ((Order) -> Void)? = nil) {
+        self.order = order
+        self.authViewModel = authViewModel
+        self._viewModel = StateObject(wrappedValue: OrderTrackingViewModel(authViewModel: authViewModel))
+        self.onOrderCancelled = onOrderCancelled
+    }
     
     var body: some View {
         ScrollView {
@@ -318,6 +326,7 @@ struct OrderTrackingView: View {
                 firstName: "John",
                 lastName: "Doe"
             ),
+            authViewModel: AuthViewModel(),
             onOrderCancelled: nil
         )
     }

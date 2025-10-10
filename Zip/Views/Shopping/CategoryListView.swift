@@ -38,7 +38,11 @@ struct CategoryListView: View {
                             },
                             onOrderCancelled: { _ in
                                 orderStatusViewModel.clearActiveOrder()
-                            }
+                                Task {
+                                    await authViewModel.refreshCurrentUser()
+                                }
+                            },
+                            authViewModel: authViewModel
                         )
                     }
                     
@@ -58,9 +62,6 @@ struct CategoryListView: View {
                                     .frame(height: 80)
                                     .padding(.top, AppMetrics.spacingSmall)
                                 
-                                Text("Shop Zip")
-                                    .font(.system(size: 28, weight: .bold))
-                                    .foregroundStyle(AppColors.textPrimary)
                             }
                             .padding(.horizontal, AppMetrics.spacingLarge)
                             

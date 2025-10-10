@@ -7,6 +7,7 @@ import SwiftUI
 
 struct OrderStatusBannerDemo: View {
     @StateObject private var orderStatusViewModel = OrderStatusViewModel()
+    @StateObject private var authViewModel = AuthViewModel()
     @State private var selectedStatus: OrderStatus = .inQueue
     
     var body: some View {
@@ -75,7 +76,8 @@ struct OrderStatusBannerDemo: View {
                     onBannerDismiss: {
                         orderStatusViewModel.dismissBanner()
                     },
-                    onOrderCancelled: nil
+                    onOrderCancelled: nil,
+                    authViewModel: authViewModel
                 )
                 
                 Spacer()

@@ -53,7 +53,7 @@ protocol SupabaseServiceProtocol {
     func createOrder(_ order: Order) async throws -> Order
     func fetchUserOrders(userId: String) async throws -> [Order]
     func fetchOrderStatus(orderId: UUID) async throws -> Order?
-    func cancelOrder(orderId: UUID) async throws -> Bool
+    func cancelOrder(orderId: UUID, order_value: Decimal, userId: String) async throws -> Bool
     func addToCart(_ cartItem: CartItem) async throws -> CartItem
     func removeFromCart(id: UUID) async throws -> Bool
     func fetchUserCart(userId: String) async throws -> [CartItem]
@@ -815,13 +815,29 @@ final class SupabaseService: SupabaseServiceProtocol {
         }
     }
     
-    func cancelOrder(orderId: UUID) async throws -> Bool {
+    func cancelOrder(orderId: UUID, order_value: Decimal, userId: String) async throws -> Bool {
         // Check if Supabase client is configured
         guard let supabase = supabase else {
             throw SupabaseError.clientNotConfigured
         }
         
         do {
+            // First, fetch the order to get raw_amount and tip
+            let orderResponse: [OrderData] = try await supabase
+                .from("orders")
+                .select()
+                .eq("id", value: orderId.uuidString.lowercased())
+                .execute()
+                .value
+            
+            guard let orderData = orderResponse.first else {
+                print("❌ Order not found: \(orderId)")
+                return false
+            }
+            
+            // Calculate store credit as raw_amount + tip
+            let storeCreditAmount = Decimal(orderData.raw_amount) + Decimal(orderData.tip)
+            
             // Update the order status to cancelled
             let updateData: [String: String] = [
                 "status": "cancelled",
@@ -833,9 +849,38 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .update(updateData)
                 .eq("id", value: orderId.uuidString.lowercased())
                 .execute()
-            
-            print("✅ Successfully cancelled order: \(orderId)")
-            return true
+
+            //give store credit to user
+
+            do {
+                // First, fetch the current user to get their store credit
+                guard let user = try await fetchUser(userId: userId) else {
+                    print("❌ User not found: \(userId)")
+                    return false
+                }
+                
+                let currentStoreCredit = user.storeCredit
+                let newStoreCredit = currentStoreCredit + storeCreditAmount
+                
+                // Update with the new total
+                let userUpdateData: [String: Decimal] = [
+                    "store_credit": newStoreCredit
+                ]
+                    
+                let userUpdateResponse = try await supabase
+                    .from("users")
+                    .update(userUpdateData)
+                    .eq("id", value: userId)
+                    .execute()
+
+                user.storeCredit = newStoreCredit
+                print("✅ Successfully gave store credit to user: \(userId). Previous: \(currentStoreCredit), Added: \(storeCreditAmount) (raw_amount: \(orderData.raw_amount) + tip: \(orderData.tip)), New Total: \(newStoreCredit)")
+                return true
+
+            } catch {
+                print("❌ Error giving store credit to user: \(error)")
+                return false
+            }
             
         } catch {
             print("❌ Error cancelling order in Supabase: \(error)")
@@ -1445,6 +1490,41 @@ final class SupabaseService: SupabaseServiceProtocol {
             print("🔍 Attempting to accept order with ID: \(orderIdString)")
             print("🔍 Zipper ID: \(zipperId)")
             
+            // First, check the current status of the order
+            struct OrderStatusCheck: Codable {
+                let id: String
+                let status: String
+            }
+            
+            let statusResponse: [OrderStatusCheck] = try await supabase
+                .from("orders")
+                .select("id, status")
+                .eq("id", value: orderIdString)
+                .execute()
+                .value
+            
+            guard let orderStatus = statusResponse.first else {
+                print("❌ Order not found with ID: \(orderIdString)")
+                return false
+            }
+            
+            print("🔍 Current order status: \(orderStatus.status)")
+            
+            // Check if the order was cancelled
+            if orderStatus.status == "cancelled" {
+                print("⚠️ Order \(orderIdString) was cancelled. Cannot accept.")
+                return false
+            }
+            
+            // Check if the order is not in_queue (might have been accepted by another zipper)
+            if orderStatus.status != "in_queue" {
+                print("⚠️ Order \(orderIdString) is not available (status: \(orderStatus.status))")
+                return false
+            }
+            
+            // Order is in_queue, proceed with acceptance
+            print("✅ Order \(orderIdString) is available for acceptance")
+            
             // Update the order to assign it to the zipper and change status to in_progress
             let response = try await supabase
             .from("orders")
@@ -1454,7 +1534,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 "updated_at": ISO8601DateFormatter().string(from: Date())
             ])
             .eq("id", value: orderIdString)
-            .eq("status", value: "in_queue") // Double-check status hasn't changed
+            .eq("status", value: "in_queue") // Double-check status hasn't changed since our check
             .execute()
             
             print("🔍 Update response status: \(response.response.statusCode)")
@@ -1474,7 +1554,7 @@ final class SupabaseService: SupabaseServiceProtocol {
                 .execute()
             
             guard let count = countResponse.count, count > 0 else {
-                print("❌ Order was not successfully updated to in_progress status")
+                print("❌ Order was not successfully updated to in_progress status (may have been accepted by another zipper)")
                 return false
             }
             

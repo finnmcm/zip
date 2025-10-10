@@ -13,11 +13,10 @@ struct ProductCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: AppMetrics.spacing) {
-            // Product Image
+            // Product Image (fixed height container)
             ZStack {
                 RoundedRectangle(cornerRadius: AppMetrics.cornerRadiusLarge)
                     .fill(AppColors.secondaryBackground)
-                    .frame(height: AppMetrics.productCardImageHeight)
                 
                 if let imageURL = product.primaryImageURL, !imageURL.isEmpty {
                     AsyncImage(url: URL(string: imageURL)) { phase in
@@ -26,7 +25,7 @@ struct ProductCard: View {
                             image
                                 .resizable()
                                 .scaledToFit()
-                                .frame(height: AppMetrics.productCardImageHeight)
+                                .frame(maxHeight: AppMetrics.productCardImageHeight)
                                 .clipped()
                         case .failure(let error):
                             VStack {
@@ -94,22 +93,48 @@ struct ProductCard: View {
                     }
                 }
             }
+            .frame(height: AppMetrics.productCardImageHeight)
             
             VStack(alignment: .leading, spacing: AppMetrics.spacingSmall) {
-                // Product Name
+                // Product Name (fixed height with 2 lines)
                 Text(product.displayName)
-                    .font(.headline)
+                    .font(.system(size: 15))
+                    .fontWeight(.semibold)
                     .lineLimit(2)
+                    .frame(height: 40, alignment: .top)
                     .foregroundStyle(AppColors.textPrimary)
                 
-                // Category Badge
-                Text(product.category.displayName)
-                    .font(.caption)
-                    .foregroundStyle(AppColors.accent)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(AppColors.accent.opacity(0.1))
-                    .cornerRadius(AppMetrics.cornerRadiusSmall)
+                // Stock Alert Area (fixed height to normalize cards)
+                ZStack(alignment: .leading) {
+                    // Transparent placeholder to maintain height
+                    Text("Placeholder")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .opacity(0)
+                    
+                    // Actual stock alert (if present)
+                    if product.quantity <= 0 {
+                        Text("Out of Stock")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.red.opacity(0.1))
+                            .cornerRadius(AppMetrics.cornerRadiusSmall)
+                    } else if product.quantity <= 5 {
+                        Text("\(product.quantity) left")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.orange.opacity(0.1))
+                            .cornerRadius(AppMetrics.cornerRadiusSmall)
+                    }
+                }
+                .frame(height: 24, alignment: .leading)
+                
+                Spacer()
                 
                 // Price
                 Text("$\(NSDecimalNumber(decimal: product.price).doubleValue, specifier: "%.2f")")
@@ -136,6 +161,7 @@ struct ProductCard: View {
                 .buttonStyle(.plain)
                 .disabled(product.quantity <= 0)
             }
+            .frame(minHeight: 160)
         }
         .padding(AppMetrics.spacing)
         .background(AppColors.background)

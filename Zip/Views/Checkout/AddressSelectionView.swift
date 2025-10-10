@@ -119,6 +119,13 @@ struct AddressSelectionView: View {
             
             Spacer()
         }
+        .onChange(of: viewModel.isWithinDeliveryRadius) { _, newValue in
+            checkoutViewModel.isOffCampusAddressWithinRadius = newValue
+        }
+        .onAppear {
+            // Initialize the checkout view model with current state
+            checkoutViewModel.isOffCampusAddressWithinRadius = viewModel.isWithinDeliveryRadius
+        }
     }
     
     private func selectAddress(_ result: MKLocalSearchCompletion) {

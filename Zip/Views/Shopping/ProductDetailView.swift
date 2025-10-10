@@ -109,9 +109,19 @@ struct ProductDetailView: View {
                         HStack {
                             Image(systemName: product.quantity > 0 ? "checkmark.circle.fill" : "xmark.circle.fill")
                                 .foregroundStyle(product.quantity > 0 ? .green : .red)
-                            Text(product.quantity > 0 ? "In Stock" : "Out of Stock")
-                                .font(.subheadline)
-                                .foregroundStyle(product.quantity > 0 ? .green : .red)
+                            if product.quantity <= 0 {
+                                Text("Out of Stock")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.red)
+                            } else if product.quantity <= 5 {
+                                Text("In Stock - Only \(product.quantity) left")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.orange)
+                            } else {
+                                Text("In Stock")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.green)
+                            }
                         }
                         .padding(.top, AppMetrics.spacing)
                         
